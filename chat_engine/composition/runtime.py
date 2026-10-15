@@ -1,0 +1,316 @@
+"""chat_engine composition root (D3): composes upstream ``core.*`` directly.
+
+Never imports ``apps.*``. One process, in-memory by default (ADR-0014 posture
+inherited). Real providers (Groq / Genspark LLM / any OpenAI-compatible) are
+bound only when their keys are present in the environment — keys go through
+``InMemorySecretManager`` and adapters receive an opaque ``credential_ref``
+(20 §5). The hermetic ``local_echo`` provider is always bound so the engine
+is exercisable with zero credentials and never pretends a real model answered.
+"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Mapping, MutableMapping
+from dataclasses import dataclass, field
+from uuid import UUID, uuid4
+
+from core.context.composer import ContextComposer
+from core.contracts.domain import (
+    AuthType,
+    BindingAvailability,
+    Modality,
+    Model,
+    ModelStatus,
+    ModelTier,
+    Provider,
+    ProviderModelBinding,
+    ProviderStatus,
+)
+from core.contracts.provider import (
+    CredentialHealth,
+    CredentialStatus,
+    DiscoveredModel,
+    HealthScope,
+    ProviderCapabilities,
+    ProviderError,
+    ProviderErrorCategory,
+    ProviderGenerateRequest,
+    ProviderGenerateResponse,
+    ProviderHealth,
+    ProviderHealthState,
+    ProviderManifest,
+)
+from core.execution.multi_model import MultiModelExecutor
+from core.execution.service import ExecutionService
+from core.memory.memory import InMemoryConversationStore, InMemoryMemoryStore
+from core.providers.ports import ProviderAdapterPort
+from core.providers.registry import BindingRegistry, ModelRegistry, ProviderRegistry
+from core.roles.registry import RoleRegistry, SkillRegistry
+from core.routing.capacity import ResourceSignalBoard
+from core.routing.router import SimpleScoringRouter
+from core.secrets.memory import InMemorySecretManager
+from core.usage.memory import InMemoryUsageAccounting
+
+from chat_engine import UPSTREAM_SHA
+from chat_engine.store.executions import InMemoryExecutionStore
+
+#: Demo tenant/user for the keyless local profile (same posture as upstream's
+#: DEV_DEMO_PRINCIPAL=1 — explicit, never silently on in a durable profile).
+DEMO_TENANT_ID = UUID("00000000-0000-4000-8000-000000000001")
+DEMO_USER_ID = UUID("00000000-0000-4000-8000-000000000002")
+DEMO_TASK_UNITS = 1_000_000.0
+
+
+# --- hermetic provider ------------------------------------------------------------
+
+
+def echo_manifest() -> ProviderManifest:
+    return ProviderManifest.model_validate(
+        {
+            "id": "local_echo",
+            "name": "Local Echo (hermetic)",
+            "version": "1.0.0",
+            "status": "active",
+            "auth": {"types": ["api_key"], "supports_refresh": False},
+            "account_pool": {"supported": False},
+            "capabilities": {"chat": True},
+            "operations": ["generate_text"],
+            "models": {"discovery": "static", "static_models": ["local-echo-1"]},
+            "rate_limits": {"strategy": "provider_defined"},
+            "health": {"checks": ["ping"]},
+            "errors": {"mapping": "inline"},
+        }
+    )
+
+
+class LocalEchoAdapter:
+    """Hermetic ProviderAdapterPort — output mirrors upstream's local_echo
+    byte-for-byte so golden snapshots captured from upstream replay here."""
+
+    def __init__(self, manifest: ProviderManifest) -> None:
+        self._manifest = manifest
+
+    def get_manifest(self) -> ProviderManifest:
+        return self._manifest
+
+    async def validate_credential(self, credential_ref: str) -> CredentialHealth:
+        return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE)
+
+    async def discover_models(self, account_id: UUID | None = None) -> list[DiscoveredModel]:
+        return []
+
+    async def get_capabilities(self) -> ProviderCapabilities:
+        return self._manifest.capabilities
+
+    async def generate(self, request: ProviderGenerateRequest) -> ProviderGenerateResponse:
+        ask = request.payload.get("ask", "")
+        output: dict[str, object] = {
+            "provider": "local-echo",
+            "note": "hermetic local adapter — no real model was called",
+            "echo": ask,
+        }
+        context = request.payload.get("context")
+        if isinstance(context, dict):
+            blocks = context.get("context_blocks")
+            if isinstance(blocks, list):
+                output["context_blocks"] = [
+                    {"type": b.get("type"), "content": b.get("content"), "source": b.get("source")}
+                    for b in blocks
+                    if isinstance(b, dict)
+                ]
+        # CE-03 (additive): when a HandoffPacket compiled messages[] rides the
+        # payload, echo how many turns reached the model input — honest signal
+        # that history is delivered as messages, not as a JSON blob.
+        messages = request.payload.get("messages")
+        if isinstance(messages, list):
+            output["messages_received"] = len(messages)
+        return ProviderGenerateResponse(
+            request_id=request.request_id,
+            succeeded=True,
+            output=output,
+            usage={"units": 1},
+            latency_ms=0,
+        )
+
+    async def health_check(self, scope: HealthScope) -> ProviderHealth:
+        return ProviderHealth(provider_id=self._manifest.id, state=ProviderHealthState.HEALTHY)
+
+    def normalize_error(self, error: object) -> ProviderError:
+        return ProviderError(
+            category=ProviderErrorCategory.NON_RETRYABLE_ERROR,
+            retryable=False,
+            safe_message="local echo failure",
+        )
+
+
+def model_row(key: str, *, tier: ModelTier = ModelTier.MEDIUM, context_window: int | None = None) -> Model:
+    """Registry Model row for a provider-declared model name (never invented)."""
+    return Model(
+        id=uuid4(),
+        model_key=key,
+        display_name=key,
+        tier=tier,
+        modalities=[Modality.TEXT],
+        capabilities=["reasoning"],
+        context_window=context_window,
+        quality_score=0.8,
+        reliability_score=0.8,
+        cost_score=0.8,
+        speed_score=0.8,
+        status=ModelStatus.ACTIVE,
+    )
+
+
+# --- runtime ------------------------------------------------------------------------
+
+
+@dataclass
+class Runtime:
+    """Everything the API layer needs. Built once per process by ``build_runtime``."""
+
+    providers: ProviderRegistry
+    models: ModelRegistry
+    bindings: BindingRegistry
+    adapters: MutableMapping[UUID, ProviderAdapterPort]
+    credential_refs: MutableMapping[UUID, str]
+    signals: ResourceSignalBoard
+    router: SimpleScoringRouter
+    execution: ExecutionService
+    multi_model: MultiModelExecutor
+    usage: InMemoryUsageAccounting
+    secrets: InMemorySecretManager
+    executions: InMemoryExecutionStore
+    conversations: InMemoryConversationStore
+    memory: InMemoryMemoryStore
+    roles: RoleRegistry
+    skills: SkillRegistry
+    composer: ContextComposer
+    idempotency: dict[tuple[UUID, str], UUID] = field(default_factory=dict)
+    provider_keys: tuple[str, ...] = ()
+    profile: str = "in-memory"
+    context_budget: int = 16_000
+    tenant_id: UUID = DEMO_TENANT_ID
+    user_id: UUID = DEMO_USER_ID
+    # Extension slots filled by later tasks (catalog, admission, capabilities,
+    # streaming, conversations, skills). Kept as attributes so the API layer
+    # stays a thin projection and tests can swap pieces.
+    extensions: dict[str, object] = field(default_factory=dict)
+
+    @property
+    def upstream_sha(self) -> str:
+        return UPSTREAM_SHA
+
+    def register_provider(
+        self,
+        *,
+        provider: Provider,
+        manifest: ProviderManifest,
+        adapter: ProviderAdapterPort,
+        credential_ref: str,
+        model_names: list[str],
+        tier: ModelTier = ModelTier.MEDIUM,
+    ) -> list[Model]:
+        """Register a provider + its models + bindings in the ONE registry set.
+
+        Models already known by ``model_key`` are reused (same logical model,
+        another provider — R190) instead of duplicated.
+        """
+        self.providers.register(provider, manifest)
+        self.adapters[provider.id] = adapter
+        self.credential_refs[provider.id] = credential_ref
+        rows: list[Model] = []
+        for name in model_names:
+            try:
+                model = self.models.get(name)
+            except Exception:  # noqa: BLE001 — registry raises its own not-found
+                model = model_row(name, tier=tier)
+                self.models.register(model)
+            self.bindings.register(
+                ProviderModelBinding(
+                    provider_id=provider.id,
+                    model_id=model.id,
+                    provider_model_name=name,
+                    availability=BindingAvailability.AVAILABLE,
+                )
+            )
+            rows.append(model)
+        self.provider_keys = (*self.provider_keys, provider.provider_key)
+        index = self.extensions.get("catalog_index")
+        if index is not None and hasattr(index, "rebuild"):
+            index.rebuild()
+        return rows
+
+
+def _bind_echo(rt: Runtime) -> None:
+    manifest = echo_manifest()
+    provider = Provider(
+        id=uuid4(),
+        provider_key="local_echo",
+        display_name="Local Echo (hermetic)",
+        status=ProviderStatus.ACTIVE,
+        auth_types=[AuthType.API_KEY],
+        supports_account_pool=False,
+    )
+    rt.register_provider(
+        provider=provider,
+        manifest=manifest,
+        adapter=LocalEchoAdapter(manifest),
+        credential_ref="secret-ref://local-echo",
+        model_names=["local-echo-1"],
+    )
+
+
+def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
+    """Compose the engine. ``environ`` injectable for hermetic tests."""
+    env = os.environ if environ is None else environ
+    providers = ProviderRegistry()
+    models = ModelRegistry()
+    bindings = BindingRegistry()
+    adapters: dict[UUID, ProviderAdapterPort] = {}
+    credential_refs: dict[UUID, str] = {}
+    signals = ResourceSignalBoard()
+    router = SimpleScoringRouter(providers, models, bindings, signals=signals)
+    usage = InMemoryUsageAccounting()
+    usage.configure_tenant(DEMO_TENANT_ID, plan="local", task_units_limit=DEMO_TASK_UNITS)
+    execution = ExecutionService(
+        adapters=adapters,
+        credential_refs=credential_refs,
+        bindings=bindings,
+        usage=usage,
+        signals=signals,
+    )
+    multi_model = MultiModelExecutor(router=router, execution=execution)
+    conversations = InMemoryConversationStore()
+    memory = InMemoryMemoryStore()
+    roles = RoleRegistry()
+    skills = SkillRegistry()
+    composer = ContextComposer(memory, conversations, roles)
+    rt = Runtime(
+        providers=providers,
+        models=models,
+        bindings=bindings,
+        adapters=adapters,
+        credential_refs=credential_refs,
+        signals=signals,
+        router=router,
+        execution=execution,
+        multi_model=multi_model,
+        usage=usage,
+        secrets=InMemorySecretManager(),
+        executions=InMemoryExecutionStore(),
+        conversations=conversations,
+        memory=memory,
+        roles=roles,
+        skills=skills,
+        composer=composer,
+        context_budget=int(env.get("CE_CONTEXT_BUDGET", "16000")),
+    )
+    _bind_echo(rt)
+    # Real providers (keys present) are bound by chat_engine.providers.bootstrap
+    # (CE-05) — imported lazily so this module stays importable without httpx
+    # transports in tests.
+    from chat_engine.providers.bootstrap import bind_real_providers_from_env
+
+    bind_real_providers_from_env(rt, env)
+    return rt
