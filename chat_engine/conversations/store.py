@@ -129,4 +129,4 @@ class InMemoryConversationStore:
 
     def next_seq(self, conversation_id: UUID) -> int:
         rows = self._turns.get(conversation_id, [])
-        return rows[-1].seq + 1 if rows else 0
+        return rows[-1].seq + 1 if rows else 1

@@ -61,7 +61,7 @@ def not_found_response(exc: NotFound) -> JSONResponse:
     return ce_error_response(
         ChatEngineErrorCode.NOT_FOUND,
         f"{exc.kind} not found.",
-        details={"kind": exc.kind, "id": exc.ident},
+        details={"kind": exc.kind, "id": str(exc.ident)},
     )
 
 
