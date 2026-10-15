@@ -121,12 +121,6 @@ class LocalEchoAdapter:
                     for b in blocks
                     if isinstance(b, dict)
                 ]
-        # CE-03 (additive): when a HandoffPacket compiled messages[] rides the
-        # payload, echo how many turns reached the model input — honest signal
-        # that history is delivered as messages, not as a JSON blob.
-        messages = request.payload.get("messages")
-        if isinstance(messages, list):
-            output["messages_received"] = len(messages)
         return ProviderGenerateResponse(
             request_id=request.request_id,
             succeeded=True,
@@ -313,6 +307,9 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         context_budget=int(env.get("CE_CONTEXT_BUDGET", "16000")),
     )
     _bind_echo(rt)
+    from chat_engine.handoff import HandoffCompiler
+
+    rt.extensions["handoff_compiler"] = HandoffCompiler()
     # Real providers (keys present) are bound by chat_engine.providers.bootstrap
     # (CE-05) — imported lazily so this module stays importable without httpx
     # transports in tests.

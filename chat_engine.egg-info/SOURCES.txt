@@ -12,6 +12,7 @@ chat_engine/admission/__init__.py
 chat_engine/api/__init__.py
 chat_engine/api/app.py
 chat_engine/api/errors.py
+chat_engine/api/events.py
 chat_engine/api/execute.py
 chat_engine/api/models.py
 chat_engine/capabilities/__init__.py
@@ -23,6 +24,7 @@ chat_engine/composition/runtime.py
 chat_engine/conversations/__init__.py
 chat_engine/credentials/__init__.py
 chat_engine/handoff/__init__.py
+chat_engine/handoff/contracts.py
 chat_engine/providers/__init__.py
 chat_engine/providers/bootstrap.py
 chat_engine/skills/__init__.py
