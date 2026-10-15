@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID, uuid4
@@ -194,7 +194,6 @@ class Runtime:
     # streaming, conversations, skills). Typed loosely on purpose: each CE task
     # owns its slot's type; the API layer only reads what it composes.
     extensions: dict[str, Any] = field(default_factory=dict)
-    router_factories: list[Callable[[Runtime], Any]] = field(default_factory=list)
     background_tasks: set[asyncio.Task[None]] = field(default_factory=set)
 
     @property
@@ -311,13 +310,11 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
 
     rt.extensions["handoff_compiler"] = HandoffCompiler()
     # CE-04: read-side index over the registries + canonical identity service
-    from chat_engine.api import catalog as catalog_api
     from chat_engine.catalog import CatalogIndex, CatalogService
 
     index = CatalogIndex(providers, models, bindings)
     rt.extensions["catalog_index"] = index
     rt.extensions["catalog"] = CatalogService(index, signals)
-    rt.router_factories.append(catalog_api.build_router)
     # Real providers (keys present) are bound by chat_engine.providers.bootstrap
     # (CE-05) — imported lazily so this module stays importable without httpx
     # transports in tests.

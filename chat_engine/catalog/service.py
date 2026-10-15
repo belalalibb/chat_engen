@@ -47,6 +47,18 @@ class AliasUnconfirmed(ValueError):
     """Resolving a canonical_id whose only aliases are proposed/rejected."""
 
 
+def _s(v: object) -> str | None:
+    return v if isinstance(v, str) else None
+
+
+def _i(v: object) -> int | None:
+    return v if isinstance(v, int) and not isinstance(v, bool) else None
+
+
+def _sl(v: object) -> list[str]:
+    return [str(x) for x in v] if isinstance(v, list) else []
+
+
 def normalize_name(name: str) -> str:
     """Vendor-prefix-insensitive, punctuation-insensitive comparison key."""
     base = name.split("/")[-1].lower()
@@ -154,14 +166,18 @@ class CatalogService:
                 CanonicalModel(
                     canonical_id=canonical_id,
                     display_name=str(facts.get("name") or canonical_id),
-                    family=facts.get("family") if isinstance(facts.get("family"), str) else None,
+                    family=_s(facts.get("family")),
                     vendor=canonical_id.split("/")[0] if "/" in canonical_id else None,
-                    context_window=facts.get("context") if isinstance(facts.get("context"), int) else None,
-                    output_limit=facts.get("output_limit") if isinstance(facts.get("output_limit"), int) else None,
-                    modalities_in=[str(x) for x in facts.get("input", [])],  # type: ignore[union-attr]
-                    modalities_out=[str(x) for x in facts.get("output", [])],  # type: ignore[union-attr]
-                    capabilities=[c for c in ("reasoning", "tool_call", "structured_output", "attachment") if facts.get(c)],
-                    release_date=facts.get("release_date") if isinstance(facts.get("release_date"), str) else None,
+                    context_window=_i(facts.get("context")),
+                    output_limit=_i(facts.get("output_limit")),
+                    modalities_in=_sl(facts.get("input")),
+                    modalities_out=_sl(facts.get("output")),
+                    capabilities=[
+                        c
+                        for c in ("reasoning", "tool_call", "structured_output", "attachment")
+                        if facts.get(c)
+                    ],
+                    release_date=_s(facts.get("release_date")),
                     source=AliasSource.CATALOG_MODELS_DEV,
                     source_ref=str(facts.get("_provider")),
                 ),
@@ -180,6 +196,7 @@ class CatalogService:
     # -- alias admin -------------------------------------------------------------------------
 
     def list_aliases(self, *, decision: AliasDecision | None = None, alias: str | None = None) -> list[ModelAlias]:
+        self.sync_identities()
         rows = list(self._aliases.values())
         if decision is not None:
             rows = [a for a in rows if a.decision is decision]
@@ -224,7 +241,7 @@ class CatalogService:
             self._aliases[(alias, None)] = identity.model_copy(
                 update={"canonical_id": canonical_id, "decided_by": decided_by, "decided_at": utc_now(), "reason": reason or "confirmed alias"}
             )
-        elif identity.canonical_id == canonical_id and decision is not AliasDecision.CONFIRMED:
+        elif identity.canonical_id == canonical_id:
             self._aliases[(alias, None)] = identity.model_copy(
                 update={"canonical_id": alias, "decided_by": decided_by, "decided_at": utc_now(), "reason": "alias rejected — identity restored"}
             )
