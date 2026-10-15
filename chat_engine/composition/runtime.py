@@ -238,6 +238,15 @@ class Runtime:
         index = self.extensions.get("catalog_index")
         if index is not None:
             index.rebuild()
+        ledger = self.extensions.get("capabilities")
+        if ledger is not None:
+            ledger.declare_from_manifest(provider.provider_key, manifest.capabilities)
+        admission = self.extensions.get("admission")
+        if admission is not None:
+            from chat_engine.admission import Limits
+
+            meta = next((b.limits_metadata for b in self.bindings.bindings_for_provider(provider.id)), None)
+            admission.set_limits(f"provider:{provider.provider_key}", Limits.from_metadata(meta))
         return rows
 
     def unregister_provider(self, provider_key: str) -> None:
@@ -254,6 +263,9 @@ class Runtime:
         index = self.extensions.get("catalog_index")
         if index is not None:
             index.rebuild()
+        ledger = self.extensions.get("capabilities")
+        if ledger is not None:
+            ledger.forget_provider(provider_key)
 
 
 def _bind_echo(rt: Runtime) -> None:
@@ -338,6 +350,32 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     rt.extensions["credentials"] = CredentialService(
         rt.secrets, tenant_id=rt.tenant_id, user_id=rt.user_id
     )
+    # CE-06: capability evidence ledger (side registry) + probes
+    from chat_engine.capabilities import CapabilityLedger
+    from chat_engine.capabilities.probes import register_default_probes
+
+    ledger = CapabilityLedger()
+    for key in rt.provider_keys:
+        ledger.declare_from_manifest(key, rt.providers.get(key).manifest.capabilities)
+    # the hermetic echo provider is verified by construction (it IS the test double)
+    ledger.record_external_verification("local_echo", "chat", passed=True, detail="hermetic")
+    register_default_probes(rt, ledger)
+    rt.extensions["capabilities"] = ledger
+    # CE-07: admission (in-memory default; Redis when ADMISSION_REDIS_URL is set)
+    from chat_engine.admission import IdempotencyStore, InMemoryAdmission, Limits
+
+    redis_url = env.get("ADMISSION_REDIS_URL", "").strip()
+    if redis_url:
+        from chat_engine.admission.redis_backend import RedisAdmission
+
+        rt.extensions["admission"] = RedisAdmission(redis_url)
+    else:
+        rt.extensions["admission"] = InMemoryAdmission()
+    rt.extensions["idempotency"] = IdempotencyStore()
+    for key in rt.provider_keys:
+        pid = rt.providers.get(key).provider.id
+        meta = next((b.limits_metadata for b in rt.bindings.bindings_for_provider(pid)), None)
+        rt.extensions["admission"].set_limits(f"provider:{key}", Limits.from_metadata(meta))
     # Real providers (keys present) are bound by chat_engine.providers.bootstrap
     # (CE-05) — imported lazily so this module stays importable without httpx
     # transports in tests.

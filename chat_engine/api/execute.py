@@ -53,6 +53,12 @@ from chat_engine.store.executions import ExecutionNotFound
 from chat_engine.util.time import utc_now
 
 REQUEST_CONTEXT_KEY = "request_context"
+
+
+class AdmissionDenied(Exception):
+    def __init__(self, denied: Any) -> None:
+        self.denied = denied
+        super().__init__(denied.reason)
 _RUNNABLE_STRATEGIES = frozenset({"single"})
 
 
@@ -251,7 +257,57 @@ def build_router(rt: Runtime) -> APIRouter:
             ctx["project_id"] = body.project_id
         return ctx
 
+    def _admission_scopes(decision: Any) -> list[str]:
+        scopes = [f"tenant:{rt.tenant_id}"]
+        if decision is not None:
+            pk = rt.extensions["catalog_index"].provider_key(decision.selected.provider_id)
+            if pk:
+                scopes.append(f"provider:{pk}")
+        return scopes
+
     async def _run(
+        body: ExecuteRequest,
+        *,
+        payload: JsonObject,
+        idempotency_key: str | None,
+        conversation_id: UUID | None,
+        multi_model_policy: ExplicitModelsPolicy | None,
+        decision: Any,
+    ) -> ExecutionReport:
+        admission = rt.extensions.get("admission")
+        reservation = None
+        if admission is not None:
+            from chat_engine.admission import Denied
+
+            est = sum(len(str(m.get("content", ""))) for m in payload.get("messages", []) if isinstance(m, dict)) // 4
+            got = await admission.reserve(_admission_scopes(decision), tokens_estimate=est, units=1.0)
+            if isinstance(got, Denied):
+                raise AdmissionDenied(got)
+            reservation = got
+        try:
+            report = await _run_inner(
+                body,
+                payload=payload,
+                idempotency_key=idempotency_key,
+                conversation_id=conversation_id,
+                multi_model_policy=multi_model_policy,
+                decision=decision,
+            )
+        except Exception:
+            if admission is not None and reservation is not None:
+                await admission.release(reservation)
+            raise
+        if admission is not None and reservation is not None:
+            usage = report.nodes[-1].response.usage if report.nodes and report.nodes[-1].response else {}
+            total = usage.get("total_tokens") if isinstance(usage, dict) else None
+            await admission.settle(
+                reservation,
+                tokens_actual=total if isinstance(total, int) else None,
+                success=report.execution.status is ExecutionStatus.SUCCEEDED,
+            )
+        return report
+
+    async def _run_inner(
         body: ExecuteRequest,
         *,
         payload: JsonObject,
@@ -470,6 +526,18 @@ def build_router(rt: Runtime) -> APIRouter:
                 )
             except FallbackNotConfigured as exc:
                 return error_response(ErrorCode.MODEL_UNAVAILABLE, str(exc))
+
+        ledger = rt.extensions.get("capabilities")
+        if ledger is not None and decision is not None and required_capabilities:
+            pk = rt.extensions["catalog_index"].provider_key(decision.selected.provider_id) or ""
+            for cap in required_capabilities:
+                verdict = ledger.gate(pk, cap)
+                if not verdict.allowed:
+                    return error_response(
+                        ErrorCode.CAPABILITY_DENIED,
+                        f"capability '{cap}' is not executable on provider '{pk}': {verdict.reason}",
+                        details={"capability": cap, "provider_key": pk, "reason": verdict.reason, "ce_code": "unsupported_capability"},
+                    )
 
         payload: JsonObject = {"ask": body.ask}
         if body.output is not None:

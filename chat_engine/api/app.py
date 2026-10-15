@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from chat_engine import __version__
-from chat_engine.api import admin_providers, catalog, events, execute, models
+from chat_engine.api import admin_capabilities, admin_providers, catalog, events, execute, models
 from chat_engine.api.errors import error_response
 from chat_engine.composition.runtime import Runtime, build_runtime
 from chat_engine.util.time import utc_now
@@ -71,4 +71,6 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         app.include_router(catalog.build_router(runtime))
     if "lifecycle" in runtime.extensions:
         app.include_router(admin_providers.build_router(runtime))
+    if "capabilities" in runtime.extensions:
+        app.include_router(admin_capabilities.build_router(runtime))
     return app
