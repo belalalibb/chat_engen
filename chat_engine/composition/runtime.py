@@ -241,6 +241,22 @@ class Runtime:
         return rows
 
 
+    def unregister_provider(self, provider_key: str) -> None:
+        """Remove a provider + its bindings (models stay; a model with no bindings
+        simply becomes unavailable — upstream's own projection rule)."""
+        entry = self.providers.get(provider_key)
+        pid = entry.provider.id
+        for binding in list(self.bindings.bindings_for_provider(pid)):
+            self.bindings.remove(binding.provider_id, binding.model_id)
+        self.providers.remove(provider_key)
+        self.adapters.pop(pid, None)
+        self.credential_refs.pop(pid, None)
+        self.provider_keys = tuple(k for k in self.provider_keys if k != provider_key)
+        index = self.extensions.get("catalog_index")
+        if index is not None:
+            index.rebuild()
+
+
 def _bind_echo(rt: Runtime) -> None:
     manifest = echo_manifest()
     provider = Provider(
