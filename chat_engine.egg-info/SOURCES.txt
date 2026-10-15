@@ -18,6 +18,7 @@ chat_engine/api/admin_capabilities.py
 chat_engine/api/admin_providers.py
 chat_engine/api/app.py
 chat_engine/api/catalog.py
+chat_engine/api/chat_stream.py
 chat_engine/api/errors.py
 chat_engine/api/events.py
 chat_engine/api/execute.py
@@ -34,6 +35,7 @@ chat_engine/compat/freeze.py
 chat_engine/composition/__init__.py
 chat_engine/composition/runtime.py
 chat_engine/conversations/__init__.py
+chat_engine/conversations/contracts.py
 chat_engine/credentials/__init__.py
 chat_engine/credentials/service.py
 chat_engine/handoff/__init__.py
@@ -48,6 +50,7 @@ chat_engine/store/__init__.py
 chat_engine/store/executions.py
 chat_engine/streaming/__init__.py
 chat_engine/streaming/contracts.py
+chat_engine/streaming/service.py
 chat_engine/streaming/sse_parser.py
 chat_engine/usage/__init__.py
 chat_engine/util/__init__.py
