@@ -6,6 +6,7 @@ installed (``pip install -e .[test-openai]``) and are skipped otherwise.
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 import httpx
@@ -13,8 +14,8 @@ import pytest
 from chat_engine.api.app import create_app
 from chat_engine.composition.runtime import Runtime, build_runtime
 from fastapi.testclient import TestClient
-from tests.streaming.test_five_cases import add_streaming_provider
 
+from tests.streaming.test_five_cases import add_streaming_provider
 
 
 def _chunks(resp: httpx.Response) -> list[dict]:
@@ -146,17 +147,21 @@ def test_feature_flag_disables_surface() -> None:
 @pytest.fixture
 def sdk(client):
     sdk = pytest.importorskip("openai")
-    return sdk.OpenAI(
-        base_url=str(client.base_url) + "/v1",
+    base = "http://testserver"
+    return sdk.AsyncOpenAI(
+        base_url=base + "/v1",
         api_key="fakekey-sdk-0001",
-        http_client=httpx.Client(transport=httpx.ASGITransport(app=client.app), base_url=client.base_url),
+        http_client=httpx.AsyncClient(transport=httpx.ASGITransport(app=client.app), base_url=base),
     )
 
 
 def test_sdk_sync(sdk) -> None:
-    r = sdk.chat.completions.create(
-        model="local-echo-1", messages=[{"role": "user", "content": "sdk hello"}]
-    )
+    async def run():
+        return await sdk.chat.completions.create(
+            model="local-echo-1", messages=[{"role": "user", "content": "sdk hello"}]
+        )
+
+    r = asyncio.run(run())
     assert r.choices[0].message.role == "assistant"
     assert isinstance(r.choices[0].message.content, str)
     assert r.usage is not None and r.model == "local-echo-1"
@@ -164,18 +169,28 @@ def test_sdk_sync(sdk) -> None:
 
 def test_sdk_stream(sdk, runtime: Runtime) -> None:
     add_streaming_provider(runtime, "sp10")
-    parts = []
-    for ev in sdk.chat.completions.create(
-        model="s-model", messages=[{"role": "user", "content": "sdk streams fine"}], stream=True
-    ):
-        parts.append(ev.choices[0].delta.content or "")
-    assert "".join(parts) == "sdk streams fine"
+
+    async def run():
+        parts = []
+        stream = await sdk.chat.completions.create(
+            model="s-model", messages=[{"role": "user", "content": "sdk streams fine"}], stream=True
+        )
+        async for ev in stream:
+            parts.append(ev.choices[0].delta.content or "")
+        return parts
+
+    assert "".join(asyncio.run(run())) == "sdk streams fine"
 
 
 def test_sdk_errors(sdk) -> None:
     import openai
 
+    async def run():
+        await sdk.chat.completions.create(
+            model="ghost", messages=[{"role": "user", "content": "x"}]
+        )
+
     with pytest.raises((openai.NotFoundError, openai.APIStatusError)) as ei:
-        sdk.chat.completions.create(model="ghost", messages=[{"role": "user", "content": "x"}])
+        asyncio.run(run())
     assert ei.value.status_code in (404, 503)
     assert ei.value.body and ei.value.body.get("code")

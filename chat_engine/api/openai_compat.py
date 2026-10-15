@@ -215,7 +215,9 @@ def models_list(rt: Runtime) -> JsonObject:
     data: list[JsonObject] = []
     seen: set[str] = set()
     for e in catalog.entries():
-        owner = e.canonical.vendor or (e.providers[0].provider_key if e.providers else "chat_engine")
+        owner = e.canonical.vendor or (
+            e.providers[0].provider_key if e.providers else "chat_engine"
+        )
         rows = [(e.canonical.canonical_id, owner)] + [
             (k, p.provider_key) for p in e.providers for k in e.model_keys if k == p.model_key
         ]
