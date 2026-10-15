@@ -112,16 +112,33 @@ class StreamService:
 
         def ev(t: StreamEventType, data: JsonObject | None = None) -> StreamEvent:
             nonlocal seq
-            e = StreamEvent(seq=seq, event_id=f"{stream_id}:{seq}", type=t, stream_id=stream_id, data=data or {})
+            e = StreamEvent(
+                seq=seq, event_id=f"{stream_id}:{seq}", type=t, stream_id=stream_id, data=data or {}
+            )
             seq += 1
             st.events.append(e)
-            st.summary = st.summary.model_copy(update={"delivered_seq": seq, "status": t if t in (StreamEventType.COMPLETED, StreamEventType.FAILED, StreamEventType.CANCELLED) else st.summary.status})
+            st.summary = st.summary.model_copy(
+                update={
+                    "delivered_seq": seq,
+                    "status": t
+                    if t
+                    in (
+                        StreamEventType.COMPLETED,
+                        StreamEventType.FAILED,
+                        StreamEventType.CANCELLED,
+                    )
+                    else st.summary.status,
+                }
+            )
             return e
 
         candidates: list[CandidateScore] = [decision.selected, *decision.fallback_candidates]
         candidates = [c for c in candidates if c.provider_id not in st.tried]
         if not candidates:
-            yield ev(StreamEventType.FAILED, {"reason": StreamFailureReason.NO_CANDIDATE.value, "resumable": False})
+            yield ev(
+                StreamEventType.FAILED,
+                {"reason": StreamFailureReason.NO_CANDIDATE.value, "resumable": False},
+            )
             return
 
         admission = self._rt.extensions.get("admission")
@@ -130,7 +147,10 @@ class StreamService:
         failovers = st.summary.failovers
 
         if not resume_from:
-            yield ev(StreamEventType.STARTED, {"candidates": len(candidates), "timeouts": self._timeouts.model_dump()})
+            yield ev(
+                StreamEventType.STARTED,
+                {"candidates": len(candidates), "timeouts": self._timeouts.model_dump()},
+            )
 
         for cand in candidates:
             pk = index.provider_key(cand.provider_id) or "?"
@@ -138,16 +158,28 @@ class StreamService:
             binding = self._rt.bindings.get(cand.provider_id, cand.model_id)
             adapter = self._rt.adapters.get(cand.provider_id)
             st.tried.append(cand.provider_id)
-            st.summary = st.summary.model_copy(update={"provider_key": pk, "model_key": model.model_key})
+            st.summary = st.summary.model_copy(
+                update={"provider_key": pk, "model_key": model.model_key}
+            )
 
             # case 2: not streamable
             if not self.supports_streaming(cand.provider_id):
                 if stream_fallback == "buffer" and adapter is not None:
-                    async for e in self._buffered(st, ev, adapter, cand, binding.provider_model_name, timeout_ms):
+                    async for e in self._buffered(
+                        st, ev, adapter, cand, binding.provider_model_name, timeout_ms
+                    ):
                         yield e
                     return
                 if cand is candidates[-1] and not first_delta_seen:
-                    yield ev(StreamEventType.FAILED, {"reason": StreamFailureReason.UNSUPPORTED.value, "resumable": False, "provider_key": pk, "hint": "set stream_fallback=buffer or choose a provider with verified streaming_text"})
+                    yield ev(
+                        StreamEventType.FAILED,
+                        {
+                            "reason": StreamFailureReason.UNSUPPORTED.value,
+                            "resumable": False,
+                            "provider_key": pk,
+                            "hint": "set stream_fallback=buffer or choose a provider with verified streaming_text",
+                        },
+                    )
                     return
                 failovers += 1
                 continue
@@ -156,10 +188,22 @@ class StreamService:
             if admission is not None:
                 from chat_engine.admission import Denied
 
-                got = await admission.reserve([f"tenant:{self._rt.tenant_id}", f"provider:{pk}"], tokens_estimate=self._estimate(st.payload), units=1.0)
+                got = await admission.reserve(
+                    [f"tenant:{self._rt.tenant_id}", f"provider:{pk}"],
+                    tokens_estimate=self._estimate(st.payload),
+                    units=1.0,
+                )
                 if isinstance(got, Denied):
                     if cand is candidates[-1] and not first_delta_seen:
-                        yield ev(StreamEventType.FAILED, {"reason": StreamFailureReason.ADMISSION_DENIED.value, "resumable": True, "retry_after_ms": got.retry_after_ms, "scope": got.scope})
+                        yield ev(
+                            StreamEventType.FAILED,
+                            {
+                                "reason": StreamFailureReason.ADMISSION_DENIED.value,
+                                "resumable": True,
+                                "retry_after_ms": got.retry_after_ms,
+                                "scope": got.scope,
+                            },
+                        )
                         return
                     failovers += 1
                     continue
@@ -175,35 +219,86 @@ class StreamService:
                 timeout_ms=timeout_ms,
             )
             assert adapter is not None
-            outcome, usage = await self._pump(st, ev, adapter, req, lambda: first_delta_seen)  # type: ignore[arg-type]
+            outcome, usage = await self._pump(st, ev, adapter, req, None)
             # _pump yields through a queue; collect its events
             async for e in self._drain(st, ev, outcome):
-                if e.type is StreamEventType.MESSAGE_DELTA or e.type in (StreamEventType.TOOL_CALL_START, StreamEventType.TOOL_CALL_DELTA):
+                if e.type is StreamEventType.MESSAGE_DELTA or e.type in (
+                    StreamEventType.TOOL_CALL_START,
+                    StreamEventType.TOOL_CALL_DELTA,
+                ):
                     first_delta_seen = True
                 yield e
             result = outcome["result"]
             if admission is not None and reservation is not None:
                 total = usage.get("total_tokens") if isinstance(usage, dict) else None
-                await admission.settle(reservation, tokens_actual=total if isinstance(total, int) else None, success=result == "completed")
+                await admission.settle(
+                    reservation,
+                    tokens_actual=total if isinstance(total, int) else None,
+                    success=result == "completed",
+                )
             if result == "completed":
-                st.summary = st.summary.model_copy(update={"failovers": failovers, "usage": dict(usage)})
-                yield ev(StreamEventType.COMPLETED, {"provider_key": pk, "model_key": model.model_key, "usage": dict(usage), "failovers": failovers, "text_length": len(st.summary.text)})
+                st.summary = st.summary.model_copy(
+                    update={"failovers": failovers, "usage": dict(usage)}
+                )
+                yield ev(
+                    StreamEventType.COMPLETED,
+                    {
+                        "provider_key": pk,
+                        "model_key": model.model_key,
+                        "usage": dict(usage),
+                        "failovers": failovers,
+                        "text_length": len(st.summary.text),
+                    },
+                )
                 return
             if result == "cancelled":
-                yield ev(StreamEventType.CANCELLED, {"provider_key": pk, "delivered_until_seq": seq, "partial_text_length": len(st.summary.text)})
+                yield ev(
+                    StreamEventType.CANCELLED,
+                    {
+                        "provider_key": pk,
+                        "delivered_until_seq": seq,
+                        "partial_text_length": len(st.summary.text),
+                    },
+                )
                 return
             # result == failed
             if first_delta_seen or st.summary.text:
                 # case 4: never silent after first delta
-                st.summary = st.summary.model_copy(update={"resumable": True, "reason": StreamFailureReason.STREAM_INTERRUPTED, "failovers": failovers})
-                yield ev(StreamEventType.FAILED, {"reason": StreamFailureReason.STREAM_INTERRUPTED.value, "resumable": True, "provider_key": pk, "delivered_until_seq": seq, "detail": outcome.get("detail"), "resume_url": f"/v1/chat/stream/{stream_id}:resume"})
+                st.summary = st.summary.model_copy(
+                    update={
+                        "resumable": True,
+                        "reason": StreamFailureReason.STREAM_INTERRUPTED,
+                        "failovers": failovers,
+                    }
+                )
+                yield ev(
+                    StreamEventType.FAILED,
+                    {
+                        "reason": StreamFailureReason.STREAM_INTERRUPTED.value,
+                        "resumable": True,
+                        "provider_key": pk,
+                        "delivered_until_seq": seq,
+                        "detail": outcome.get("detail"),
+                        "resume_url": f"/v1/chat/stream/{stream_id}:resume",
+                    },
+                )
                 return
             # case 3: before first delta → failover
             failovers += 1
-            self._rt.signals.record_error(provider_id=cand.provider_id, model_id=cand.model_id, error=outcome["error"]) if outcome.get("error") is not None else None
+            self._rt.signals.record_error(
+                provider_id=cand.provider_id, model_id=cand.model_id, error=outcome["error"]
+            ) if outcome.get("error") is not None else None
             continue
 
-        yield ev(StreamEventType.FAILED, {"reason": StreamFailureReason.PROVIDER_ERROR.value, "resumable": False, "failovers": failovers, "detail": "all candidates failed before producing output"})
+        yield ev(
+            StreamEventType.FAILED,
+            {
+                "reason": StreamFailureReason.PROVIDER_ERROR.value,
+                "resumable": False,
+                "failovers": failovers,
+                "detail": "all candidates failed before producing output",
+            },
+        )
 
     # -- internals -----------------------------------------------------------------------------
 
@@ -214,10 +309,18 @@ class StreamService:
             return sum(len(str(m.get("content", ""))) for m in msgs if isinstance(m, dict)) // 4
         return len(str(payload.get("ask", ""))) // 4
 
-    async def _pump(self, st: StreamState, ev: Any, adapter: Any, req: ProviderGenerateRequest, _first: Any) -> tuple[dict[str, Any], JsonObject]:
+    async def _pump(
+        self, st: StreamState, ev: Any, adapter: Any, req: ProviderGenerateRequest, _first: Any
+    ) -> tuple[dict[str, Any], JsonObject]:
         """Start the producer task feeding a bounded queue; return the outcome holder."""
         queue: asyncio.Queue[StreamChunk | None] = asyncio.Queue(maxsize=QUEUE_MAX)
-        outcome: dict[str, Any] = {"result": "failed", "queue": queue, "task": None, "detail": None, "error": None}
+        outcome: dict[str, Any] = {
+            "result": "failed",
+            "queue": queue,
+            "task": None,
+            "detail": None,
+            "error": None,
+        }
         usage: JsonObject = {}
         outcome["usage"] = usage
 
@@ -227,7 +330,7 @@ class StreamService:
                     await queue.put(chunk)
                     if st.cancel.is_set():
                         return
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 await queue.put(StreamChunk(error=adapter.normalize_error(exc)))
             finally:
                 await queue.put(None)
@@ -235,7 +338,9 @@ class StreamService:
         outcome["task"] = asyncio.create_task(produce())
         return outcome, usage
 
-    async def _drain(self, st: StreamState, ev: Any, outcome: dict[str, Any]) -> AsyncIterator[StreamEvent]:
+    async def _drain(
+        self, st: StreamState, ev: Any, outcome: dict[str, Any]
+    ) -> AsyncIterator[StreamEvent]:
         queue: asyncio.Queue[StreamChunk | None] = outcome["queue"]
         task: asyncio.Task[None] = outcome["task"]
         usage: JsonObject = outcome["usage"]
@@ -249,7 +354,10 @@ class StreamService:
                 if t.total_ms is not None:
                     remaining = t.total_ms / 1000 - (asyncio.get_event_loop().time() - started)
                     if remaining <= 0:
-                        outcome["result"], outcome["detail"] = "failed", StreamFailureReason.DEADLINE_EXCEEDED.value
+                        outcome["result"], outcome["detail"] = (
+                            "failed",
+                            StreamFailureReason.DEADLINE_EXCEEDED.value,
+                        )
                         return
                     wait = min(wait, remaining)
                 hb = t.heartbeat_ms / 1000
@@ -261,7 +369,14 @@ class StreamService:
                         return
                     elapsed_idle = min(wait, hb)
                     if elapsed_idle >= wait:
-                        outcome["result"], outcome["detail"] = "failed", (StreamFailureReason.FIRST_BYTE_TIMEOUT.value if not got_first else StreamFailureReason.IDLE_TIMEOUT.value)
+                        outcome["result"], outcome["detail"] = (
+                            "failed",
+                            (
+                                StreamFailureReason.FIRST_BYTE_TIMEOUT.value
+                                if not got_first
+                                else StreamFailureReason.IDLE_TIMEOUT.value
+                            ),
+                        )
                         return
                     yield ev(StreamEventType.HEARTBEAT, {"idle_ms": int(elapsed_idle * 1000)})
                     continue
@@ -274,34 +389,61 @@ class StreamService:
                         outcome["detail"] = "stream ended without output"
                     return
                 if item.error is not None:
-                    outcome["result"], outcome["detail"], outcome["error"] = "failed", f"{item.error.category.value}: {item.error.safe_message}", item.error
+                    outcome["result"], outcome["detail"], outcome["error"] = (
+                        "failed",
+                        f"{item.error.category.value}: {item.error.safe_message}",
+                        item.error,
+                    )
                     return
                 if item.delta:
                     got_first = True
-                    st.summary = st.summary.model_copy(update={"text": st.summary.text + item.delta})
+                    st.summary = st.summary.model_copy(
+                        update={"text": st.summary.text + item.delta}
+                    )
                     yield ev(StreamEventType.MESSAGE_DELTA, {"delta": item.delta})
                 if item.tool_call is not None:
                     got_first = True
                     idx = int(item.tool_call.get("index", 0))
                     cur = st.partial_tool_calls.get(idx)
                     if cur is None:
-                        cur = {"index": idx, "id": item.tool_call.get("id"), "name": item.tool_call.get("name"), "arguments": ""}
+                        cur = {
+                            "index": idx,
+                            "id": item.tool_call.get("id"),
+                            "name": item.tool_call.get("name"),
+                            "arguments": "",
+                        }
                         st.partial_tool_calls[idx] = cur
-                        yield ev(StreamEventType.TOOL_CALL_START, {"index": idx, "id": cur["id"], "name": cur["name"]})
+                        yield ev(
+                            StreamEventType.TOOL_CALL_START,
+                            {"index": idx, "id": cur["id"], "name": cur["name"]},
+                        )
                     if item.tool_call.get("name") and not cur.get("name"):
                         cur["name"] = item.tool_call["name"]
                     piece = item.tool_call.get("arguments_delta") or ""
                     if piece:
                         cur["arguments"] += piece
-                        yield ev(StreamEventType.TOOL_CALL_DELTA, {"index": idx, "arguments_delta": piece})
+                        yield ev(
+                            StreamEventType.TOOL_CALL_DELTA,
+                            {"index": idx, "arguments_delta": piece},
+                        )
                 if item.usage:
                     usage.update(item.usage)
                     yield ev(StreamEventType.USAGE, dict(item.usage))
                 if item.finish_reason:
                     finish_reason = item.finish_reason
                     for idx, cur in st.partial_tool_calls.items():
-                        yield ev(StreamEventType.TOOL_CALL_END, {"index": idx, "id": cur["id"], "name": cur["name"], "arguments": cur["arguments"]})
-                    st.summary = st.summary.model_copy(update={"tool_calls": list(st.partial_tool_calls.values())})
+                        yield ev(
+                            StreamEventType.TOOL_CALL_END,
+                            {
+                                "index": idx,
+                                "id": cur["id"],
+                                "name": cur["name"],
+                                "arguments": cur["arguments"],
+                            },
+                        )
+                    st.summary = st.summary.model_copy(
+                        update={"tool_calls": list(st.partial_tool_calls.values())}
+                    )
                     st.partial_tool_calls = {}
         finally:
             if not task.done():
@@ -309,25 +451,59 @@ class StreamService:
                 with contextlib.suppress(asyncio.CancelledError, Exception):
                     await task
 
-    async def _buffered(self, st: StreamState, ev: Any, adapter: Any, cand: CandidateScore, provider_model_name: str, timeout_ms: int | None) -> AsyncIterator[StreamEvent]:
+    async def _buffered(
+        self,
+        st: StreamState,
+        ev: Any,
+        adapter: Any,
+        cand: CandidateScore,
+        provider_model_name: str,
+        timeout_ms: int | None,
+    ) -> AsyncIterator[StreamEvent]:
         """Case 2 with explicit policy: one sync generate, one burst, honestly tagged."""
-        req = ProviderGenerateRequest(request_id=uuid4(), tenant_id=self._rt.tenant_id, operation=ProviderOperation.GENERATE_TEXT, provider_model_name=provider_model_name, credential_ref=self._rt.credential_refs.get(cand.provider_id, ""), payload=st.payload, timeout_ms=timeout_ms)
+        req = ProviderGenerateRequest(
+            request_id=uuid4(),
+            tenant_id=self._rt.tenant_id,
+            operation=ProviderOperation.GENERATE_TEXT,
+            provider_model_name=provider_model_name,
+            credential_ref=self._rt.credential_refs.get(cand.provider_id, ""),
+            payload=st.payload,
+            timeout_ms=timeout_ms,
+        )
         resp = await adapter.generate(req)
         pk = self._rt.extensions["catalog_index"].provider_key(cand.provider_id)
         if not resp.succeeded:
             err = resp.error
-            yield ev(StreamEventType.FAILED, {"reason": StreamFailureReason.PROVIDER_ERROR.value, "resumable": False, "synthesized": True, "detail": f"{err.category.value}: {err.safe_message}" if err else None})
+            yield ev(
+                StreamEventType.FAILED,
+                {
+                    "reason": StreamFailureReason.PROVIDER_ERROR.value,
+                    "resumable": False,
+                    "synthesized": True,
+                    "detail": f"{err.category.value}: {err.safe_message}" if err else None,
+                },
+            )
             return
         content = resp.output.get("content")
         if not isinstance(content, str):
             import json
 
             content = json.dumps(resp.output, sort_keys=True)
-        st.summary = st.summary.model_copy(update={"text": content, "synthesized": True, "usage": dict(resp.usage)})
+        st.summary = st.summary.model_copy(
+            update={"text": content, "synthesized": True, "usage": dict(resp.usage)}
+        )
         yield ev(StreamEventType.MESSAGE_DELTA, {"delta": content, "synthesized": True})
         if resp.usage:
             yield ev(StreamEventType.USAGE, dict(resp.usage))
-        yield ev(StreamEventType.COMPLETED, {"provider_key": pk, "synthesized": True, "usage": dict(resp.usage), "text_length": len(content)})
+        yield ev(
+            StreamEventType.COMPLETED,
+            {
+                "provider_key": pk,
+                "synthesized": True,
+                "usage": dict(resp.usage),
+                "text_length": len(content),
+            },
+        )
 
     def summary(self, stream_id: str) -> StreamSummary | None:
         st = self._streams.get(stream_id)

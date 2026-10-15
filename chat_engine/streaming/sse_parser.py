@@ -17,7 +17,7 @@ from core.contracts.provider import ProviderError, ProviderErrorCategory
 from chat_engine.streaming.contracts import StreamChunk
 
 
-def parse_sse_data_line(line: str) -> dict[str, Any] | None | str:
+def parse_sse_data_line(line: str) -> dict[str, Any] | str | None:
     """Return parsed JSON, ``"DONE"`` for the terminator, or None for non-data lines."""
     if not line.startswith("data:"):
         return None
@@ -45,7 +45,7 @@ def chunks_from_event(obj: dict[str, Any]) -> list[StreamChunk]:
                 )
             )
         ]
-    if "error" in obj and obj["error"]:
+    if obj.get("error"):
         err = obj["error"] if isinstance(obj["error"], dict) else {}
         code = str(err.get("code") or err.get("type") or "stream_error")[:64]
         return [

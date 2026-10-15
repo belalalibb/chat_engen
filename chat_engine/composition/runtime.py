@@ -178,7 +178,13 @@ class StreamingEchoAdapter(LocalEchoAdapter):
                 )
                 return
             yield StreamChunk(delta=(w if i == 0 else " " + w))
-        yield StreamChunk(usage={"prompt_tokens": len(words), "completion_tokens": len(words), "total_tokens": 2 * len(words)})
+        yield StreamChunk(
+            usage={
+                "prompt_tokens": len(words),
+                "completion_tokens": len(words),
+                "total_tokens": 2 * len(words),
+            }
+        )
         yield StreamChunk(finish_reason="stop")
 
 

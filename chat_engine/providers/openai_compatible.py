@@ -383,7 +383,11 @@ class OpenAICompatibleAdapter:
         api_key = self._resolve(request.credential_ref)
         try:
             async with self.client().stream(
-                "POST", "/chat/completions", headers=self.headers(api_key), json=body, timeout=timeout
+                "POST",
+                "/chat/completions",
+                headers=self.headers(api_key),
+                json=body,
+                timeout=timeout,
             ) as r:
                 if r.status_code != 200:
                     await r.aread()
@@ -391,7 +395,7 @@ class OpenAICompatibleAdapter:
                     return
                 async for chunk in iter_sse_chunks(r.aiter_lines()):
                     yield chunk
-        except Exception as exc:  # noqa: BLE001 — boundary
+        except Exception as exc:
             yield StreamChunk(error=self.normalize_error(exc))
 
     async def health_check(self, scope: HealthScope) -> ProviderHealth:
