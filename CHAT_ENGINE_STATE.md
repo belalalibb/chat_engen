@@ -2,13 +2,13 @@
 
 ```text
 STATE_VERSION: 2
-PHASE: 0 — AUDIT (no product code allowed until OWNER_APPROVAL = YES)
-CURRENT_TASK: CE-00 Reality Audit & Gate Check
-CURRENT_TASK_STATUS: COMPLETE — AWAITING OWNER APPROVAL
-OWNER_APPROVAL: PENDING   (owner writes approval in chat → set YES + date here; ADR-CE-0001 then becomes ACCEPTED)
+PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
+CURRENT_TASK: CE-01 Contract Freeze & Compatibility Map
+CURRENT_TASK_STATUS: IN_PROGRESS
+OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: b40fdf1 (evidence: complete hermetic pytest 1656/15/0)
-NEXT_TASK: CE-01 Contract Freeze & Compatibility Map  — LOCKED until OWNER_APPROVAL = YES
+NEXT_TASK: CE-01 deliverables (compat baseline + golden + compatibility map)
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -26,7 +26,7 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 4. restore git credentials + reference venv per `README.md` (sandbox resets wipe `.venv`, `/home/user/ref`, uncommitted files — 4 resets so far)
 5. continue ONLY `CURRENT_TASK`; one micro-task per unit; verify; commit; **push immediately**
 6. update this file at a verified checkpoint only; record exactly one `NEXT_TASK`
-7. if `OWNER_APPROVAL` is still `PENDING`: do NOT write product code — re-post the approval request and stop
+7. owner delegated autonomous execution: do NOT stop for approvals; only stop on a real blocker; final message = preview URL only
 
 ## Ledger
 | # | unit | commit | evidence | result |

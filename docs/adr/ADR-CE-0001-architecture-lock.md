@@ -1,7 +1,7 @@
 # ADR-CE-0001 — Architecture Lock لمحرك الشات (Chat Engine)
 
 ```text
-STATUS:      PROPOSED — ينتظر موافقة المالك (يصبح ACCEPTED عند تسجيل الموافقة في CHAT_ENGINE_STATE.md)
+STATUS:      ACCEPTED — موافقة المالك الكاملة 2026-10-15 (مسجَّلة في CHAT_ENGINE_STATE.md)
 DATE:        2026-10-15
 CONTEXT REF: CHAT_ENGINE_REALITY_AUDIT.md (CE-00) ; general_ai_core @ 0a13556
 SCOPE:       القرارات الثمانية المطلوبة قبل أي كود + قرار التبعية (D0) + UI stack (D9) + التخزين (D10)
