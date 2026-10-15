@@ -19,6 +19,7 @@ from chat_engine.api import (
     events,
     execute,
     models,
+    openai_compat,
 )
 from chat_engine.api.errors import error_response
 from chat_engine.composition.runtime import Runtime, build_runtime
@@ -86,4 +87,6 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         app.include_router(chat_stream.build_router(runtime))
     if "chat" in runtime.extensions:
         app.include_router(conversations.build_router(runtime))
+        if (environ or {}).get("CE_FEATURE_OPENAI_COMPAT", "1") != "0":
+            app.include_router(openai_compat.build_router(runtime))
     return app
