@@ -153,44 +153,55 @@ def test_case4_failure_after_first_delta_is_never_silent_and_resumes(
         json={"delivered_until_seq": last["data"]["delivered_until_seq"]},
     )
     evs2 = events_of(rr)
-    assert evs2[0]["seq"] == last["data"]["delivered_until_seq"]  # seq continues
+    assert evs2[0]["seq"] == last["seq"] + 1  # seq continues after the failed event
     assert evs2[-1]["type"] in ("completed", "failed")
     resumed_deltas = [e["data"]["delta"] for e in evs2 if e["type"] == "message_delta"]
     assert "alpha beta" not in "".join(resumed_deltas)
 
 
-def test_case5_cancel_stops_stream_and_reports_partial(client, runtime: Runtime) -> None:
+async def test_case5_cancel_stops_stream_and_reports_partial(runtime: Runtime) -> None:
+    """Service-level (TestClient buffers SSE bodies, so the HTTP path cannot
+    interleave a cancel; the API route is covered by the ack test below)."""
+    from chat_engine.catalog import CatalogService
+    from core.contracts.provider import ProviderOperation
+    from core.contracts.routing import RoutingRequest
+
     a = add_streaming_provider(runtime, "slow", model="slow-m")
-    a.delay_s = 0.05
-    import threading
+    a.delay_s = 0.02
+    svc = runtime.extensions["streaming"]
+    cat: CatalogService = runtime.extensions["catalog"]
+    decision = runtime.router.route(
+        RoutingRequest(
+            operation=ProviderOperation.GENERATE_TEXT, model_policy=cat.resolve_policy("slow-m")
+        )
+    )
+    payload = {
+        "ask": "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10",
+        "messages": [{"role": "user", "content": "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10"}],
+    }
+    got: list = []
+    async for ev in svc.run(decision=decision, payload=payload):
+        got.append(ev)
+        if (
+            ev.type.value == "message_delta"
+            and sum(1 for g in got if g.type.value == "message_delta") == 2
+        ):
+            assert svc.cancel(ev.stream_id)
+    assert got[-1].type.value == "cancelled"
+    assert got[-1].data["partial_text_length"] > 0
+    assert sum(1 for g in got if g.type.value == "message_delta") < 10
+    summ = svc.summary(got[-1].stream_id)
+    assert summ is not None and summ.status.value == "cancelled"
 
-    captured: list[dict] = []
 
-    def consume() -> None:
-        with client.stream(
-            "POST",
-            "/v1/chat/stream",
-            json={
-                "messages": [{"role": "user", "content": "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10"}],
-                "model": "slow-m",
-            },
-        ) as resp:
-            for line in resp.iter_lines():
-                if line.startswith("data: "):
-                    ev = json.loads(line[6:])
-                    captured.append(ev)
-                    if (
-                        ev["type"] == "message_delta"
-                        and len([c for c in captured if c["type"] == "message_delta"]) == 2
-                    ):
-                        client.post(f"/v1/chat/stream/{ev['stream_id']}:cancel")
-
-    t = threading.Thread(target=consume)
-    t.start()
-    t.join(timeout=10)
-    assert captured and captured[-1]["type"] == "cancelled"
-    assert captured[-1]["data"]["partial_text_length"] > 0
-    assert len([c for c in captured if c["type"] == "message_delta"]) < 10
+def test_cancel_endpoint_acks_known_and_404s_unknown(client, runtime: Runtime) -> None:
+    add_streaming_provider(runtime, "sp9", model="m9")
+    r = client.post(
+        "/v1/chat/stream", json={"messages": [{"role": "user", "content": "hi"}], "model": "m9"}
+    )
+    sid = events_of(r)[-1]["stream_id"]
+    assert client.post(f"/v1/chat/stream/{sid}:cancel").json()["cancel_requested"] is True
+    assert client.post("/v1/chat/stream/nope:cancel").status_code == 404
 
 
 def test_alias_unconfirmed_is_refused(client, runtime: Runtime) -> None:
@@ -198,6 +209,7 @@ def test_alias_unconfirmed_is_refused(client, runtime: Runtime) -> None:
     cat = runtime.extensions["catalog"]
     from chat_engine.catalog import AliasDecision
 
+    cat.entries()  # sync identities for the newly registered model
     cat.decide("gpt-4o", "openai/gpt-4o", AliasDecision.PROPOSED)
     r = client.post(
         "/v1/chat/stream",

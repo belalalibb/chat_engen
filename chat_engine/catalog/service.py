@@ -229,6 +229,7 @@ class CatalogService:
         """
         if self._index.model_by_key(alias) is None:
             raise AliasNotFound(alias)
+        self.sync_identities()
         self._canonical.setdefault(
             canonical_id,
             CanonicalModel(
