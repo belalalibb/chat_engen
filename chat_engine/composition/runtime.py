@@ -310,6 +310,14 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.handoff import HandoffCompiler
 
     rt.extensions["handoff_compiler"] = HandoffCompiler()
+    # CE-04: read-side index over the registries + canonical identity service
+    from chat_engine.api import catalog as catalog_api
+    from chat_engine.catalog import CatalogIndex, CatalogService
+
+    index = CatalogIndex(providers, models, bindings)
+    rt.extensions["catalog_index"] = index
+    rt.extensions["catalog"] = CatalogService(index, signals)
+    rt.router_factories.append(catalog_api.build_router)
     # Real providers (keys present) are bound by chat_engine.providers.bootstrap
     # (CE-05) — imported lazily so this module stays importable without httpx
     # transports in tests.
