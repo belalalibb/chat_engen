@@ -81,10 +81,8 @@ def test_unavailable_now_blocks() -> None:
 
 
 def test_execute_gate_via_api(client, runtime) -> None:
-    # local_echo declares chat (verified by construction) but NOT reasoning in the ledger
-    ok = client.post("/v1/execute", json={"ask": "hi", "requirements": {"capabilities": ["chat"]}})
-    assert ok.status_code == 200, ok.text
-    # 'reasoning' is a Model capability upstream (router passes) but not a provider capability here
+    # 'reasoning' is a Model capability upstream (router admits it) — but the
+    # ledger has no passing probe for it on local_echo ⇒ refused with evidence.
     denied = client.post(
         "/v1/execute", json={"ask": "hi", "requirements": {"capabilities": ["reasoning"]}}
     )
@@ -102,3 +100,12 @@ def test_execute_gate_via_api(client, runtime) -> None:
         ).json()["total"]
         == 2
     )
+    # after admin declares+verifies reasoning, the same request passes
+    runtime.extensions["capabilities"].declare("local_echo", "reasoning", True, source="admin")
+    runtime.extensions["capabilities"].record_external_verification(
+        "local_echo", "reasoning", passed=True, detail="test"
+    )
+    ok = client.post(
+        "/v1/execute", json={"ask": "hi", "requirements": {"capabilities": ["reasoning"]}}
+    )
+    assert ok.status_code == 200, ok.text
