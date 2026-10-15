@@ -88,6 +88,7 @@ class CatalogService:
         self._canonical: dict[str, CanonicalModel] = {}
         self._aliases: dict[tuple[str, str | None], ModelAlias] = {}
         self._snapshot = self._load_snapshot(snapshot_path)
+        self._synced_marker: tuple[int, int, int, int] | None = None
         self.sync_identities()
 
     # -- snapshot (models.dev) ------------------------------------------------------------
@@ -118,6 +119,10 @@ class CatalogService:
     def sync_identities(self) -> int:
         """Ensure every registry model_key has a SYSTEM identity alias + canonical row
         and a models.dev PROPOSAL when the name matches. Returns #new keys."""
+        st = self._index.stats
+        marker = (st.models, st.providers, st.bindings, st.rebuilds)
+        if marker == self._synced_marker:
+            return 0
         added = 0
         for key in self._index.model_keys():
             if (key, None) in self._aliases:
@@ -148,6 +153,7 @@ class CatalogService:
             )
             added += 1
             self._propose_from_snapshot(key)
+        self._synced_marker = marker
         return added
 
     def _propose_from_snapshot(self, model_key: str) -> None:

@@ -76,10 +76,17 @@ class CatalogIndex:
         )
 
     def _ensure_fresh(self) -> None:
+        """Cheap staleness check (O(1)): sizes of the registries' own dicts.
+
+        Reading ``all_keys()`` here would be O(N log N) per lookup — measured as
+        the quadratic hot-spot at 10k providers (17 s/projection). Mutations go
+        through ``Runtime.register_provider/unregister_provider`` which call
+        ``rebuild()`` explicitly; this guard only catches direct registry edits.
+        """
         raw = getattr(self._bindings, "_bindings", {})
-        if len(raw) != self._binding_count or len(self._provider_key_by_id) != len(
-            self._providers.all_keys()
-        ):
+        prov = getattr(self._providers, "_by_key", None)
+        n_prov = len(prov) if prov is not None else self.stats.providers
+        if len(raw) != self._binding_count or n_prov != self.stats.providers:
             self.rebuild()
 
     # -- reads -------------------------------------------------------------------------
