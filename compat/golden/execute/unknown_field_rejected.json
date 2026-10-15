@@ -1,0 +1,21 @@
+{
+ "case": "unknown_field_rejected",
+ "request": {
+  "ask": "hi",
+  "bogus": 1
+ },
+ "response": {
+  "error": {
+   "code": "validation_error",
+   "details": {
+    "errors": [
+     "Extra inputs are not permitted"
+    ]
+   },
+   "message": "Request body failed contract validation.",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 422
+}

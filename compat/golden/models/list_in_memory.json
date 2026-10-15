@@ -1,0 +1,1 @@
+{"models":[{"id":"994443d9-a741-467a-a926-0c00efd87ca4","name":"local-echo-1","tier":"medium","modalities":["text"],"capabilities":["reasoning"],"availability":"available","providers":["local_echo"],"runtime":[{"provider":"local_echo","binding_availability":"available","eligible":true,"reason":null,"retry_after_ms":null}]}]}

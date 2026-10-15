@@ -1,0 +1,21 @@
+{
+ "case": "stream_rejected",
+ "request": {
+  "ask": "hi",
+  "execution_policy": {
+   "stream": true
+  }
+ },
+ "response": {
+  "error": {
+   "code": "validation_error",
+   "details": {
+    "field": "execution_policy.stream"
+   },
+   "message": "Streaming is not available on this deployment slice.",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 422
+}

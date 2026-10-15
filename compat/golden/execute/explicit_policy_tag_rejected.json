@@ -1,0 +1,24 @@
+{
+ "case": "explicit_policy_tag_rejected",
+ "request": {
+  "ask": "hi",
+  "model_policy": {
+   "model_id": "local-echo-1",
+   "type": "explicit"
+  }
+ },
+ "response": {
+  "error": {
+   "code": "validation_error",
+   "details": {
+    "errors": [
+     "Input tag 'explicit' found using 'type' does not match any of the expected tags: 'auto', 'tier', 'explicit_model', 'explicit_models', 'agent_node_mapping'"
+    ]
+   },
+   "message": "Request body failed contract validation.",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 422
+}

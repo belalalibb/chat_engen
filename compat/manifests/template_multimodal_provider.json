@@ -1,0 +1,64 @@
+{
+ "account_pool": {
+  "fencing_required": false,
+  "lease_required": false,
+  "supported": true
+ },
+ "agent_module": null,
+ "auth": {
+  "supports_refresh": false,
+  "types": []
+ },
+ "capabilities": {
+  "agent_module": false,
+  "audio_input": false,
+  "audio_output": false,
+  "browser": false,
+  "chat": true,
+  "code": false,
+  "embeddings": false,
+  "file_upload": true,
+  "image_generation": true,
+  "moderation": false,
+  "reasoning": false,
+  "rerank": false,
+  "tool_use": false,
+  "vision_input": true
+ },
+ "errors": {
+  "mapping": "not_implemented"
+ },
+ "health": {
+  "checks": []
+ },
+ "id": "template_multimodal_provider",
+ "is_functional": false,
+ "is_template": true,
+ "models": {
+  "discovery": "not_implemented",
+  "static_models": []
+ },
+ "name": "Template Multimodal Provider",
+ "notes": [
+  "This is a scaffold template only.",
+  "Do not activate without a real provider adapter and contract tests.",
+  "Intended real-provider auth shape: session_cookie (31 \u00a712).",
+  "Multimodal shape: multiple modalities in one provider (31 \u00a712).",
+  "Account-pool supported: session/cookie providers rotate accounts (30 \u00a710)."
+ ],
+ "operations": [
+  "generate_text",
+  "analyze_vision",
+  "generate_image",
+  "upload_asset",
+  "download_asset"
+ ],
+ "rate_limits": {
+  "dimensions": [],
+  "strategy": "not_implemented"
+ },
+ "real_provider_required": true,
+ "security": null,
+ "status": "template_disabled",
+ "version": "0.0.0-template"
+}

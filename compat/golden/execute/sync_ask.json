@@ -1,0 +1,35 @@
+{
+ "case": "sync_ask",
+ "request": {
+  "ask": "hello"
+ },
+ "response": {
+  "context": {
+   "mode": "single",
+   "strategy": "single"
+  },
+  "execution_id": "5fb6705a-b9b1-43ec-a56f-89c31131bba8",
+  "result": {
+   "artifacts": [
+    {
+     "blocks_total": 1,
+     "excluded": 0,
+     "gold_blocks": 0,
+     "memory_blocks": [],
+     "type": "context_provenance"
+    }
+   ],
+   "content": "{\"context_blocks\": [{\"content\": \"hello\", \"source\": \"request\", \"type\": \"ask\"}], \"echo\": \"hello\", \"note\": \"hermetic local adapter \\u2014 no real model was called\", \"provider\": \"local-echo\"}",
+   "type": "message"
+  },
+  "status": "succeeded",
+  "usage": {
+   "details": {
+    "status": "settled"
+   },
+   "units_reserved": 1,
+   "units_settled": 1
+  }
+ },
+ "status": 200
+}

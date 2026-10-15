@@ -1,0 +1,1 @@
+golden captured from upstream apps.main @0a13556 in-memory DEV_DEMO_PRINCIPAL=1 on 2026-10-15T22:48:34Z; 14 execute cases + models + events

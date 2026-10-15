@@ -1,0 +1,59 @@
+{
+ "account_pool": {
+  "fencing_required": false,
+  "lease_required": false,
+  "supported": false
+ },
+ "agent_module": null,
+ "auth": {
+  "supports_refresh": false,
+  "types": []
+ },
+ "capabilities": {
+  "agent_module": false,
+  "audio_input": false,
+  "audio_output": false,
+  "browser": false,
+  "chat": false,
+  "code": false,
+  "embeddings": true,
+  "file_upload": false,
+  "image_generation": false,
+  "moderation": false,
+  "reasoning": false,
+  "rerank": false,
+  "tool_use": false,
+  "vision_input": false
+ },
+ "errors": {
+  "mapping": "not_implemented"
+ },
+ "health": {
+  "checks": []
+ },
+ "id": "template_embeddings_provider",
+ "is_functional": false,
+ "is_template": true,
+ "models": {
+  "discovery": "not_implemented",
+  "static_models": []
+ },
+ "name": "Template Embeddings Provider",
+ "notes": [
+  "This is a scaffold template only.",
+  "Do not activate without a real provider adapter and contract tests.",
+  "Intended real-provider auth shape: no-auth local/internal (31 \u00a712).",
+  "Embeddings-only shape: no generation capability (31 \u00a712)."
+ ],
+ "operations": [
+  "create_embeddings"
+ ],
+ "rate_limits": {
+  "dimensions": [],
+  "strategy": "not_implemented"
+ },
+ "real_provider_required": true,
+ "security": null,
+ "status": "template_disabled",
+ "version": "0.0.0-template"
+}

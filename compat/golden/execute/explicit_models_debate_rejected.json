@@ -1,0 +1,27 @@
+{
+ "case": "explicit_models_debate_rejected",
+ "request": {
+  "ask": "hi",
+  "model_policy": {
+   "models": [
+    {
+     "model_id": "local-echo-1"
+    }
+   ],
+   "selection_strategy": "debate",
+   "type": "explicit_models"
+  }
+ },
+ "response": {
+  "error": {
+   "code": "validation_error",
+   "details": {
+    "field": "model_policy"
+   },
+   "message": "selection_strategy 'debate' requires the evaluator/agent subsystems and is not available in this slice (supported: fallback_chain, parallel_compare)",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 422
+}

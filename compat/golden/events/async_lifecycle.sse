@@ -1,0 +1,8 @@
+data: {"execution_id": "3ac1fb01-2354-45f1-ab0b-801e21a78be8", "type": "execution_started"}
+
+data: {"node": "single", "type": "node_started"}
+
+data: {"node": "single", "type": "node_completed"}
+
+data: {"result": {"context_blocks": [{"content": "hello async", "source": "request", "type": "ask"}], "echo": "hello async", "note": "hermetic local adapter \u2014 no real model was called", "provider": "local-echo"}, "type": "final"}
+

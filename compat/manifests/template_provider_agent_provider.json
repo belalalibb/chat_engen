@@ -1,0 +1,72 @@
+{
+ "account_pool": {
+  "fencing_required": false,
+  "lease_required": false,
+  "supported": false
+ },
+ "agent_module": {
+  "provider_managed_state": "unknown",
+  "state_model": "unknown",
+  "supported": true,
+  "supports_platform_tools": false,
+  "supports_provider_tools": "unknown",
+  "type": "provider_agent_template"
+ },
+ "auth": {
+  "supports_refresh": false,
+  "types": []
+ },
+ "capabilities": {
+  "agent_module": true,
+  "audio_input": false,
+  "audio_output": false,
+  "browser": false,
+  "chat": false,
+  "code": false,
+  "embeddings": false,
+  "file_upload": true,
+  "image_generation": false,
+  "moderation": false,
+  "reasoning": false,
+  "rerank": false,
+  "tool_use": true,
+  "vision_input": false
+ },
+ "errors": {
+  "mapping": "not_implemented"
+ },
+ "health": {
+  "checks": []
+ },
+ "id": "template_provider_agent_provider",
+ "is_functional": false,
+ "is_template": true,
+ "models": {
+  "discovery": "not_implemented",
+  "static_models": []
+ },
+ "name": "Template Provider-Native Agent Provider",
+ "notes": [
+  "This is a scaffold template only.",
+  "Do not activate without a real provider adapter and contract tests.",
+  "Intended real-provider auth shape: oauth (31 \u00a712).",
+  "Provider Agent Capability != Platform Agent Runtime (12 \u00a7core rule).",
+  "Exists only to preserve architecture support for future provider-native agents (31 \u00a78)."
+ ],
+ "operations": [
+  "run_provider_agent"
+ ],
+ "rate_limits": {
+  "dimensions": [],
+  "strategy": "not_implemented"
+ },
+ "real_provider_required": true,
+ "security": {
+  "provider_side_tools_allowed_by_default": false,
+  "requires_audit": true,
+  "requires_capability_firewall": true,
+  "requires_evaluation": true
+ },
+ "status": "template_disabled",
+ "version": "0.0.0-template"
+}

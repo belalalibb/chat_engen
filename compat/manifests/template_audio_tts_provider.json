@@ -1,0 +1,59 @@
+{
+ "account_pool": {
+  "fencing_required": false,
+  "lease_required": false,
+  "supported": false
+ },
+ "agent_module": null,
+ "auth": {
+  "supports_refresh": false,
+  "types": []
+ },
+ "capabilities": {
+  "agent_module": false,
+  "audio_input": false,
+  "audio_output": true,
+  "browser": false,
+  "chat": false,
+  "code": false,
+  "embeddings": false,
+  "file_upload": false,
+  "image_generation": false,
+  "moderation": false,
+  "reasoning": false,
+  "rerank": false,
+  "tool_use": false,
+  "vision_input": false
+ },
+ "errors": {
+  "mapping": "not_implemented"
+ },
+ "health": {
+  "checks": []
+ },
+ "id": "template_audio_tts_provider",
+ "is_functional": false,
+ "is_template": true,
+ "models": {
+  "discovery": "not_implemented",
+  "static_models": []
+ },
+ "name": "Template Audio TTS Provider",
+ "notes": [
+  "This is a scaffold template only.",
+  "Do not activate without a real provider adapter and contract tests.",
+  "Intended real-provider auth shape: api_key (31 \u00a712)."
+ ],
+ "operations": [
+  "synthesize_speech",
+  "download_asset"
+ ],
+ "rate_limits": {
+  "dimensions": [],
+  "strategy": "not_implemented"
+ },
+ "real_provider_required": true,
+ "security": null,
+ "status": "template_disabled",
+ "version": "0.0.0-template"
+}

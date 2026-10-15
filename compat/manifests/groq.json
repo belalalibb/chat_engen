@@ -1,0 +1,68 @@
+{
+ "account_pool": {
+  "fencing_required": false,
+  "lease_required": false,
+  "supported": false
+ },
+ "agent_module": null,
+ "auth": {
+  "supports_refresh": false,
+  "types": [
+   "api_key"
+  ]
+ },
+ "capabilities": {
+  "agent_module": false,
+  "audio_input": false,
+  "audio_output": false,
+  "browser": false,
+  "chat": true,
+  "code": true,
+  "embeddings": false,
+  "file_upload": false,
+  "image_generation": false,
+  "moderation": false,
+  "reasoning": true,
+  "rerank": false,
+  "tool_use": false,
+  "vision_input": false
+ },
+ "errors": {
+  "mapping": "providers/real/groq/adapter.py:_normalize_http_response"
+ },
+ "health": {
+  "checks": [
+   "models_endpoint_authenticated"
+  ]
+ },
+ "id": "groq",
+ "is_functional": true,
+ "is_template": false,
+ "models": {
+  "discovery": "dynamic",
+  "static_models": [
+   "allam-2-7b",
+   "openai/gpt-oss-20b",
+   "openai/gpt-oss-120b",
+   "qwen/qwen3.6-27b",
+   "qwen/qwen3.8-27b"
+  ]
+ },
+ "name": "Groq",
+ "notes": [
+  "Real provider (31 \u00a719). OpenAI-compatible endpoint: https://api.groq.com/openai/v1",
+  "Credential enters via SecretManagerPort only; adapter resolves at last moment.",
+  "Audio (whisper/tts) and moderation models exist at the provider but are NOT declared here: this manifest covers generate_text only (30 \u00a75)."
+ ],
+ "operations": [
+  "generate_text"
+ ],
+ "rate_limits": {
+  "dimensions": [],
+  "strategy": "provider_defined"
+ },
+ "real_provider_required": false,
+ "security": null,
+ "status": "disabled",
+ "version": "1.0.0"
+}

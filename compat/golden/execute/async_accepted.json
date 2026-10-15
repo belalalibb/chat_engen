@@ -1,0 +1,15 @@
+{
+ "case": "async_accepted",
+ "request": {
+  "ask": "hello async",
+  "execution_policy": {
+   "async": true
+  }
+ },
+ "response": {
+  "execution_id": "3ac1fb01-2354-45f1-ab0b-801e21a78be8",
+  "poll_url": "/v1/executions/3ac1fb01-2354-45f1-ab0b-801e21a78be8",
+  "status": "queued"
+ },
+ "status": 202
+}

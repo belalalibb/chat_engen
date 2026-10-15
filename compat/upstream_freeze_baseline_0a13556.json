@@ -1,0 +1,3731 @@
+{
+  "schema": "qevion.contract_freeze_baseline/1",
+  "rule": "ADDITIVE-ONLY AFTER FREEZE: removals, renames, type/requiredness changes, enum/closed-set changes and served-route removals FAIL the guard; additions are admitted only by re-deriving this baseline in an explicitly declared round.",
+  "derived_by": "engineering/verification/contract_freeze_derive.py",
+  "frozen_modules": [
+    "core.contracts.provider",
+    "core.contracts.domain",
+    "core.contracts.routing",
+    "core.contracts.model_policy",
+    "core.contracts.execute",
+    "core.contracts.execution",
+    "core.contracts.execution_strategy",
+    "core.contracts.model_listing",
+    "core.contracts.usage",
+    "core.contracts.learning",
+    "core.contracts.evaluation",
+    "core.contracts.errors",
+    "core.learning.gates",
+    "core.routing.capacity",
+    "apps.api.provider_onboarding"
+  ],
+  "modules": {
+    "core.contracts.provider": {
+      "contracts": {
+        "AccountHealthCheckState": {
+          "kind": "enum",
+          "members": {
+            "READY": "READY",
+            "COOLDOWN": "COOLDOWN",
+            "AUTH_EXPIRED": "AUTH_EXPIRED",
+            "INVALID": "INVALID"
+          }
+        },
+        "CredentialHealth": {
+          "kind": "pydantic_model",
+          "fields": {
+            "credential_ref": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "CredentialStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "checked_at": {
+              "annotation": "datetime.datetime | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "detail": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "DiscoveredModel": {
+          "kind": "pydantic_model",
+          "fields": {
+            "provider_model_name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "endpoint_ref": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "modalities": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "capabilities": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "limits_metadata": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "HealthScope": {
+          "kind": "enum",
+          "members": {
+            "PROVIDER": "provider",
+            "ACCOUNT": "account"
+          }
+        },
+        "ManifestAccountPool": {
+          "kind": "pydantic_model",
+          "fields": {
+            "supported": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "lease_required": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "fencing_required": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestAgentModule": {
+          "kind": "pydantic_model",
+          "fields": {
+            "supported": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "type": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "state_model": {
+              "annotation": "Union[bool, Literal['unknown'], Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "unknown",
+              "alias": null
+            },
+            "supports_provider_tools": {
+              "annotation": "Union[bool, Literal['unknown']]",
+              "required": false,
+              "default": "unknown",
+              "alias": null
+            },
+            "supports_platform_tools": {
+              "annotation": "Union[bool, Literal['unknown']]",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "provider_managed_state": {
+              "annotation": "Union[bool, Literal['unknown']]",
+              "required": false,
+              "default": "unknown",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestAuth": {
+          "kind": "pydantic_model",
+          "fields": {
+            "types": {
+              "annotation": "list[core.contracts.domain.AuthType]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "supports_refresh": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestErrors": {
+          "kind": "pydantic_model",
+          "fields": {
+            "mapping": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestHealth": {
+          "kind": "pydantic_model",
+          "fields": {
+            "checks": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestModels": {
+          "kind": "pydantic_model",
+          "fields": {
+            "discovery": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "static_models": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestRateLimits": {
+          "kind": "pydantic_model",
+          "fields": {
+            "strategy": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "dimensions": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ManifestSecurity": {
+          "kind": "pydantic_model",
+          "fields": {
+            "provider_side_tools_allowed_by_default": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "requires_capability_firewall": {
+              "annotation": "bool",
+              "required": false,
+              "default": true,
+              "alias": null
+            },
+            "requires_evaluation": {
+              "annotation": "bool",
+              "required": false,
+              "default": true,
+              "alias": null
+            },
+            "requires_audit": {
+              "annotation": "bool",
+              "required": false,
+              "default": true,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderCapabilities": {
+          "kind": "pydantic_model",
+          "fields": {
+            "chat": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "reasoning": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "code": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "vision_input": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "image_generation": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "audio_input": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "audio_output": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "file_upload": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "browser": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "agent_module": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "embeddings": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "rerank": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "moderation": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "tool_use": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderError": {
+          "kind": "pydantic_model",
+          "fields": {
+            "category": {
+              "annotation": "ProviderErrorCategory",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "retryable": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "retry_after_ms": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "provider_code": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "safe_message": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderErrorCategory": {
+          "kind": "enum",
+          "members": {
+            "AUTH_EXPIRED": "auth_expired",
+            "INVALID_CREDENTIAL": "invalid_credential",
+            "RATE_LIMITED": "rate_limited",
+            "QUOTA_EXCEEDED": "quota_exceeded",
+            "MODEL_UNAVAILABLE": "model_unavailable",
+            "PROVIDER_UNAVAILABLE": "provider_unavailable",
+            "UNSUPPORTED_CAPABILITY": "unsupported_capability",
+            "BAD_REQUEST": "bad_request",
+            "CONTENT_REJECTED": "content_rejected",
+            "TIMEOUT": "timeout",
+            "RETRYABLE_SERVER_ERROR": "retryable_server_error",
+            "NON_RETRYABLE_ERROR": "non_retryable_error"
+          }
+        },
+        "ProviderGenerateRequest": {
+          "kind": "pydantic_model",
+          "fields": {
+            "request_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tenant_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "operation": {
+              "annotation": "ProviderOperation",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_model_name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "credential_ref": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "account_id": {
+              "annotation": "uuid.UUID | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "payload": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "timeout_ms": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderGenerateResponse": {
+          "kind": "pydantic_model",
+          "fields": {
+            "request_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "succeeded": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "output": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "usage": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "error": {
+              "annotation": "core.contracts.provider.ProviderError | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "latency_ms": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderHealth": {
+          "kind": "pydantic_model",
+          "fields": {
+            "provider_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "state": {
+              "annotation": "ProviderHealthState",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "accounts": {
+              "annotation": "dict[str, core.contracts.provider.AccountHealthCheckState]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "checked_at": {
+              "annotation": "datetime.datetime | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "detail": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderHealthState": {
+          "kind": "enum",
+          "members": {
+            "HEALTHY": "HEALTHY",
+            "DEGRADED": "DEGRADED",
+            "UNAVAILABLE": "UNAVAILABLE",
+            "SUSPENDED": "SUSPENDED"
+          }
+        },
+        "ProviderManifest": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "version": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "is_template": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "is_functional": {
+              "annotation": "bool",
+              "required": false,
+              "default": true,
+              "alias": null
+            },
+            "real_provider_required": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "auth": {
+              "annotation": "ManifestAuth",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "account_pool": {
+              "annotation": "ManifestAccountPool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "capabilities": {
+              "annotation": "ProviderCapabilities",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "operations": {
+              "annotation": "list[core.contracts.provider.ProviderOperation]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "models": {
+              "annotation": "ManifestModels",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "rate_limits": {
+              "annotation": "ManifestRateLimits",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "health": {
+              "annotation": "ManifestHealth",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "errors": {
+              "annotation": "ManifestErrors",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "notes": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "agent_module": {
+              "annotation": "core.contracts.provider.ManifestAgentModule | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "security": {
+              "annotation": "core.contracts.provider.ManifestSecurity | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderOperation": {
+          "kind": "enum",
+          "members": {
+            "GENERATE_TEXT": "generate_text",
+            "GENERATE_IMAGE": "generate_image",
+            "TRANSCRIBE_AUDIO": "transcribe_audio",
+            "SYNTHESIZE_SPEECH": "synthesize_speech",
+            "CREATE_EMBEDDINGS": "create_embeddings",
+            "RERANK_DOCUMENTS": "rerank_documents",
+            "MODERATE_CONTENT": "moderate_content",
+            "ANALYZE_VISION": "analyze_vision",
+            "RUN_PROVIDER_AGENT": "run_provider_agent",
+            "UPLOAD_ASSET": "upload_asset",
+            "DOWNLOAD_ASSET": "download_asset"
+          }
+        },
+        "RateLimitState": {
+          "kind": "enum",
+          "members": {
+            "AVAILABLE": "available",
+            "LIMITED": "limited",
+            "COOLDOWN_UNTIL": "cooldown_until",
+            "UNKNOWN": "unknown"
+          }
+        },
+        "RateLimitStatus": {
+          "kind": "pydantic_model",
+          "fields": {
+            "state": {
+              "annotation": "RateLimitState",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "cooldown_until": {
+              "annotation": "datetime.datetime | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.domain": {
+      "contracts": {
+        "AccountHealthState": {
+          "kind": "enum",
+          "members": {
+            "HEALTHY": "healthy",
+            "DEGRADED": "degraded",
+            "FAILED": "failed",
+            "UNKNOWN": "unknown"
+          }
+        },
+        "AccountLifecycleState": {
+          "kind": "enum",
+          "members": {
+            "READY": "READY",
+            "COOLDOWN": "COOLDOWN",
+            "REFRESH_REQUIRED": "REFRESH_REQUIRED",
+            "AUTH_EXPIRED": "AUTH_EXPIRED",
+            "INVALID": "INVALID",
+            "PENDING": "PENDING",
+            "DISABLED": "DISABLED"
+          }
+        },
+        "AgentCapability": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "AgentCapabilityType",
+              "required": false,
+              "default": "none",
+              "alias": null
+            },
+            "supports_threads": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "supports_tools": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "supports_files": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "supports_stateful_runs": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "supports_streaming": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "provider_managed_state": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "AgentCapabilityType": {
+          "kind": "enum",
+          "members": {
+            "NONE": "none",
+            "TOOL_USING_MODEL": "tool_using_model",
+            "PROVIDER_AGENT": "provider_agent",
+            "MANAGED_ASSISTANT": "managed_assistant",
+            "CODE_AGENT": "code_agent",
+            "RESEARCH_AGENT": "research_agent"
+          }
+        },
+        "AgentRuntimeBinding": {
+          "kind": "pydantic_model",
+          "fields": {
+            "provider_managed": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "state_model": {
+              "annotation": "Literal['stateless', 'thread', 'run', 'session']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tool_policy": {
+              "annotation": "Literal['platform_controlled', 'provider_controlled', 'hybrid']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "file_support": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "max_steps": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "AuthType": {
+          "kind": "enum",
+          "members": {
+            "API_KEY": "api_key",
+            "OAUTH": "oauth",
+            "SESSION_COOKIE": "session_cookie",
+            "CUSTOM": "custom"
+          }
+        },
+        "BindingAvailability": {
+          "kind": "enum",
+          "members": {
+            "AVAILABLE": "available",
+            "UNAVAILABLE": "unavailable",
+            "DEGRADED": "degraded"
+          }
+        },
+        "Credential": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "owner_type": {
+              "annotation": "OwnerType",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "owner_id": {
+              "annotation": "uuid.UUID | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "provider_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "credential_ref": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "CredentialStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "CredentialPolicy": {
+          "kind": "enum",
+          "members": {
+            "PLATFORM_ONLY": "platform_only",
+            "USER_ONLY": "user_only",
+            "PREFER_USER": "prefer_user",
+            "AUTO": "auto"
+          }
+        },
+        "CredentialStatus": {
+          "kind": "enum",
+          "members": {
+            "ACTIVE": "active",
+            "REVOKED": "revoked",
+            "EXPIRED": "expired",
+            "INVALID": "invalid"
+          }
+        },
+        "Modality": {
+          "kind": "enum",
+          "members": {
+            "TEXT": "text",
+            "IMAGE": "image",
+            "AUDIO": "audio",
+            "VIDEO": "video",
+            "CODE": "code"
+          }
+        },
+        "Model": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "model_key": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "display_name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tier": {
+              "annotation": "ModelTier",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "modalities": {
+              "annotation": "list[core.contracts.domain.Modality]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "capabilities": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "context_window": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "quality_score": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "speed_score": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "cost_score": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "reliability_score": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "status": {
+              "annotation": "ModelStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "agent_capability": {
+              "annotation": "core.contracts.domain.AgentCapability | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ModelStatus": {
+          "kind": "enum",
+          "members": {
+            "ACTIVE": "active",
+            "DISABLED": "disabled",
+            "DEPRECATED": "deprecated"
+          }
+        },
+        "ModelTier": {
+          "kind": "enum",
+          "members": {
+            "FAST": "fast",
+            "MEDIUM": "medium",
+            "MAX": "max",
+            "CUSTOM": "custom"
+          }
+        },
+        "OwnerType": {
+          "kind": "enum",
+          "members": {
+            "PLATFORM": "platform",
+            "TENANT": "tenant",
+            "USER": "user"
+          }
+        },
+        "Provider": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_key": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "display_name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "ProviderStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "auth_types": {
+              "annotation": "list[core.contracts.domain.AuthType]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "supports_account_pool": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderAccount": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "credential_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "owner_type": {
+              "annotation": "OwnerType",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "lifecycle_state": {
+              "annotation": "AccountLifecycleState",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "health_state": {
+              "annotation": "AccountHealthState",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "cooldown_until": {
+              "annotation": "datetime.datetime | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderModelBinding": {
+          "kind": "pydantic_model",
+          "fields": {
+            "provider_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "model_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_model_name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "endpoint_ref": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "availability": {
+              "annotation": "BindingAvailability",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "limits_metadata": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "capabilities": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "agent_runtime": {
+              "annotation": "core.contracts.domain.AgentRuntimeBinding | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ProviderStatus": {
+          "kind": "enum",
+          "members": {
+            "ACTIVE": "active",
+            "DISABLED": "disabled",
+            "MAINTENANCE": "maintenance"
+          }
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.routing": {
+      "contracts": {
+        "CandidateScore": {
+          "kind": "pydantic_model",
+          "fields": {
+            "model_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "account_id": {
+              "annotation": "uuid.UUID | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "score": {
+              "annotation": "float",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "reasons": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "risks": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExclusionRecord": {
+          "kind": "pydantic_model",
+          "fields": {
+            "model_key": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_key": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "reason": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "RoutingDecision": {
+          "kind": "pydantic_model",
+          "fields": {
+            "selected": {
+              "annotation": "CandidateScore",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "ranked": {
+              "annotation": "list[core.contracts.routing.CandidateScore]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "fallback_candidates": {
+              "annotation": "list[core.contracts.routing.CandidateScore]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "excluded": {
+              "annotation": "list[core.contracts.routing.ExclusionRecord]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "policy_snapshot": {
+              "annotation": "core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy | core.contracts.model_policy.AgentNodeMappingPolicy",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "fallback_policy": {
+              "annotation": "core.contracts.model_policy.FallbackScope | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "weights": {
+              "annotation": "ScoringWeights",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "decided_at": {
+              "annotation": "datetime",
+              "required": false,
+              "default": "<factory:utc_now>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "RoutingRequest": {
+          "kind": "pydantic_model",
+          "fields": {
+            "operation": {
+              "annotation": "ProviderOperation",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "required_capabilities": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "required_modalities": {
+              "annotation": "list[core.contracts.domain.Modality]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "model_policy": {
+              "annotation": "Optional[Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy | core.contracts.model_policy.AgentNodeMappingPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "task_analysis": {
+              "annotation": "core.contracts.routing.TaskAnalysis | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "context_length_hint": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "weights": {
+              "annotation": "core.contracts.routing.ScoringWeights | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "credential_policy": {
+              "annotation": "core.contracts.domain.CredentialPolicy | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ScoringWeights": {
+          "kind": "pydantic_model",
+          "fields": {
+            "version": {
+              "annotation": "str",
+              "required": false,
+              "default": "11s6-initial",
+              "alias": null
+            },
+            "quality": {
+              "annotation": "float",
+              "required": false,
+              "default": 0.35,
+              "alias": null
+            },
+            "reliability": {
+              "annotation": "float",
+              "required": false,
+              "default": 0.2,
+              "alias": null
+            },
+            "cost": {
+              "annotation": "float",
+              "required": false,
+              "default": 0.15,
+              "alias": null
+            },
+            "latency": {
+              "annotation": "float",
+              "required": false,
+              "default": 0.15,
+              "alias": null
+            },
+            "context_fit": {
+              "annotation": "float",
+              "required": false,
+              "default": 0.1,
+              "alias": null
+            },
+            "policy_preference": {
+              "annotation": "float",
+              "required": false,
+              "default": 0.05,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "TaskAnalysis": {
+          "kind": "pydantic_model",
+          "fields": {
+            "task_type": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "complexity": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "modalities_required": {
+              "annotation": "list[core.contracts.domain.Modality]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "capabilities_required": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "tools_required": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "risk_level": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "needs_agent": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "needs_evaluation": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "language": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ModelPolicy": {
+          "kind": "discriminated_union",
+          "annotation": "Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy | core.contracts.model_policy.AgentNodeMappingPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]"
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.model_policy": {
+      "contracts": {
+        "AgentNodeMappingPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['agent_node_mapping']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "default_model_policy": {
+              "annotation": "Optional[Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "node_model_policies": {
+              "annotation": "dict[str, Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "AgentPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "workflow": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "default_model_policy": {
+              "annotation": "Optional[Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "node_model_policies": {
+              "annotation": "dict[str, Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "AutoModelPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['auto']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tier": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "explicit_model_id": {
+              "annotation": "NoneType",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "allow_fallback": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "fallback_scope": {
+              "annotation": "core.contracts.model_policy.FallbackScope | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExplicitModelPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['explicit_model']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "model_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "allow_fallback": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "fallback_scope": {
+              "annotation": "core.contracts.model_policy.FallbackScope | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExplicitModelsPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['explicit_models']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "models": {
+              "annotation": "list[core.contracts.model_policy.ModelRef]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "selection_strategy": {
+              "annotation": "core.contracts.model_policy.SelectionStrategy | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "judge_policy": {
+              "annotation": "Optional[Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "allow_partial": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "allow_fallback": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "fallback_scope": {
+              "annotation": "core.contracts.model_policy.FallbackScope | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "FallbackScope": {
+          "kind": "enum",
+          "members": {
+            "NONE": "none",
+            "SAME_MODEL_DIFFERENT_PROVIDER": "same_model_different_provider",
+            "SAME_TIER": "same_tier",
+            "LOWER_COST_SAME_CAPABILITY": "lower_cost_same_capability",
+            "MAX_ESCALATION": "max_escalation",
+            "ADMIN_DEFINED_CHAIN": "admin_defined_chain"
+          }
+        },
+        "ModelRef": {
+          "kind": "pydantic_model",
+          "fields": {
+            "model_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "provider_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "SelectionStrategy": {
+          "kind": "enum",
+          "members": {
+            "FALLBACK_CHAIN": "fallback_chain",
+            "PARALLEL_COMPARE": "parallel_compare",
+            "BEST_OF_N": "best_of_n",
+            "DEBATE": "debate",
+            "SPECIALIST_ROLES": "specialist_roles"
+          }
+        },
+        "TierModelPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['tier']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tier": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "allow_fallback": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "fallback_scope": {
+              "annotation": "core.contracts.model_policy.FallbackScope | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "NodeModelPolicy": {
+          "kind": "discriminated_union",
+          "annotation": "Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]"
+        },
+        "ModelPolicy": {
+          "kind": "discriminated_union",
+          "annotation": "Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy | core.contracts.model_policy.AgentNodeMappingPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]"
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.execute": {
+      "contracts": {
+        "CapabilityRequirements": {
+          "kind": "pydantic_model",
+          "fields": {
+            "capabilities": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "modalities": {
+              "annotation": "list[core.contracts.domain.Modality]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "DeltaEvent": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['delta']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "content": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ErrorEvent": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['error']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "error": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "EvaluationReport": {
+          "kind": "pydantic_model",
+          "fields": {
+            "visible": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "level": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "summary": {
+              "annotation": "str | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecuteAsyncAccepted": {
+          "kind": "pydantic_model",
+          "fields": {
+            "execution_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "Literal[<ExecutionStatus.QUEUED: 'queued'>]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "poll_url": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecuteRequest": {
+          "kind": "pydantic_model",
+          "fields": {
+            "ask": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "mode": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "conversation_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "project_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "role": {
+              "annotation": "core.contracts.execute.RoleSelector | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "skills": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]] | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "model_policy": {
+              "annotation": "Optional[Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy | core.contracts.model_policy.AgentNodeMappingPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "agent_policy": {
+              "annotation": "core.contracts.model_policy.AgentPolicy | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "requirements": {
+              "annotation": "core.contracts.execute.CapabilityRequirements | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "execution_strategy": {
+              "annotation": "core.contracts.execution_strategy.ExecutionStrategySpec | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "execution_policy": {
+              "annotation": "core.contracts.execute.ExecutionPolicy | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "tools": {
+              "annotation": "core.contracts.execute.ToolsPolicy | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "context": {
+              "annotation": "core.contracts.execute.RequestContext | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "output": {
+              "annotation": "core.contracts.execute.OutputSpec | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "webhook_url": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecuteSyncResponse": {
+          "kind": "pydantic_model",
+          "fields": {
+            "execution_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "ExecutionStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "result": {
+              "annotation": "ExecutionResult",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "usage": {
+              "annotation": "core.contracts.execute.UsageReport | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "evaluation": {
+              "annotation": "core.contracts.execute.EvaluationReport | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "context": {
+              "annotation": "core.contracts.execute.ExecutionContextInfo | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionContextInfo": {
+          "kind": "pydantic_model",
+          "fields": {
+            "strategy": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "mode": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "project_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "template_ref": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "strategy": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "async_": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": "async"
+            },
+            "stream": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "max_cost_units": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "approval_required_for_tools": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "max_steps": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "deadline_ms": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionProgress": {
+          "kind": "pydantic_model",
+          "fields": {
+            "current_stage": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "percent": {
+              "annotation": "int | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionResult": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "content": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "format": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "artifacts": {
+              "annotation": "list[dict[str, Any]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionStartedEvent": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['execution_started']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "execution_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionStatus": {
+          "kind": "enum",
+          "members": {
+            "QUEUED": "queued",
+            "RUNNING": "running",
+            "WAITING_APPROVAL": "waiting_approval",
+            "SUCCEEDED": "succeeded",
+            "FAILED": "failed",
+            "CANCELLED": "cancelled"
+          }
+        },
+        "ExecutionStatusResponse": {
+          "kind": "pydantic_model",
+          "fields": {
+            "execution_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "ExecutionStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "progress": {
+              "annotation": "core.contracts.execute.ExecutionProgress | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "result": {
+              "annotation": "core.contracts.execute.ExecutionResult | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "error": {
+              "annotation": "core.contracts.errors.ErrorDetail | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "context": {
+              "annotation": "core.contracts.execute.ExecutionContextInfo | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "FinalEvent": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['final']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "result": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "NodeCompletedEvent": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['node_completed']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "node": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "NodeStartedEvent": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "Literal['node_started']",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "node": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "OutputSpec": {
+          "kind": "pydantic_model",
+          "fields": {
+            "format": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "language": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "schema_": {
+              "annotation": "dict[str, Any] | None",
+              "required": false,
+              "default": null,
+              "alias": "schema"
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "RequestContext": {
+          "kind": "pydantic_model",
+          "fields": {
+            "attachments": {
+              "annotation": "list[dict[str, Any]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "metadata": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "language": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "RoleSelector": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ToolsPolicy": {
+          "kind": "pydantic_model",
+          "fields": {
+            "allowed": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "denied": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "approval_mode": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "UsageReport": {
+          "kind": "pydantic_model",
+          "fields": {
+            "units_reserved": {
+              "annotation": "int",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "units_settled": {
+              "annotation": "int",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "details": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "WebhookEventType": {
+          "kind": "enum",
+          "members": {
+            "EXECUTION_QUEUED": "execution.queued",
+            "EXECUTION_STARTED": "execution.started",
+            "EXECUTION_WAITING_APPROVAL": "execution.waiting_approval",
+            "EXECUTION_SUCCEEDED": "execution.succeeded",
+            "EXECUTION_FAILED": "execution.failed",
+            "EXECUTION_CANCELLED": "execution.cancelled"
+          }
+        },
+        "WebhookPayload": {
+          "kind": "pydantic_model",
+          "fields": {
+            "event": {
+              "annotation": "WebhookEventType",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "execution_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tenant_id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "timestamp": {
+              "annotation": "datetime",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "data": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ModelPolicy": {
+          "kind": "discriminated_union",
+          "annotation": "Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy | core.contracts.model_policy.AgentNodeMappingPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]"
+        },
+        "StreamEvent": {
+          "kind": "discriminated_union",
+          "annotation": "Annotated[core.contracts.execute.ExecutionStartedEvent | core.contracts.execute.NodeStartedEvent | core.contracts.execute.DeltaEvent | core.contracts.execute.NodeCompletedEvent | core.contracts.execute.FinalEvent | core.contracts.execute.ErrorEvent, FieldInfo(annotation=NoneType, required=True, discriminator='type')]"
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.execution": {
+      "contracts": {
+        "Execution": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tenant_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "user_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "conversation_id": {
+              "annotation": "uuid.UUID | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "request_hash": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "idempotency_key": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "status": {
+              "annotation": "ExecutionStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "strategy": {
+              "annotation": "ExecutionStrategy",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "cost_snapshot": {
+              "annotation": "dict[str, Any]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "created_at": {
+              "annotation": "datetime",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "completed_at": {
+              "annotation": "datetime.datetime | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionNode": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "execution_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "node_key": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "type": {
+              "annotation": "ExecutionNodeType",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "ExecutionNodeStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "input_ref": {
+              "annotation": "Union[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])], dict[str, Any]]",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "output_ref": {
+              "annotation": "Union[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])], dict[str, Any], NoneType]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "retry_count": {
+              "annotation": "int",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "error": {
+              "annotation": "dict[str, Any] | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ExecutionNodeStatus": {
+          "kind": "enum",
+          "members": {
+            "PENDING": "pending",
+            "RUNNING": "running",
+            "SUCCEEDED": "succeeded",
+            "FAILED": "failed",
+            "SKIPPED": "skipped",
+            "CANCELLED": "cancelled"
+          }
+        },
+        "ExecutionNodeType": {
+          "kind": "enum",
+          "members": {
+            "MODEL_CALL": "model_call",
+            "TOOL_CALL": "tool_call",
+            "PLANNER": "planner",
+            "REVIEWER": "reviewer",
+            "TESTER": "tester",
+            "VALIDATOR": "validator",
+            "AGGREGATOR": "aggregator"
+          }
+        },
+        "ExecutionStrategy": {
+          "kind": "enum",
+          "members": {
+            "SINGLE": "single",
+            "PARALLEL": "parallel",
+            "PIPELINE": "pipeline",
+            "DEBATE": "debate",
+            "REVIEW_JUDGE": "review_judge",
+            "MAP_REDUCE": "map_reduce",
+            "AGENT": "agent",
+            "HYBRID": "hybrid"
+          }
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.execution_strategy": {
+      "contracts": {
+        "ExecutionStrategySpec": {
+          "kind": "pydantic_model",
+          "fields": {
+            "mode": {
+              "annotation": "Literal['auto', 'custom', 'template']",
+              "required": false,
+              "default": "custom",
+              "alias": null
+            },
+            "template_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "stages": {
+              "annotation": "list[core.contracts.execution_strategy.StrategyStage]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "max_parallel": {
+              "annotation": "int",
+              "required": false,
+              "default": 4,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "StageKind": {
+          "kind": "enum",
+          "members": {
+            "GENERATE": "generate",
+            "REVIEW": "review",
+            "RETEST": "retest"
+          }
+        },
+        "StrategyStage": {
+          "kind": "pydantic_model",
+          "fields": {
+            "key": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "kind": {
+              "annotation": "StageKind",
+              "required": false,
+              "default": "generate",
+              "alias": null
+            },
+            "role": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "instruction": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "model_policy": {
+              "annotation": "Optional[Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "depends_on": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "payload": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "NodeModelPolicy": {
+          "kind": "discriminated_union",
+          "annotation": "Annotated[core.contracts.model_policy.AutoModelPolicy | core.contracts.model_policy.TierModelPolicy | core.contracts.model_policy.ExplicitModelPolicy | core.contracts.model_policy.ExplicitModelsPolicy, FieldInfo(annotation=NoneType, required=True, discriminator='type')]"
+        }
+      },
+      "constants": {
+        "MAX_STAGES": 16,
+        "MAX_PARALLEL": 4
+      }
+    },
+    "core.contracts.model_listing": {
+      "contracts": {
+        "ModelListEntry": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tier": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "modalities": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "capabilities": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "availability": {
+              "annotation": "BindingAvailability",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "providers": {
+              "annotation": "list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]] | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "runtime": {
+              "annotation": "list[dict[str, Any]] | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ModelsListResponse": {
+          "kind": "pydantic_model",
+          "fields": {
+            "models": {
+              "annotation": "list[core.contracts.model_listing.ModelListEntry]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.usage": {
+      "contracts": {
+        "TaskUnitBudget": {
+          "kind": "pydantic_model",
+          "fields": {
+            "limit": {
+              "annotation": "float",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "used": {
+              "annotation": "float",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "remaining": {
+              "annotation": "float",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "UsageLedger": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tenant_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "execution_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "units_reserved": {
+              "annotation": "float",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "units_settled": {
+              "annotation": "float",
+              "required": false,
+              "default": 0,
+              "alias": null
+            },
+            "modality_costs": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "status": {
+              "annotation": "UsageLedgerStatus",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "UsageLedgerStatus": {
+          "kind": "enum",
+          "members": {
+            "RESERVED": "reserved",
+            "SETTLED": "settled",
+            "REFUNDED": "refunded",
+            "FAILED": "failed"
+          }
+        },
+        "UsageSummary": {
+          "kind": "pydantic_model",
+          "fields": {
+            "plan": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "task_units": {
+              "annotation": "TaskUnitBudget",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "modality_limits": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.learning": {
+      "contracts": {
+        "LearningEligibility": {
+          "kind": "enum",
+          "members": {
+            "ELIGIBLE": "eligible",
+            "INELIGIBLE": "ineligible",
+            "PENDING": "pending"
+          }
+        },
+        "LearningSample": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "source_execution_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "tenant_id": {
+              "annotation": "uuid.UUID | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "eligibility": {
+              "annotation": "LearningEligibility",
+              "required": false,
+              "default": "pending",
+              "alias": null
+            },
+            "sanitization_state": {
+              "annotation": "SanitizationState",
+              "required": false,
+              "default": "pending",
+              "alias": null
+            },
+            "verification_level": {
+              "annotation": "VerificationLevel",
+              "required": false,
+              "default": "RAW",
+              "alias": null
+            },
+            "dataset_id": {
+              "annotation": "uuid.UUID | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "SanitizationState": {
+          "kind": "enum",
+          "members": {
+            "PENDING": "pending",
+            "PASSED": "passed",
+            "FAILED": "failed"
+          }
+        }
+      },
+      "constants": {}
+    },
+    "core.contracts.evaluation": {
+      "contracts": {
+        "EvaluationRecord": {
+          "kind": "pydantic_model",
+          "fields": {
+            "id": {
+              "annotation": "UUID",
+              "required": false,
+              "default": "<factory:uuid4>",
+              "alias": null
+            },
+            "tenant_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "execution_id": {
+              "annotation": "UUID",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "level": {
+              "annotation": "VerificationLevel",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "score": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "confidence": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "evidence_ref": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=512)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "graders": {
+              "annotation": "tuple[core.contracts.evaluation.GraderResult, ...]",
+              "required": false,
+              "default": [],
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "EvaluationStatus": {
+          "kind": "enum",
+          "members": {
+            "NEVER_EVALUATED": "NEVER_EVALUATED",
+            "EVALUATED": "EVALUATED"
+          }
+        },
+        "GraderResult": {
+          "kind": "pydantic_model",
+          "fields": {
+            "type": {
+              "annotation": "GraderType",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "passed": {
+              "annotation": "bool | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "score": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            },
+            "confidence": {
+              "annotation": "float | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "GraderType": {
+          "kind": "enum",
+          "members": {
+            "DETERMINISTIC": "deterministic",
+            "MODEL_BASED": "model_based",
+            "PAIRWISE": "pairwise",
+            "COUNTER_EVALUATION": "counter_evaluation",
+            "SKILL_SPECIFIC": "skill_specific",
+            "ROLE_SPECIFIC": "role_specific",
+            "SECURITY": "security",
+            "REGRESSION": "regression",
+            "HUMAN_CALIBRATED": "human_calibrated",
+            "PRODUCTION_SIGNAL": "production_signal"
+          }
+        },
+        "VerificationLevel": {
+          "kind": "enum",
+          "members": {
+            "RAW": "RAW",
+            "EVALUATED": "EVALUATED",
+            "VALIDATED": "VALIDATED",
+            "VERIFIED": "VERIFIED",
+            "GOLD": "GOLD"
+          }
+        }
+      },
+      "constants": {
+        "VERIFICATION_LEVEL_ORDER": [
+          "RAW",
+          "EVALUATED",
+          "VALIDATED",
+          "VERIFIED",
+          "GOLD"
+        ]
+      }
+    },
+    "core.contracts.errors": {
+      "contracts": {
+        "ErrorCode": {
+          "kind": "enum",
+          "members": {
+            "VALIDATION_ERROR": "validation_error",
+            "UNAUTHENTICATED": "unauthenticated",
+            "UNAUTHORIZED": "unauthorized",
+            "ENTITLEMENT_EXCEEDED": "entitlement_exceeded",
+            "CAPABILITY_DENIED": "capability_denied",
+            "PROVIDER_UNAVAILABLE": "provider_unavailable",
+            "MODEL_UNAVAILABLE": "model_unavailable",
+            "TOOL_APPROVAL_REQUIRED": "tool_approval_required",
+            "RATE_LIMITED": "rate_limited",
+            "EXECUTION_FAILED": "execution_failed",
+            "INTERNAL_ERROR": "internal_error"
+          }
+        },
+        "ErrorDetail": {
+          "kind": "pydantic_model",
+          "fields": {
+            "code": {
+              "annotation": "ErrorCode",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "message": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "retryable": {
+              "annotation": "bool",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "details": {
+              "annotation": "dict[str, Any]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "trace_id": {
+              "annotation": "Optional[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MinLen(min_length=1), MaxLen(max_length=128)])]]",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        },
+        "ErrorEnvelope": {
+          "kind": "pydantic_model",
+          "fields": {
+            "error": {
+              "annotation": "ErrorDetail",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": true
+        }
+      },
+      "constants": {}
+    },
+    "core.learning.gates": {
+      "contracts": {
+        "EligibilitySignals": {
+          "kind": "dataclass",
+          "fields": {
+            "privacy_policy_allows": {
+              "annotation": "bool",
+              "default": false
+            },
+            "tenant_user_policy_allows": {
+              "annotation": "bool",
+              "default": false
+            },
+            "sensitive_data_handled": {
+              "annotation": "bool",
+              "default": false
+            },
+            "deduplicated": {
+              "annotation": "bool",
+              "default": false
+            },
+            "not_poisoned": {
+              "annotation": "bool",
+              "default": false
+            },
+            "source_trace_intact": {
+              "annotation": "bool",
+              "default": true
+            }
+          },
+          "frozen": true
+        },
+        "PromotionSignals": {
+          "kind": "dataclass",
+          "fields": {
+            "offline_eval_pass": {
+              "annotation": "bool",
+              "default": false
+            },
+            "regression_pass": {
+              "annotation": "bool",
+              "default": false
+            },
+            "security_eval_pass": {
+              "annotation": "bool",
+              "default": false
+            },
+            "shadow_performance_acceptable": {
+              "annotation": "bool",
+              "default": false
+            },
+            "canary_performance_acceptable": {
+              "annotation": "bool",
+              "default": false
+            },
+            "rollback_plan_exists": {
+              "annotation": "bool",
+              "default": false
+            },
+            "approval_required": {
+              "annotation": "bool",
+              "default": true
+            },
+            "admin_approved": {
+              "annotation": "bool",
+              "default": false
+            }
+          },
+          "frozen": true
+        }
+      },
+      "constants": {
+        "TRAINING_ELIGIBILITY_CONDITIONS": [
+          "privacy_policy_allows",
+          "tenant_user_policy_allows",
+          "sensitive_data_handled",
+          "quality_level_sufficient",
+          "deduplicated",
+          "sanitized",
+          "source_trace_exists",
+          "not_poisoned"
+        ],
+        "PROMOTION_CONDITIONS": [
+          "offline_eval_pass",
+          "regression_pass",
+          "security_eval_pass",
+          "shadow_performance_acceptable",
+          "canary_performance_acceptable",
+          "rollback_plan_exists",
+          "admin_approval_where_required"
+        ]
+      }
+    },
+    "core.routing.capacity": {
+      "contracts": {
+        "Eligibility": {
+          "kind": "dataclass",
+          "fields": {
+            "eligible": {
+              "annotation": "bool",
+              "default": "<required>"
+            },
+            "reason": {
+              "annotation": "str | None",
+              "default": null
+            },
+            "retry_after_ms": {
+              "annotation": "int | None",
+              "default": null
+            }
+          },
+          "frozen": true
+        }
+      },
+      "constants": {
+        "DEFAULT_COOLDOWN_MS": 30000,
+        "DEFAULT_UNAVAILABLE_MS": 60000,
+        "RPM_WINDOW_SECONDS": 60
+      }
+    },
+    "apps.api.provider_onboarding": {
+      "contracts": {
+        "GatewayOnboardRequest": {
+          "kind": "pydantic_model",
+          "fields": {
+            "provider_key": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "display_name": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "operations": {
+              "annotation": "list[str]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "capabilities": {
+              "annotation": "dict[str, bool]",
+              "required": false,
+              "default": "<factory:dict>",
+              "alias": null
+            },
+            "static_models": {
+              "annotation": "list[str]",
+              "required": false,
+              "default": "<factory:list>",
+              "alias": null
+            },
+            "credential_ref": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "route_token_ref": {
+              "annotation": "str",
+              "required": true,
+              "default": "<required>",
+              "alias": null
+            },
+            "credential_mode": {
+              "annotation": "str",
+              "required": false,
+              "default": "platform",
+              "alias": null
+            },
+            "definition_version": {
+              "annotation": "str",
+              "required": false,
+              "default": "1.0.0",
+              "alias": null
+            },
+            "discover": {
+              "annotation": "bool",
+              "required": false,
+              "default": false,
+              "alias": null
+            },
+            "model_key_prefix": {
+              "annotation": "str | None",
+              "required": false,
+              "default": null,
+              "alias": null
+            }
+          },
+          "extra": "forbid",
+          "frozen": null
+        },
+        "ProviderOnboardingSurface": {
+          "kind": "dataclass",
+          "fields": {
+            "onboarding": {
+              "annotation": "ProviderOnboardingService",
+              "default": "<required>"
+            },
+            "build_adapter": {
+              "annotation": "collections.abc.Callable[[core.contracts.provider.ProviderManifest, apps.api.provider_onboarding.GatewayOnboardRequest], core.providers.ports.ProviderAdapterPort]",
+              "default": "<required>"
+            },
+            "build_manifest": {
+              "annotation": "collections.abc.Callable[[apps.api.provider_onboarding.GatewayOnboardRequest], core.contracts.provider.ProviderManifest]",
+              "default": "<required>"
+            },
+            "persist_registration": {
+              "annotation": "collections.abc.Callable[[uuid.UUID, dict[str, object]], None] | None",
+              "default": null
+            },
+            "describe_remote": {
+              "annotation": "collections.abc.Callable[[apps.api.provider_onboarding.GatewayOnboardRequest], collections.abc.Awaitable[dict[str, object] | None]] | None",
+              "default": null
+            }
+          },
+          "frozen": false
+        }
+      },
+      "constants": {}
+    }
+  },
+  "resource_signal_snapshot": {
+    "keys": [
+      "cooldown_until",
+      "last_category",
+      "model_id",
+      "provider_id",
+      "reason",
+      "rpm_limit",
+      "rpm_used",
+      "state"
+    ],
+    "states": [
+      "available",
+      "unavailable",
+      "cooldown",
+      "limited"
+    ]
+  },
+  "served_routes_v1": [
+    {
+      "path": "/v1/admin/capabilities",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/capabilities/actions",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/capabilities/exercisable",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/capabilities/{capability_id}/exercise",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes/propose",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes/{change_id}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes/{change_id}/preview",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes/{change_id}/publish",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes/{change_id}/rollback",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/changes/{change_id}/validate",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/evaluations/{evaluation_id}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/executions/{execution_id}/evaluations",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/learning/changes-since-review",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/learning/dashboard",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/learning/mark-reviewed",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/models",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/plans/{plan_tenant_id}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/providers",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/routing/weights",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/scenarios",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/scenarios/regression-pack",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/scenarios/{scenario_id}/replay",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/self-review",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/snapshots",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/{proposal_id}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/{proposal_id}/apply",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/{proposal_id}/approve",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/{proposal_id}/reject",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/{proposal_id}/rollback",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/admin/source-changes/{proposal_id}/verify",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/execute",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/executions",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/executions/{execution_id}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/models",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/projects",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/projects/{project_id}",
+      "methods": [
+        "DELETE",
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/skills",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/templates",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/templates/{ref}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/usage",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/v1/webhooks",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/webhooks/{subscription_id}",
+      "methods": [
+        "DELETE"
+      ]
+    },
+    {
+      "path": "/v1/workspaces",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/v1/workspaces/{workspace_id}",
+      "methods": [
+        "DELETE",
+        "GET"
+      ]
+    }
+  ],
+  "frozen_at": {
+    "round": "completion_v2",
+    "note": "re-derived by declared round"
+  }
+}

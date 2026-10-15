@@ -1,0 +1,21 @@
+{
+ "case": "skills_unknown_rejected",
+ "request": {
+  "ask": "hi",
+  "skills": [
+   "no_such_skill"
+  ]
+ },
+ "response": {
+  "error": {
+   "code": "validation_error",
+   "details": {
+    "field": "skills"
+   },
+   "message": "skill is not selectable: no_such_skill",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 422
+}

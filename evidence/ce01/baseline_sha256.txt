@@ -1,0 +1,2 @@
+23e3348c482e4ed02b7e6d208d88c43bfd49931620371382a46a123883cb9aa1  compat/upstream_freeze_baseline_0a13556.json
+23e3348c482e4ed02b7e6d208d88c43bfd49931620371382a46a123883cb9aa1  /home/user/ref/general_ai_core/engineering/verification/contract_freeze_baseline.json

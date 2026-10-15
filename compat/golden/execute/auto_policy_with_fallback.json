@@ -1,0 +1,40 @@
+{
+ "case": "auto_policy_with_fallback",
+ "request": {
+  "ask": "hi",
+  "model_policy": {
+   "allow_fallback": true,
+   "fallback_scope": "same_model_different_provider",
+   "type": "auto"
+  }
+ },
+ "response": {
+  "context": {
+   "mode": "single",
+   "strategy": "single"
+  },
+  "execution_id": "dad9487c-3270-4060-9289-df2afb371866",
+  "result": {
+   "artifacts": [
+    {
+     "blocks_total": 1,
+     "excluded": 0,
+     "gold_blocks": 0,
+     "memory_blocks": [],
+     "type": "context_provenance"
+    }
+   ],
+   "content": "{\"context_blocks\": [{\"content\": \"hi\", \"source\": \"request\", \"type\": \"ask\"}], \"echo\": \"hi\", \"note\": \"hermetic local adapter \\u2014 no real model was called\", \"provider\": \"local-echo\"}",
+   "type": "message"
+  },
+  "status": "succeeded",
+  "usage": {
+   "details": {
+    "status": "settled"
+   },
+   "units_reserved": 1,
+   "units_settled": 1
+  }
+ },
+ "status": 200
+}

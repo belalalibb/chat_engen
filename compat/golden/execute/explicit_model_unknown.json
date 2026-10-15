@@ -1,0 +1,27 @@
+{
+ "case": "explicit_model_unknown",
+ "request": {
+  "ask": "hi",
+  "model_policy": {
+   "model_id": "gpt-nonexistent",
+   "type": "explicit_model"
+  }
+ },
+ "response": {
+  "error": {
+   "code": "model_unavailable",
+   "details": {
+    "excluded": [
+     {
+      "model_key": "gpt-nonexistent",
+      "reason": "explicit model not registered or not active"
+     }
+    ]
+   },
+   "message": "No eligible model candidates for this request.",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 503
+}

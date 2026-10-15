@@ -1,0 +1,78 @@
+{
+ "account_pool": {
+  "fencing_required": false,
+  "lease_required": false,
+  "supported": false
+ },
+ "agent_module": null,
+ "auth": {
+  "supports_refresh": false,
+  "types": [
+   "api_key"
+  ]
+ },
+ "capabilities": {
+  "agent_module": false,
+  "audio_input": false,
+  "audio_output": false,
+  "browser": false,
+  "chat": true,
+  "code": true,
+  "embeddings": true,
+  "file_upload": false,
+  "image_generation": false,
+  "moderation": false,
+  "reasoning": true,
+  "rerank": false,
+  "tool_use": false,
+  "vision_input": false
+ },
+ "errors": {
+  "mapping": "providers/real/genspark_llm/adapter.py:_normalize_http_response"
+ },
+ "health": {
+  "checks": [
+   "models_endpoint_authenticated"
+  ]
+ },
+ "id": "genspark_llm",
+ "is_functional": true,
+ "is_template": false,
+ "models": {
+  "discovery": "dynamic",
+  "static_models": [
+   "gpt-5-nano",
+   "gpt-5-mini",
+   "gpt-5.2",
+   "claude-sonnet-4-5",
+   "claude-opus-4-5",
+   "deep-seek-v4-flash",
+   "kimi-k3",
+   "grok-4.6",
+   "text-embedding-3-small",
+   "text-embedding-3-large",
+   "gemini-embedding-2-preview",
+   "qwen3-embedding-8B"
+  ]
+ },
+ "name": "Genspark LLM Proxy",
+ "notes": [
+  "Real provider (31 \u00a719). OpenAI-compatible endpoint: https://www.genspark.ai/api/llm_proxy/v1",
+  "Credential enters via SecretManagerPort only; adapter resolves at last moment.",
+  "Aggregation gateway: many upstream model families behind one API key; modeled as ONE Type A provider per 30 \u00a74 (capability-driven).",
+  "Model-allowlist rejections arrive as HTTP 400 'Model ... is not allowed' (live-verified) and are normalized to model_unavailable structurally.",
+  "create_embeddings added T-IMPL-038 (live-verified 2026-08-28 against POST /embeddings): text-embedding-3-small 1536 dims / -large 3072 dims; embedding models NOT listed by GET /models \u2014 static allowlist only."
+ ],
+ "operations": [
+  "generate_text",
+  "create_embeddings"
+ ],
+ "rate_limits": {
+  "dimensions": [],
+  "strategy": "provider_defined"
+ },
+ "real_provider_required": false,
+ "security": null,
+ "status": "disabled",
+ "version": "1.0.0"
+}

@@ -1,0 +1,44 @@
+{
+ "case": "explicit_models_parallel_compare",
+ "request": {
+  "ask": "hi",
+  "model_policy": {
+   "models": [
+    {
+     "model_id": "local-echo-1"
+    }
+   ],
+   "selection_strategy": "parallel_compare",
+   "type": "explicit_models"
+  }
+ },
+ "response": {
+  "context": {
+   "mode": "single",
+   "strategy": "single"
+  },
+  "execution_id": "7a7856d5-a8ad-4361-9fef-b24047ec1c68",
+  "result": {
+   "artifacts": [
+    {
+     "blocks_total": 1,
+     "excluded": 0,
+     "gold_blocks": 0,
+     "memory_blocks": [],
+     "type": "context_provenance"
+    }
+   ],
+   "content": "{\"context_blocks\": [{\"content\": \"hi\", \"source\": \"request\", \"type\": \"ask\"}], \"echo\": \"hi\", \"note\": \"hermetic local adapter \\u2014 no real model was called\", \"provider\": \"local-echo\"}",
+   "type": "message"
+  },
+  "status": "succeeded",
+  "usage": {
+   "details": {
+    "status": "settled"
+   },
+   "units_reserved": 1,
+   "units_settled": 1
+  }
+ },
+ "status": 200
+}

@@ -1,0 +1,20 @@
+{
+ "case": "validation_empty_ask",
+ "request": {
+  "ask": ""
+ },
+ "response": {
+  "error": {
+   "code": "validation_error",
+   "details": {
+    "errors": [
+     "String should have at least 1 character"
+    ]
+   },
+   "message": "Request body failed contract validation.",
+   "retryable": false,
+   "trace_id": null
+  }
+ },
+ "status": 422
+}
