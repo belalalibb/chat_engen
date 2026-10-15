@@ -16,7 +16,7 @@ from core.contracts.provider import (
 
 from tests.providers.fake_openai import FakeOpenAI
 
-SECRETS = {"ref-good": "sk-test-valid-key-0001", "ref-bad": "sk-test-wrong-key-00000"}
+SECRETS = {"ref-good": "fakekey-valid-0001", "ref-bad": "fakekey-wrong-0000"}
 
 
 def adapter(fake: FakeOpenAI, ref: str = "ref-good") -> OpenAICompatibleAdapter:
@@ -47,7 +47,7 @@ async def test_generate_success_and_secret_never_in_output() -> None:
     assert resp.usage == {"prompt_tokens": 7, "completion_tokens": 2, "total_tokens": 9}
     assert fake.calls[0]["messages"] == [{"role": "user", "content": "hi"}]
     assert fake.calls[0]["stream"] is False
-    assert "sk-test" not in resp.model_dump_json()
+    assert "fakekey-valid" not in resp.model_dump_json()
 
 
 async def test_messages_from_handoff_take_precedence_over_ask() -> None:

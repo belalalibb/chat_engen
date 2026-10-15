@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from tests.providers.fake_openai import FakeOpenAI
 
-SECRET = "sk-test-valid-key-0001"
+SECRET = "fakekey-valid-0001"
 
 
 @pytest.fixture
@@ -124,7 +124,7 @@ def test_full_lifecycle_with_byok(world) -> None:
 def test_validate_with_wrong_key_fails_and_can_retry(world) -> None:
     _fake, _rt, client = world
     bad = client.post(
-        "/v1/credentials", json={"secret": "sk-test-wrong-key-00000", "label": "bad"}
+        "/v1/credentials", json={"secret": "fakekey-wrong-0000", "label": "bad"}
     ).json()["credential_ref"]
     client.post(
         "/v1/admin/providers/p2",

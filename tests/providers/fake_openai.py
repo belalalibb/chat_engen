@@ -10,7 +10,7 @@ import httpx
 
 @dataclass
 class FakeOpenAI:
-    valid_keys: set[str] = field(default_factory=lambda: {"sk-test-valid-key-0001"})
+    valid_keys: set[str] = field(default_factory=lambda: {"fakekey-valid-0001"})
     models: list[str] = field(default_factory=lambda: ["fake-chat-1", "fake-chat-2"])
     # scripted failures: status code to return on next N chat calls
     fail_next: list[int] = field(default_factory=list)
