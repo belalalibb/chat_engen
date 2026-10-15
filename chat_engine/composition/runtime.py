@@ -164,6 +164,16 @@ class StreamingEchoAdapter(LocalEchoAdapter):
             )
             return
         ask = str(request.payload.get("ask", ""))
+        # Honour a resume continuation: messages[] ending with an assistant
+        # prefix + "Continue" ⇒ stream only the remainder (a real model would).
+        msgs = request.payload.get("messages")
+        if isinstance(msgs, list) and len(msgs) >= 2:
+            prev = msgs[-2] if isinstance(msgs[-2], dict) else {}
+            last = msgs[-1] if isinstance(msgs[-1], dict) else {}
+            if prev.get("role") == "assistant" and "Continue" in str(last.get("content", "")):
+                prefix = str(prev.get("content", ""))
+                if ask.startswith(prefix):
+                    ask = ask[len(prefix) :].lstrip(" ")
         words = ask.split(" ")
         for i, w in enumerate(words):
             if self.delay_s:
