@@ -1,0 +1,35 @@
+== ruff
+All checks passed!
+== ruff format
+42 files already formatted
+== mypy (MYPYPATH=/home/user/ref/general_ai_core)
+Success: no issues found in 29 source files
+== lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 48 files, 92 dependencies.
+-----------------------------------
+
+D0/D3 - chat_engine never imports the upstream application layer or UI KEPT
+D3 - only chat_engine.api knows FastAPI KEPT
+
+Contracts: 2 kept, 0 broken.
+== secret scan
+secret scan clean (104 files)
+== pytest (hermetic)
+.............................................                            [100%]
+45 passed in 0.93s
+GATE GREEN

@@ -15,8 +15,8 @@ def test_execute_payload_has_messages_and_golden_unchanged(client, runtime) -> N
     assert content["echo"] == "hello" and content["provider"] == "local-echo"
     report = runtime.executions.get(runtime.tenant_id, UUID(body["execution_id"]))
     input_ref = report.nodes[-1].node.input_ref
-    assert input_ref["ask"] == "hello"                      # legacy key kept
-    assert "context" in input_ref                            # legacy key kept
+    assert input_ref["ask"] == "hello"  # legacy key kept
+    assert "context" in input_ref  # legacy key kept
     assert input_ref["messages"] == [{"role": "user", "content": "hello"}]  # additive
 
 

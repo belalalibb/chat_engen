@@ -129,9 +129,9 @@ class HandoffBudget(ContractModel):
 class HandoffPacket(ContractModel):
     """Everything model B needs to continue what model A was doing."""
 
-    version: Literal[1] = HANDOFF_PACKET_VERSION
+    version: Literal[1] = 1
     packet_id: BoundedStr
-    objective: str = Field(min_length=0, max_length=100_000)
+    objective: str = Field(default="", max_length=100_000)
     constraints: list[BoundedStr] = Field(default_factory=list)
     messages: list[CanonicalMessage] = Field(default_factory=list)
     tool_results: list[ToolResult] = Field(default_factory=list)

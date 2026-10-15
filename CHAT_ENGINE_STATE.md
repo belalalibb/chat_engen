@@ -3,12 +3,12 @@
 ```text
 STATE_VERSION: 2
 PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-03 Context Handoff Contract
+CURRENT_TASK: CE-04 Canonical Model Identity & Catalog Index
 CURRENT_TASK_STATUS: IN_PROGRESS
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
-NEXT_TASK: CE-03 HandoffPacket v1 + compiler → payload["messages"]
+NEXT_TASK: CE-04 CanonicalModel/ModelAlias/CatalogIndex/Resolver + /v1/catalog/models
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -44,6 +44,7 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 11 | owner approval recorded; ADR-CE-0001 ACCEPTED | 120821b | — | phase 1 |
 | 12 | CE-01: baseline copy (sha256 ==), 14 golden execute + models + events, 14 manifests, COMPATIBILITY_MAP | fe13617 | `evidence/ce01/` | DONE |
 | 13 | CE-02: skeleton, pyproject (SHA pin), compat deriver + 3 guards, arch guard, secret scan | 9374cec | — | pushed |
+| 15 | CE-03: HandoffPacket v1 + HandoffCompiler (system block w/ objective/constraints/decisions, tool_results injection, oldest-first truncation, legacy ComposedContext bridge) wired into /v1/execute as payload["messages"] (additive; goldens unchanged); mypy now follows real upstream types | db14991 + this | `evidence/ce03/gate_output.txt` | **GATE GREEN: 45 passed** |
 | 14 | CE-02: composition runtime (core.* only), /v1/execute compat, /v1/models, /v1/executions(+events SSE), healthz, entrypoint | fb2ce90 + this | `evidence/ce02/gate_output.txt` | **GATE GREEN: 38 passed; 14/14 golden replay; import-linter 2 kept** |
 
 ## Decisions log (dependencies / deviations)

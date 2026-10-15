@@ -21,6 +21,7 @@ from core.context.composer import ContextComposer
 from core.contracts.domain import (
     AuthType,
     BindingAvailability,
+    CredentialStatus,
     Modality,
     Model,
     ModelStatus,
@@ -31,7 +32,6 @@ from core.contracts.domain import (
 )
 from core.contracts.provider import (
     CredentialHealth,
-    CredentialStatus,
     DiscoveredModel,
     HealthScope,
     ProviderCapabilities,

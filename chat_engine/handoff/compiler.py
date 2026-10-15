@@ -92,8 +92,14 @@ def _openai_message(message: CanonicalMessage) -> JsonObject:
     if message.role is CanonicalRole.TOOL or (tool_results and not text_parts):
         result = tool_results[0] if tool_results else None
         content = (
-            result.result if isinstance(result.result, str) else json.dumps(result.result, sort_keys=True)
-        ) if result else message.text()
+            (
+                result.result
+                if isinstance(result.result, str)
+                else json.dumps(result.result, sort_keys=True)
+            )
+            if result
+            else message.text()
+        )
         out: JsonObject = {
             "role": "tool",
             "tool_call_id": (result.tool_call_id if result else message.tool_call_id) or "",
@@ -108,7 +114,12 @@ def _openai_message(message: CanonicalMessage) -> JsonObject:
         parts: list[JsonObject] = [{"type": "text", "text": p.text} for p in text_parts]
         for m in media:
             if isinstance(m, ImageRefPart):
-                parts.append({"type": "image_url", "image_url": {"url": m.ref, **({"detail": m.detail} if m.detail else {})}})
+                parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": m.ref, **({"detail": m.detail} if m.detail else {})},
+                    }
+                )
             else:
                 parts.append({"type": "text", "text": f"[attachment: {m.name or m.ref}]"})
         out["content"] = parts
@@ -139,15 +150,15 @@ class HandoffCompiler:
         system = {"role": "system", "content": _system_text(packet)}
 
         history = [_openai_message(m) for m in packet.messages]
-        seen_tool_ids = {
-            m.get("tool_call_id") for m in history if m.get("role") == "tool"
-        }
+        seen_tool_ids = {m.get("tool_call_id") for m in history if m.get("role") == "tool"}
         pending_tools: list[JsonObject] = [
             {
                 "role": "tool",
                 "tool_call_id": tr.tool_call_id,
                 "name": tr.name,
-                "content": tr.result if isinstance(tr.result, str) else json.dumps(tr.result, sort_keys=True),
+                "content": tr.result
+                if isinstance(tr.result, str)
+                else json.dumps(tr.result, sort_keys=True),
             }
             for tr in packet.tool_results
             if tr.tool_call_id not in seen_tool_ids
@@ -219,7 +230,7 @@ class HandoffCompiler:
                 text = block.content
                 for prefix, r in (("assistant: ", "assistant"), ("user: ", "user")):
                     if text.lower().startswith(prefix):
-                        role, text = r, text[len(prefix):]
+                        role, text = r, text[len(prefix) :]
                         break
                 messages.append({"role": role, "content": text})
             elif kind == "ask":

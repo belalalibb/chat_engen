@@ -54,8 +54,16 @@ ignore = ["RUF001", "RUF002", "RUF003", "E501", "B008"]
 python_version = "3.12"
 strict = true
 packages = ["chat_engine"]
+# Upstream is a flat multi-package distribution without py.typed, so mypy would
+# otherwise treat core.* as Any. scripts/gate.sh passes MYPYPATH pointing at the
+# installed upstream source (editable install) so its real types are followed;
+# upstream's own errors are never reported here (overrides below).
 ignore_missing_imports = true
-follow_imports = "silent"
+follow_imports = "normal"
+
+[[tool.mypy.overrides]]
+module = ["core.*", "providers.*", "infrastructure.*"]
+ignore_errors = true
 
 [tool.importlinter]
 root_packages = ["chat_engine"]

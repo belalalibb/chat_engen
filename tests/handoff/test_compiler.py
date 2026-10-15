@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from core.contracts.context import ComposedContext, ContextBlock, ContextBlockType
-from core.contracts.provider import ProviderGenerateRequest, ProviderOperation
 from uuid import uuid4
 
 from chat_engine.handoff import (
@@ -16,6 +14,8 @@ from chat_engine.handoff import (
     ToolResult,
     ToolResultPart,
 )
+from core.contracts.context import ComposedContext, ContextBlock, ContextBlockType
+from core.contracts.provider import ProviderGenerateRequest, ProviderOperation
 
 
 def _packet(n_turns: int = 4, **kw) -> HandoffPacket:
@@ -92,7 +92,9 @@ def test_legacy_bridge_from_composed_context() -> None:
         context_blocks=[
             ContextBlock(type=ContextBlockType.ROLE, content="Be terse", source="role:x"),
             ContextBlock(type=ContextBlockType.HISTORY, content="user: hi", source="message:1"),
-            ContextBlock(type=ContextBlockType.HISTORY, content="assistant: hello", source="message:2"),
+            ContextBlock(
+                type=ContextBlockType.HISTORY, content="assistant: hello", source="message:2"
+            ),
             ContextBlock(type=ContextBlockType.ASK, content="now what?", source="request"),
         ]
     )
@@ -109,8 +111,9 @@ def test_legacy_adapter_ignores_messages_key() -> None:
     """ProviderGenerateRequest is a frozen upstream contract; payload is JsonObject,
     so adding ``messages`` is additive — the echo adapter (byte-identical to
     upstream's) keeps answering from ``ask`` and never surfaces the new key."""
-    from chat_engine.composition.runtime import LocalEchoAdapter, echo_manifest
     import asyncio
+
+    from chat_engine.composition.runtime import LocalEchoAdapter, echo_manifest
 
     req = ProviderGenerateRequest(
         request_id=uuid4(),
