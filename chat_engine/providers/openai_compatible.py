@@ -228,7 +228,7 @@ class OpenAICompatibleAdapter:
         except httpx.HTTPError:
             return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE, checked_at=self._clock(), detail="inconclusive: provider unreachable")
         if r.status_code in (401, 403):
-            return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.REVOKED, checked_at=self._clock(), detail="provider rejected the credential")
+            return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.INVALID, checked_at=self._clock(), detail="provider rejected the credential")
         if r.status_code == 200:
             return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE, checked_at=self._clock())
         return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE, checked_at=self._clock(), detail=f"inconclusive: http_{r.status_code}")
