@@ -30,21 +30,44 @@ def build_router(rt: Runtime) -> APIRouter:
         for entry in svc.entries():
             if entry.canonical.canonical_id == canonical_id:
                 return JSONResponse(content=entry.model_dump(mode="json", exclude_none=True))
-        return ce_error_response(ChatEngineErrorCode.NOT_FOUND, "Unknown canonical model.", details={"canonical_id": canonical_id})
+        return ce_error_response(
+            ChatEngineErrorCode.NOT_FOUND,
+            "Unknown canonical model.",
+            details={"canonical_id": canonical_id},
+        )
 
     @router.get("/aliases")
-    async def list_aliases(decision: AliasDecision | None = None, alias: str | None = None) -> Response:
+    async def list_aliases(
+        decision: AliasDecision | None = None, alias: str | None = None
+    ) -> Response:
         rows = svc.list_aliases(decision=decision, alias=alias)
-        return JSONResponse(content=AliasListResponse(aliases=rows, total=len(rows)).model_dump(mode="json", exclude_none=True))
+        return JSONResponse(
+            content=AliasListResponse(aliases=rows, total=len(rows)).model_dump(
+                mode="json", exclude_none=True
+            )
+        )
 
     @router.post("/aliases/{alias:path}:decide")
     async def decide_alias(alias: str, body: AliasDecisionRequest) -> Response:
         if body.canonical_id is None:
-            return ce_error_response(ChatEngineErrorCode.CONFLICT, "canonical_id is required.", details={"field": "canonical_id"}, http_status=422)
+            return ce_error_response(
+                ChatEngineErrorCode.CONFLICT,
+                "canonical_id is required.",
+                details={"field": "canonical_id"},
+                http_status=422,
+            )
         try:
-            row = svc.decide(alias, body.canonical_id, body.decision, reason=body.reason, decided_by=body.decided_by)
+            row = svc.decide(
+                alias,
+                body.canonical_id,
+                body.decision,
+                reason=body.reason,
+                decided_by=body.decided_by,
+            )
         except AliasNotFound:
-            return ce_error_response(ChatEngineErrorCode.NOT_FOUND, "Unknown model_key alias.", details={"alias": alias})
+            return ce_error_response(
+                ChatEngineErrorCode.NOT_FOUND, "Unknown model_key alias.", details={"alias": alias}
+            )
         return JSONResponse(content=row.model_dump(mode="json", exclude_none=True))
 
     return router

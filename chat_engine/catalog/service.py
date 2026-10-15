@@ -35,7 +35,9 @@ from chat_engine.catalog.contracts import (
 from chat_engine.catalog.index import CatalogIndex
 from chat_engine.util.time import utc_now
 
-SNAPSHOT_PATH = Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "models_dev_snapshot.json"
+SNAPSHOT_PATH = (
+    Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "models_dev_snapshot.json"
+)
 _PROPOSAL_MIN_CONFIDENCE = 0.6
 
 
@@ -158,7 +160,11 @@ class CatalogService:
             if canonical_id in seen or canonical_id == model_key:
                 continue
             seen.add(canonical_id)
-            confidence = 0.9 if model_key.split("/")[-1].lower() == canonical_id.split("/")[-1].lower() else 0.7
+            confidence = (
+                0.9
+                if model_key.split("/")[-1].lower() == canonical_id.split("/")[-1].lower()
+                else 0.7
+            )
             if confidence < _PROPOSAL_MIN_CONFIDENCE:
                 continue
             self._canonical.setdefault(
@@ -195,7 +201,9 @@ class CatalogService:
 
     # -- alias admin -------------------------------------------------------------------------
 
-    def list_aliases(self, *, decision: AliasDecision | None = None, alias: str | None = None) -> list[ModelAlias]:
+    def list_aliases(
+        self, *, decision: AliasDecision | None = None, alias: str | None = None
+    ) -> list[ModelAlias]:
         self.sync_identities()
         rows = list(self._aliases.values())
         if decision is not None:
@@ -223,13 +231,19 @@ class CatalogService:
             raise AliasNotFound(alias)
         self._canonical.setdefault(
             canonical_id,
-            CanonicalModel(canonical_id=canonical_id, display_name=canonical_id, source=AliasSource.MANUAL),
+            CanonicalModel(
+                canonical_id=canonical_id, display_name=canonical_id, source=AliasSource.MANUAL
+            ),
         )
         row = ModelAlias(
             alias=alias,
             canonical_id=canonical_id,
             decision=decision,
-            confidence=1.0 if decision is AliasDecision.CONFIRMED else 0.0 if decision is AliasDecision.REJECTED else 0.8,
+            confidence=1.0
+            if decision is AliasDecision.CONFIRMED
+            else 0.0
+            if decision is AliasDecision.REJECTED
+            else 0.8,
             source=AliasSource.MANUAL,
             reason=reason,
             decided_by=decided_by,
@@ -239,11 +253,21 @@ class CatalogService:
         identity = self._aliases[(alias, None)]
         if decision is AliasDecision.CONFIRMED:
             self._aliases[(alias, None)] = identity.model_copy(
-                update={"canonical_id": canonical_id, "decided_by": decided_by, "decided_at": utc_now(), "reason": reason or "confirmed alias"}
+                update={
+                    "canonical_id": canonical_id,
+                    "decided_by": decided_by,
+                    "decided_at": utc_now(),
+                    "reason": reason or "confirmed alias",
+                }
             )
         elif identity.canonical_id == canonical_id:
             self._aliases[(alias, None)] = identity.model_copy(
-                update={"canonical_id": alias, "decided_by": decided_by, "decided_at": utc_now(), "reason": "alias rejected — identity restored"}
+                update={
+                    "canonical_id": alias,
+                    "decided_by": decided_by,
+                    "decided_at": utc_now(),
+                    "reason": "alias rejected — identity restored",
+                }
             )
         return row
 
@@ -255,7 +279,9 @@ class CatalogService:
         keys = sorted(
             a.alias
             for (alias, tag), a in self._aliases.items()
-            if tag is None and a.canonical_id == canonical_or_key and a.decision is AliasDecision.CONFIRMED
+            if tag is None
+            and a.canonical_id == canonical_or_key
+            and a.decision is AliasDecision.CONFIRMED
         )
         if keys:
             return keys
@@ -269,7 +295,11 @@ class CatalogService:
         """canonical_id → an UPSTREAM model policy the Router already understands."""
         keys = self.model_keys_for(canonical_or_key)
         if not keys:
-            proposed = [a for a in self.list_aliases(decision=AliasDecision.PROPOSED) if a.canonical_id == canonical_or_key]
+            proposed = [
+                a
+                for a in self.list_aliases(decision=AliasDecision.PROPOSED)
+                if a.canonical_id == canonical_or_key
+            ]
             if proposed:
                 raise AliasUnconfirmed(canonical_or_key)
             # unknown: hand the literal key to the Router so IT produces the
@@ -316,7 +346,9 @@ class CatalogService:
                     pk = self._index.provider_key(b.provider_id) or "?"
                     ok, reason, retry = True, None, None
                     if self._signals is not None:
-                        e = self._signals.eligibility(b.provider_id, model.id, limits=b.limits_metadata)
+                        e = self._signals.eligibility(
+                            b.provider_id, model.id, limits=b.limits_metadata
+                        )
                         ok, reason, retry = e.eligible, e.reason, e.retry_after_ms
                     if ok:
                         eligible += 1
@@ -344,11 +376,23 @@ class CatalogService:
         out.sort(key=lambda e: e.canonical.canonical_id)
         return out
 
-    def page(self, *, offset: int = 0, limit: int = 50, q: str | None = None, include_providers: bool = True) -> CatalogPage:
+    def page(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        q: str | None = None,
+        include_providers: bool = True,
+    ) -> CatalogPage:
         rows = self.entries()
         if q:
             needle = q.lower()
-            rows = [r for r in rows if needle in r.canonical.canonical_id.lower() or needle in r.canonical.display_name.lower()]
+            rows = [
+                r
+                for r in rows
+                if needle in r.canonical.canonical_id.lower()
+                or needle in r.canonical.display_name.lower()
+            ]
         total = len(rows)
         slice_ = rows[offset : offset + limit]
         if not include_providers:
@@ -360,7 +404,14 @@ class CatalogService:
             offset=offset,
             limit=limit,
             built_at=utc_now(),
-            index_stats={"models": st.models, "providers": st.providers, "bindings": st.bindings, "build_ms": round(st.build_ms, 2), "rebuilds": st.rebuilds, "snapshot_loaded": self.snapshot_loaded},
+            index_stats={
+                "models": st.models,
+                "providers": st.providers,
+                "bindings": st.bindings,
+                "build_ms": round(st.build_ms, 2),
+                "rebuilds": st.rebuilds,
+                "snapshot_loaded": self.snapshot_loaded,
+            },
         )
 
     def canonical(self, canonical_id: str) -> CanonicalModel | None:

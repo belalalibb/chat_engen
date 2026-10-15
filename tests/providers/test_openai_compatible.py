@@ -5,10 +5,15 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from core.contracts.domain import CredentialStatus
-from core.contracts.provider import HealthScope, ProviderErrorCategory, ProviderGenerateRequest, ProviderOperation
-
 from chat_engine.providers.openai_compatible import OpenAICompatibleAdapter, build_manifest
+from core.contracts.domain import CredentialStatus
+from core.contracts.provider import (
+    HealthScope,
+    ProviderErrorCategory,
+    ProviderGenerateRequest,
+    ProviderOperation,
+)
+
 from tests.providers.fake_openai import FakeOpenAI
 
 SECRETS = {"ref-good": "sk-test-valid-key-0001", "ref-bad": "sk-test-wrong-key-00000"}
@@ -76,7 +81,9 @@ async def test_discover_models_reads_models_endpoint() -> None:
         (400, None, ProviderErrorCategory.BAD_REQUEST, False),
     ],
 )
-async def test_http_errors_normalize(status: int, retry_after: str | None, category: ProviderErrorCategory, retryable: bool) -> None:
+async def test_http_errors_normalize(
+    status: int, retry_after: str | None, category: ProviderErrorCategory, retryable: bool
+) -> None:
     fake = FakeOpenAI(fail_next=[status], retry_after=retry_after)
     resp = await adapter(fake).generate(req())
     assert not resp.succeeded and resp.error is not None
@@ -101,9 +108,13 @@ async def test_wrong_key_is_invalid_credential() -> None:
     r = req()
     r = r.model_copy(update={"credential_ref": "ref-bad"})
     resp = await adapter(fake).generate(r)
-    assert resp.error is not None and resp.error.category is ProviderErrorCategory.INVALID_CREDENTIAL
+    assert (
+        resp.error is not None and resp.error.category is ProviderErrorCategory.INVALID_CREDENTIAL
+    )
 
 
 async def test_health_check() -> None:
     assert (await adapter(FakeOpenAI()).health_check(HealthScope.PROVIDER)).state.value == "HEALTHY"
-    assert (await adapter(FakeOpenAI(), "ref-bad").health_check(HealthScope.PROVIDER)).state.value == "SUSPENDED"
+    assert (
+        await adapter(FakeOpenAI(), "ref-bad").health_check(HealthScope.PROVIDER)
+    ).state.value == "SUSPENDED"

@@ -10,6 +10,8 @@ import os
 import time
 from uuid import uuid4
 
+from chat_engine.catalog import CatalogService
+from chat_engine.composition.runtime import LocalEchoAdapter, Runtime, echo_manifest, model_row
 from core.contracts.domain import (
     AuthType,
     BindingAvailability,
@@ -18,9 +20,6 @@ from core.contracts.domain import (
     ProviderModelBinding,
     ProviderStatus,
 )
-
-from chat_engine.catalog import CatalogService
-from chat_engine.composition.runtime import LocalEchoAdapter, Runtime, echo_manifest, model_row
 
 N = int(os.environ.get("CE_SCALE_N", "1000"))
 

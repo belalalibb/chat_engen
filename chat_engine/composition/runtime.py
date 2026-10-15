@@ -240,7 +240,6 @@ class Runtime:
             index.rebuild()
         return rows
 
-
     def unregister_provider(self, provider_key: str) -> None:
         """Remove a provider + its bindings (models stay; a model with no bindings
         simply becomes unavailable — upstream's own projection rule)."""

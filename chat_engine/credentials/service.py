@@ -8,6 +8,7 @@ value, never a reversible form.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 from datetime import datetime
 from enum import StrEnum
@@ -45,7 +46,9 @@ class CredentialRecord(ContractModel):
     provider_hint: BoundedStr | None = None
     policy: CredentialPolicy
     state: CredentialState
-    fingerprint: BoundedStr  # sha256(secret)[:12] — enough to tell two keys apart, never to recover one
+    fingerprint: (
+        BoundedStr  # sha256(secret)[:12] — enough to tell two keys apart, never to recover one
+    )
     last4: BoundedStr
     created_at: datetime
     revoked_at: datetime | None = None
@@ -100,10 +103,8 @@ class CredentialService:
         row = self.get(credential_id)
         if row.state is CredentialState.REVOKED:
             return row
-        try:
+        with contextlib.suppress(Exception):
             self._secrets.revoke(self._tenant, row.credential_ref)
-        except Exception:  # noqa: BLE001 — already gone upstream: idempotent revoke
-            pass
         updated = row.model_copy(update={"state": CredentialState.REVOKED, "revoked_at": utc_now()})
         self._rows[credential_id] = updated
         return updated

@@ -43,7 +43,17 @@ from core.contracts.provider import (
 
 DEFAULT_MAX_TOKENS = 2048
 GENERATION_WHITELIST = frozenset(
-    {"temperature", "top_p", "max_tokens", "max_completion_tokens", "stop", "seed", "presence_penalty", "frequency_penalty", "n"}
+    {
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "max_completion_tokens",
+        "stop",
+        "seed",
+        "presence_penalty",
+        "frequency_penalty",
+        "n",
+    }
 )
 
 
@@ -66,10 +76,15 @@ def build_manifest(
             "status": "active",
             "auth": {"types": [AuthType.API_KEY.value], "supports_refresh": False},
             "account_pool": {"supported": False},
-            "capabilities": (capabilities or ProviderCapabilities(chat=True, tool_use=True)).model_dump(),
+            "capabilities": (
+                capabilities or ProviderCapabilities(chat=True, tool_use=True)
+            ).model_dump(),
             "operations": [ProviderOperation.GENERATE_TEXT.value],
             "models": {"discovery": discovery, "static_models": list(static_models or [])},
-            "rate_limits": {"strategy": "provider_defined", "dimensions": ["requests_per_minute", "tokens_per_minute"]},
+            "rate_limits": {
+                "strategy": "provider_defined",
+                "dimensions": ["requests_per_minute", "tokens_per_minute"],
+            },
             "health": {"checks": ["GET /models"]},
             "errors": {"mapping": "chat_engine.providers.openai_compatible"},
             "notes": [f"base_url={base_url}", "OpenAI chat-completions dialect"],
@@ -88,7 +103,9 @@ def messages_from_payload(payload: JsonObject) -> list[dict[str, Any]]:
         out.append({"role": "system", "content": role["objective"]})
     context = payload.get("context")
     if isinstance(context, dict) and context:
-        out.append({"role": "system", "content": "Context:\n" + json.dumps(context, sort_keys=True)})
+        out.append(
+            {"role": "system", "content": "Context:\n" + json.dumps(context, sort_keys=True)}
+        )
     previous = payload.get("previous_output")
     if isinstance(previous, dict) and isinstance(previous.get("content"), str):
         out.append({"role": "assistant", "content": previous["content"]})
@@ -117,8 +134,15 @@ def chat_body(request: ProviderGenerateRequest, *, stream: bool = False) -> dict
         if choice is not None:
             body["tool_choice"] = choice
     schema = payload.get("response_schema")
-    if isinstance(schema, dict) and isinstance(schema.get("schema"), dict) and isinstance(schema.get("name"), str):
-        body["response_format"] = {"type": "json_schema", "json_schema": {"name": schema["name"], "schema": schema["schema"]}}
+    if (
+        isinstance(schema, dict)
+        and isinstance(schema.get("schema"), dict)
+        and isinstance(schema.get("name"), str)
+    ):
+        body["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {"name": schema["name"], "schema": schema["schema"]},
+        }
     elif payload.get("json_mode") is True:
         body["response_format"] = {"type": "json_object"}
     if stream:
@@ -143,7 +167,11 @@ def extract_usage(parsed: dict[str, Any]) -> dict[str, Any]:
     usage = parsed.get("usage")
     if not isinstance(usage, dict):
         return {}
-    return {k: usage[k] for k in ("prompt_tokens", "completion_tokens", "total_tokens") if isinstance(usage.get(k), int)}
+    return {
+        k: usage[k]
+        for k in ("prompt_tokens", "completion_tokens", "total_tokens")
+        if isinstance(usage.get(k), int)
+    }
 
 
 def retry_after_ms(response: httpx.Response) -> int | None:
@@ -211,7 +239,11 @@ class OpenAICompatibleAdapter:
             await self._client.aclose()
 
     def headers(self, api_key: str) -> dict[str, str]:
-        return {"authorization": f"Bearer {api_key}", "content-type": "application/json", **self._extra_headers}
+        return {
+            "authorization": f"Bearer {api_key}",
+            "content-type": "application/json",
+            **self._extra_headers,
+        }
 
     # -- ProviderAdapterPort ------------------------------------------------------------
 
@@ -226,16 +258,38 @@ class OpenAICompatibleAdapter:
         try:
             r = await self.client().get("/models", headers=self.headers(api_key), timeout=15.0)
         except httpx.HTTPError:
-            return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE, checked_at=self._clock(), detail="inconclusive: provider unreachable")
+            return CredentialHealth(
+                credential_ref=credential_ref,
+                status=CredentialStatus.ACTIVE,
+                checked_at=self._clock(),
+                detail="inconclusive: provider unreachable",
+            )
         if r.status_code in (401, 403):
-            return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.INVALID, checked_at=self._clock(), detail="provider rejected the credential")
+            return CredentialHealth(
+                credential_ref=credential_ref,
+                status=CredentialStatus.INVALID,
+                checked_at=self._clock(),
+                detail="provider rejected the credential",
+            )
         if r.status_code == 200:
-            return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE, checked_at=self._clock())
-        return CredentialHealth(credential_ref=credential_ref, status=CredentialStatus.ACTIVE, checked_at=self._clock(), detail=f"inconclusive: http_{r.status_code}")
+            return CredentialHealth(
+                credential_ref=credential_ref,
+                status=CredentialStatus.ACTIVE,
+                checked_at=self._clock(),
+            )
+        return CredentialHealth(
+            credential_ref=credential_ref,
+            status=CredentialStatus.ACTIVE,
+            checked_at=self._clock(),
+            detail=f"inconclusive: http_{r.status_code}",
+        )
 
     async def discover_models(self, account_id: UUID | None = None) -> list[DiscoveredModel]:
         if self._health_ref is None:
-            return [DiscoveredModel(provider_model_name=m, modalities=["text"]) for m in self._manifest.models.static_models]
+            return [
+                DiscoveredModel(provider_model_name=m, modalities=["text"])
+                for m in self._manifest.models.static_models
+            ]
         api_key = self._resolve(self._health_ref)
         try:
             r = await self.client().get("/models", headers=self.headers(api_key), timeout=20.0)
@@ -256,19 +310,35 @@ class OpenAICompatibleAdapter:
                 if isinstance(row.get(key), int):
                     limits["context_window"] = row[key]
                     break
-            out.append(DiscoveredModel(provider_model_name=row["id"], modalities=["text"], limits_metadata=limits, capabilities={"chat": True}))
+            out.append(
+                DiscoveredModel(
+                    provider_model_name=row["id"],
+                    modalities=["text"],
+                    limits_metadata=limits,
+                    capabilities={"chat": True},
+                )
+            )
         return out
 
     async def generate(self, request: ProviderGenerateRequest) -> ProviderGenerateResponse:
         if request.operation not in self._manifest.operations:
-            return self._failed(request, ProviderError(category=ProviderErrorCategory.UNSUPPORTED_CAPABILITY, retryable=False, safe_message=f"operation '{request.operation.value}' is not declared by this provider"))
+            return self._failed(
+                request,
+                ProviderError(
+                    category=ProviderErrorCategory.UNSUPPORTED_CAPABILITY,
+                    retryable=False,
+                    safe_message=f"operation '{request.operation.value}' is not declared by this provider",
+                ),
+            )
         body = chat_body(request)
         timeout = request.timeout_ms / 1000.0 if request.timeout_ms is not None else self._timeout
         api_key = self._resolve(request.credential_ref)  # last moment (20 §5)
         started = time.monotonic()
         try:
-            r = await self.client().post("/chat/completions", headers=self.headers(api_key), json=body, timeout=timeout)
-        except Exception as exc:  # noqa: BLE001 — boundary: everything normalizes
+            r = await self.client().post(
+                "/chat/completions", headers=self.headers(api_key), json=body, timeout=timeout
+            )
+        except Exception as exc:
             return self._failed(request, self.normalize_error(exc))
         latency_ms = int((time.monotonic() - started) * 1000)
         if r.status_code != 200:
@@ -283,53 +353,162 @@ class OpenAICompatibleAdapter:
             output["tool_calls"] = tool_calls
         if isinstance(parsed.get("model"), str):
             output["model"] = parsed["model"]
-        return ProviderGenerateResponse(request_id=request.request_id, succeeded=True, output=output, usage=extract_usage(parsed), latency_ms=latency_ms)
+        return ProviderGenerateResponse(
+            request_id=request.request_id,
+            succeeded=True,
+            output=output,
+            usage=extract_usage(parsed),
+            latency_ms=latency_ms,
+        )
 
     async def health_check(self, scope: HealthScope) -> ProviderHealth:
         if self._health_ref is None:
-            return ProviderHealth(provider_id=self._manifest.id, state=ProviderHealthState.DEGRADED, checked_at=self._clock(), detail="no health credential configured")
+            return ProviderHealth(
+                provider_id=self._manifest.id,
+                state=ProviderHealthState.DEGRADED,
+                checked_at=self._clock(),
+                detail="no health credential configured",
+            )
         api_key = self._resolve(self._health_ref)
         try:
             r = await self.client().get("/models", headers=self.headers(api_key), timeout=10.0)
         except httpx.HTTPError:
-            return ProviderHealth(provider_id=self._manifest.id, state=ProviderHealthState.UNAVAILABLE, checked_at=self._clock(), detail="unreachable")
+            return ProviderHealth(
+                provider_id=self._manifest.id,
+                state=ProviderHealthState.UNAVAILABLE,
+                checked_at=self._clock(),
+                detail="unreachable",
+            )
         if r.status_code == 200:
-            return ProviderHealth(provider_id=self._manifest.id, state=ProviderHealthState.HEALTHY, checked_at=self._clock())
+            return ProviderHealth(
+                provider_id=self._manifest.id,
+                state=ProviderHealthState.HEALTHY,
+                checked_at=self._clock(),
+            )
         if r.status_code in (401, 403):
-            return ProviderHealth(provider_id=self._manifest.id, state=ProviderHealthState.SUSPENDED, checked_at=self._clock(), detail="credential rejected")
-        return ProviderHealth(provider_id=self._manifest.id, state=ProviderHealthState.DEGRADED, checked_at=self._clock(), detail=f"http_{r.status_code}")
+            return ProviderHealth(
+                provider_id=self._manifest.id,
+                state=ProviderHealthState.SUSPENDED,
+                checked_at=self._clock(),
+                detail="credential rejected",
+            )
+        return ProviderHealth(
+            provider_id=self._manifest.id,
+            state=ProviderHealthState.DEGRADED,
+            checked_at=self._clock(),
+            detail=f"http_{r.status_code}",
+        )
 
     def normalize_error(self, error: object) -> ProviderError:
         if isinstance(error, httpx.Response):
             return self._normalize_http(error)
         if isinstance(error, httpx.TimeoutException):
-            return ProviderError(category=ProviderErrorCategory.TIMEOUT, retryable=True, provider_code="timeout", safe_message="provider request timed out")
+            return ProviderError(
+                category=ProviderErrorCategory.TIMEOUT,
+                retryable=True,
+                provider_code="timeout",
+                safe_message="provider request timed out",
+            )
         if isinstance(error, httpx.HTTPError):
-            return ProviderError(category=ProviderErrorCategory.PROVIDER_UNAVAILABLE, retryable=True, provider_code="transport", safe_message="provider unreachable")
-        return ProviderError(category=ProviderErrorCategory.NON_RETRYABLE_ERROR, retryable=False, provider_code=type(error).__name__[:64], safe_message="provider response could not be parsed")
+            return ProviderError(
+                category=ProviderErrorCategory.PROVIDER_UNAVAILABLE,
+                retryable=True,
+                provider_code="transport",
+                safe_message="provider unreachable",
+            )
+        return ProviderError(
+            category=ProviderErrorCategory.NON_RETRYABLE_ERROR,
+            retryable=False,
+            provider_code=type(error).__name__[:64],
+            safe_message="provider response could not be parsed",
+        )
 
     def _normalize_http(self, r: httpx.Response) -> ProviderError:
         status = r.status_code
         code = _safe_code(r)
         if status in (401, 403):
-            return ProviderError(category=ProviderErrorCategory.INVALID_CREDENTIAL, retryable=False, provider_code=code or f"http_{status}", safe_message="provider rejected the credential")
+            return ProviderError(
+                category=ProviderErrorCategory.INVALID_CREDENTIAL,
+                retryable=False,
+                provider_code=code or f"http_{status}",
+                safe_message="provider rejected the credential",
+            )
         if status == 429:
-            cat = ProviderErrorCategory.QUOTA_EXCEEDED if code and ("quota" in code or "billing" in code or "insufficient" in code) else ProviderErrorCategory.RATE_LIMITED
-            return ProviderError(category=cat, retryable=cat is ProviderErrorCategory.RATE_LIMITED, retry_after_ms=retry_after_ms(r), provider_code=code or "http_429", safe_message="provider rate limit reached" if cat is ProviderErrorCategory.RATE_LIMITED else "provider quota exceeded")
+            cat = (
+                ProviderErrorCategory.QUOTA_EXCEEDED
+                if code and ("quota" in code or "billing" in code or "insufficient" in code)
+                else ProviderErrorCategory.RATE_LIMITED
+            )
+            return ProviderError(
+                category=cat,
+                retryable=cat is ProviderErrorCategory.RATE_LIMITED,
+                retry_after_ms=retry_after_ms(r),
+                provider_code=code or "http_429",
+                safe_message="provider rate limit reached"
+                if cat is ProviderErrorCategory.RATE_LIMITED
+                else "provider quota exceeded",
+            )
         if status == 404 or (status == 400 and code and "model" in code):
-            return ProviderError(category=ProviderErrorCategory.MODEL_UNAVAILABLE, retryable=False, provider_code=code or f"http_{status}", safe_message="requested model is not available at the provider")
+            return ProviderError(
+                category=ProviderErrorCategory.MODEL_UNAVAILABLE,
+                retryable=False,
+                provider_code=code or f"http_{status}",
+                safe_message="requested model is not available at the provider",
+            )
         if status in (400, 413, 422):
             if code and ("content" in code or "safety" in code or "moderation" in code):
-                return ProviderError(category=ProviderErrorCategory.CONTENT_REJECTED, retryable=False, provider_code=code, safe_message="provider rejected the content")
+                return ProviderError(
+                    category=ProviderErrorCategory.CONTENT_REJECTED,
+                    retryable=False,
+                    provider_code=code,
+                    safe_message="provider rejected the content",
+                )
             if code and ("response_format" in code or "unsupported" in code or "tool" in code):
-                return ProviderError(category=ProviderErrorCategory.UNSUPPORTED_CAPABILITY, retryable=False, provider_code=code, safe_message="provider does not support a requested feature")
-            return ProviderError(category=ProviderErrorCategory.BAD_REQUEST, retryable=False, provider_code=code or f"http_{status}", safe_message="provider rejected the request")
+                return ProviderError(
+                    category=ProviderErrorCategory.UNSUPPORTED_CAPABILITY,
+                    retryable=False,
+                    provider_code=code,
+                    safe_message="provider does not support a requested feature",
+                )
+            return ProviderError(
+                category=ProviderErrorCategory.BAD_REQUEST,
+                retryable=False,
+                provider_code=code or f"http_{status}",
+                safe_message="provider rejected the request",
+            )
         if status in (408, 504):
-            return ProviderError(category=ProviderErrorCategory.TIMEOUT, retryable=True, provider_code=code or f"http_{status}", safe_message="provider request timed out")
+            return ProviderError(
+                category=ProviderErrorCategory.TIMEOUT,
+                retryable=True,
+                provider_code=code or f"http_{status}",
+                safe_message="provider request timed out",
+            )
         if status in (500, 502, 503, 529):
-            return ProviderError(category=ProviderErrorCategory.RETRYABLE_SERVER_ERROR if status != 503 else ProviderErrorCategory.PROVIDER_UNAVAILABLE, retryable=True, retry_after_ms=retry_after_ms(r), provider_code=code or f"http_{status}", safe_message="provider temporarily unavailable")
-        return ProviderError(category=ProviderErrorCategory.NON_RETRYABLE_ERROR, retryable=False, provider_code=code or f"http_{status}", safe_message="provider returned an unexpected error")
+            return ProviderError(
+                category=ProviderErrorCategory.RETRYABLE_SERVER_ERROR
+                if status != 503
+                else ProviderErrorCategory.PROVIDER_UNAVAILABLE,
+                retryable=True,
+                retry_after_ms=retry_after_ms(r),
+                provider_code=code or f"http_{status}",
+                safe_message="provider temporarily unavailable",
+            )
+        return ProviderError(
+            category=ProviderErrorCategory.NON_RETRYABLE_ERROR,
+            retryable=False,
+            provider_code=code or f"http_{status}",
+            safe_message="provider returned an unexpected error",
+        )
 
     @staticmethod
-    def _failed(request: ProviderGenerateRequest, error: ProviderError, *, latency_ms: int | None = None) -> ProviderGenerateResponse:
-        return ProviderGenerateResponse(request_id=request.request_id, succeeded=False, output={}, usage={}, error=error, latency_ms=latency_ms)
+    def _failed(
+        request: ProviderGenerateRequest, error: ProviderError, *, latency_ms: int | None = None
+    ) -> ProviderGenerateResponse:
+        return ProviderGenerateResponse(
+            request_id=request.request_id,
+            succeeded=False,
+            output={},
+            usage={},
+            error=error,
+            latency_ms=latency_ms,
+        )

@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from core.contracts.domain import AuthType, ModelTier, Provider, ProviderStatus
-from core.contracts.model_policy import ExplicitModelPolicy, ExplicitModelsPolicy
-
 from chat_engine.catalog import AliasDecision, CatalogService
 from chat_engine.composition.runtime import LocalEchoAdapter, Runtime, echo_manifest
+from core.contracts.domain import AuthType, ModelTier, Provider, ProviderStatus
+from core.contracts.model_policy import ExplicitModelPolicy, ExplicitModelsPolicy
 
 
 def add_provider(rt: Runtime, key: str, model_names: list[str]) -> None:

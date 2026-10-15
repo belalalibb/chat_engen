@@ -27,9 +27,26 @@ class FakeOpenAI:
         self.seen_auth.append(auth)
         key = auth.removeprefix("Bearer ").strip()
         if key not in self.valid_keys:
-            return httpx.Response(401, json={"error": {"message": "Incorrect API key provided", "type": "invalid_request_error", "code": "invalid_api_key"}})
+            return httpx.Response(
+                401,
+                json={
+                    "error": {
+                        "message": "Incorrect API key provided",
+                        "type": "invalid_request_error",
+                        "code": "invalid_api_key",
+                    }
+                },
+            )
         if request.url.path.endswith("/models"):
-            return httpx.Response(200, json={"object": "list", "data": [{"id": m, "object": "model", "context_window": 32768} for m in self.models]})
+            return httpx.Response(
+                200,
+                json={
+                    "object": "list",
+                    "data": [
+                        {"id": m, "object": "model", "context_window": 32768} for m in self.models
+                    ],
+                },
+            )
         if request.url.path.endswith("/chat/completions"):
             body = json.loads(request.content)
             self.calls.append(body)
@@ -38,10 +55,24 @@ class FakeOpenAI:
             if self.fail_next:
                 status = self.fail_next.pop(0)
                 headers = {"retry-after": self.retry_after} if self.retry_after else {}
-                return httpx.Response(status, headers=headers, json={"error": {"message": "scripted", "type": "server_error", "code": f"scripted_{status}"}})
+                return httpx.Response(
+                    status,
+                    headers=headers,
+                    json={
+                        "error": {
+                            "message": "scripted",
+                            "type": "server_error",
+                            "code": f"scripted_{status}",
+                        }
+                    },
+                )
             if body["model"] not in self.models:
-                return httpx.Response(404, json={"error": {"message": "model not found", "code": "model_not_found"}})
-            last_user = next((m["content"] for m in reversed(body["messages"]) if m["role"] == "user"), "")
+                return httpx.Response(
+                    404, json={"error": {"message": "model not found", "code": "model_not_found"}}
+                )
+            last_user = next(
+                (m["content"] for m in reversed(body["messages"]) if m["role"] == "user"), ""
+            )
             text = "ok" if "single word" in str(last_user) else f"echo:{last_user}"
             return httpx.Response(
                 200,
@@ -49,7 +80,13 @@ class FakeOpenAI:
                     "id": "chatcmpl-fake",
                     "object": "chat.completion",
                     "model": body["model"],
-                    "choices": [{"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}],
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": text},
+                            "finish_reason": "stop",
+                        }
+                    ],
                     "usage": {"prompt_tokens": 7, "completion_tokens": 2, "total_tokens": 9},
                 },
             )

@@ -46,11 +46,19 @@ class ProviderState(StrEnum):
 ALLOWED: dict[ProviderState, frozenset[ProviderState]] = {
     ProviderState.DRAFT: frozenset({ProviderState.VALIDATING, ProviderState.ARCHIVED}),
     ProviderState.VALIDATING: frozenset({ProviderState.DISCOVERED, ProviderState.FAILED}),
-    ProviderState.DISCOVERED: frozenset({ProviderState.VERIFIED, ProviderState.FAILED, ProviderState.VALIDATING}),
-    ProviderState.VERIFIED: frozenset({ProviderState.ENABLED, ProviderState.DISABLED, ProviderState.VALIDATING}),
+    ProviderState.DISCOVERED: frozenset(
+        {ProviderState.VERIFIED, ProviderState.FAILED, ProviderState.VALIDATING}
+    ),
+    ProviderState.VERIFIED: frozenset(
+        {ProviderState.ENABLED, ProviderState.DISABLED, ProviderState.VALIDATING}
+    ),
     ProviderState.ENABLED: frozenset({ProviderState.DISABLED, ProviderState.VALIDATING}),
-    ProviderState.FAILED: frozenset({ProviderState.VALIDATING, ProviderState.ARCHIVED, ProviderState.DRAFT}),
-    ProviderState.DISABLED: frozenset({ProviderState.ENABLED, ProviderState.VALIDATING, ProviderState.ARCHIVED}),
+    ProviderState.FAILED: frozenset(
+        {ProviderState.VALIDATING, ProviderState.ARCHIVED, ProviderState.DRAFT}
+    ),
+    ProviderState.DISABLED: frozenset(
+        {ProviderState.ENABLED, ProviderState.VALIDATING, ProviderState.ARCHIVED}
+    ),
     ProviderState.ARCHIVED: frozenset(),
 }
 
@@ -66,7 +74,9 @@ class ProviderConfig(ContractModel):
     static_models: list[BoundedStr] = Field(default_factory=list)
     extra_headers: dict[str, str] = Field(default_factory=dict)
     capabilities: JsonObject = Field(default_factory=lambda: {"chat": True, "tool_use": True})
-    limits: JsonObject = Field(default_factory=dict)  # {rpm, tpm, concurrency} — unknown ⇒ conservative defaults (CE-07)
+    limits: JsonObject = Field(
+        default_factory=dict
+    )  # {rpm, tpm, concurrency} — unknown ⇒ conservative defaults (CE-07)
     notes: BoundedStr | None = None
 
 
@@ -162,7 +172,8 @@ class ProviderLifecycleService:
         self,
         rt: Runtime,
         *,
-        transport_factory: Callable[[ProviderConfig], httpx.AsyncBaseTransport | None] | None = None,
+        transport_factory: Callable[[ProviderConfig], httpx.AsyncBaseTransport | None]
+        | None = None,
     ) -> None:
         self._rt = rt
         self._records: dict[str, _Record] = {}
@@ -185,11 +196,18 @@ class ProviderLifecycleService:
 
     # -- transitions ---------------------------------------------------------------------
 
-    def draft(self, provider_key: str, req: ProviderDraftRequest, *, changed_by: str = "admin") -> ProviderConfigRevision:
-        if provider_key in self._records and self._records[provider_key].head.state is not ProviderState.ARCHIVED:
+    def draft(
+        self, provider_key: str, req: ProviderDraftRequest, *, changed_by: str = "admin"
+    ) -> ProviderConfigRevision:
+        if (
+            provider_key in self._records
+            and self._records[provider_key].head.state is not ProviderState.ARCHIVED
+        ):
             raise ProviderConflict(f"provider already exists: {provider_key}")
         if provider_key in self._rt.providers.all_keys() and provider_key not in self._records:
-            raise ProviderConflict(f"provider key is bound by the composition (not managed here): {provider_key}")
+            raise ProviderConflict(
+                f"provider key is bound by the composition (not managed here): {provider_key}"
+            )
         config = ProviderConfig(
             provider_key=provider_key,
             display_name=req.display_name,
@@ -205,43 +223,83 @@ class ProviderLifecycleService:
         self._records[provider_key] = _Record()
         return self._append(provider_key, config, ProviderState.DRAFT, changed_by, "draft created")
 
-    def update_draft(self, provider_key: str, req: ProviderDraftRequest, *, changed_by: str = "admin") -> ProviderConfigRevision:
+    def update_draft(
+        self, provider_key: str, req: ProviderDraftRequest, *, changed_by: str = "admin"
+    ) -> ProviderConfigRevision:
         rec = self._require(provider_key)
-        if rec.head.state not in (ProviderState.DRAFT, ProviderState.FAILED, ProviderState.DISABLED, ProviderState.VERIFIED, ProviderState.DISCOVERED):
+        if rec.head.state not in (
+            ProviderState.DRAFT,
+            ProviderState.FAILED,
+            ProviderState.DISABLED,
+            ProviderState.VERIFIED,
+            ProviderState.DISCOVERED,
+        ):
             raise InvalidTransition(provider_key, rec.head.state, ProviderState.DRAFT)
         if rec.provider_id is not None:
             self._unregister(provider_key)
-        config = rec.head.config.model_copy(update=req.model_dump(exclude_none=True, exclude={"capabilities"}) | ({"capabilities": req.capabilities} if req.capabilities else {}))
+        config = rec.head.config.model_copy(
+            update=req.model_dump(exclude_none=True, exclude={"capabilities"})
+            | ({"capabilities": req.capabilities} if req.capabilities else {})
+        )
         return self._append(provider_key, config, ProviderState.DRAFT, changed_by, "draft updated")
 
-    async def validate(self, provider_key: str, *, changed_by: str = "admin") -> ProviderConfigRevision:
+    async def validate(
+        self, provider_key: str, *, changed_by: str = "admin"
+    ) -> ProviderConfigRevision:
         rec = self._require(provider_key)
         self._transition(provider_key, ProviderState.VALIDATING, changed_by, "validation started")
         config = rec.head.config
         if config.credential_ref is None:
-            return self._transition(provider_key, ProviderState.FAILED, changed_by, "no credential_ref configured")
+            return self._transition(
+                provider_key, ProviderState.FAILED, changed_by, "no credential_ref configured"
+            )
         if not self._rt.secrets.exists(self._rt.tenant_id, config.credential_ref):
-            return self._transition(provider_key, ProviderState.FAILED, changed_by, "credential_ref does not resolve")
+            return self._transition(
+                provider_key, ProviderState.FAILED, changed_by, "credential_ref does not resolve"
+            )
         adapter = self._build_adapter(config)
         health = await adapter.validate_credential(config.credential_ref)
         if health.status is not CredentialStatus.ACTIVE:
-            return self._transition(provider_key, ProviderState.FAILED, changed_by, f"credential {health.status.value}: {health.detail or ''}".strip())
+            return self._transition(
+                provider_key,
+                ProviderState.FAILED,
+                changed_by,
+                f"credential {health.status.value}: {health.detail or ''}".strip(),
+            )
         discovered = await adapter.discover_models()
         names = sorted({d.provider_model_name for d in discovered} | set(config.static_models))
         if not names:
-            return self._transition(provider_key, ProviderState.FAILED, changed_by, "no models discovered and no static_models declared")
+            return self._transition(
+                provider_key,
+                ProviderState.FAILED,
+                changed_by,
+                "no models discovered and no static_models declared",
+            )
         rec.adapter = adapter
-        return self._transition(provider_key, ProviderState.DISCOVERED, changed_by, f"{len(names)} model(s)", discovered=names, detail=health.detail)
+        return self._transition(
+            provider_key,
+            ProviderState.DISCOVERED,
+            changed_by,
+            f"{len(names)} model(s)",
+            discovered=names,
+            detail=health.detail,
+        )
 
-    async def verify(self, provider_key: str, *, changed_by: str = "admin", probe_model: str | None = None) -> ProviderConfigRevision:
+    async def verify(
+        self, provider_key: str, *, changed_by: str = "admin", probe_model: str | None = None
+    ) -> ProviderConfigRevision:
         """One tiny real generation — proves the endpoint answers the dialect."""
         rec = self._require(provider_key)
         if rec.head.state is not ProviderState.DISCOVERED:
             raise InvalidTransition(provider_key, rec.head.state, ProviderState.VERIFIED)
         adapter = rec.adapter or self._build_adapter(rec.head.config)
-        model = probe_model or (rec.head.discovered_models[0] if rec.head.discovered_models else None)
+        model = probe_model or (
+            rec.head.discovered_models[0] if rec.head.discovered_models else None
+        )
         if model is None:
-            return self._transition(provider_key, ProviderState.FAILED, changed_by, "no model to probe")
+            return self._transition(
+                provider_key, ProviderState.FAILED, changed_by, "no model to probe"
+            )
         from core.contracts.provider import ProviderGenerateRequest, ProviderOperation
 
         resp = await adapter.generate(
@@ -251,36 +309,75 @@ class ProviderLifecycleService:
                 operation=ProviderOperation.GENERATE_TEXT,
                 provider_model_name=model,
                 credential_ref=rec.head.config.credential_ref or "",
-                payload={"ask": "Reply with the single word: ok", "generation": {"max_tokens": 8, "temperature": 0}},
+                payload={
+                    "ask": "Reply with the single word: ok",
+                    "generation": {"max_tokens": 8, "temperature": 0},
+                },
                 timeout_ms=30_000,
             )
         )
         if not resp.succeeded:
             err = resp.error
-            return self._transition(provider_key, ProviderState.FAILED, changed_by, f"probe failed: {err.category.value if err else 'unknown'} — {err.safe_message if err else ''}")
-        return self._transition(provider_key, ProviderState.VERIFIED, changed_by, f"probe ok on {model} ({resp.latency_ms} ms)", discovered=rec.head.discovered_models)
+            return self._transition(
+                provider_key,
+                ProviderState.FAILED,
+                changed_by,
+                f"probe failed: {err.category.value if err else 'unknown'} — {err.safe_message if err else ''}",
+            )
+        return self._transition(
+            provider_key,
+            ProviderState.VERIFIED,
+            changed_by,
+            f"probe ok on {model} ({resp.latency_ms} ms)",
+            discovered=rec.head.discovered_models,
+        )
 
     def enable(self, provider_key: str, *, changed_by: str = "admin") -> ProviderConfigRevision:
         rec = self._require(provider_key)
         if rec.head.state not in (ProviderState.VERIFIED, ProviderState.DISABLED):
             raise InvalidTransition(provider_key, rec.head.state, ProviderState.ENABLED)
         self._register(provider_key)
-        return self._transition(provider_key, ProviderState.ENABLED, changed_by, "registered in routing registries", discovered=rec.head.discovered_models)
+        return self._transition(
+            provider_key,
+            ProviderState.ENABLED,
+            changed_by,
+            "registered in routing registries",
+            discovered=rec.head.discovered_models,
+        )
 
-    def disable(self, provider_key: str, *, changed_by: str = "admin", reason: str | None = None) -> ProviderConfigRevision:
+    def disable(
+        self, provider_key: str, *, changed_by: str = "admin", reason: str | None = None
+    ) -> ProviderConfigRevision:
         rec = self._require(provider_key)
         if rec.head.state not in (ProviderState.ENABLED, ProviderState.VERIFIED):
             raise InvalidTransition(provider_key, rec.head.state, ProviderState.DISABLED)
         self._unregister(provider_key)
-        return self._transition(provider_key, ProviderState.DISABLED, changed_by, reason or "disabled by admin", discovered=rec.head.discovered_models)
+        return self._transition(
+            provider_key,
+            ProviderState.DISABLED,
+            changed_by,
+            reason or "disabled by admin",
+            discovered=rec.head.discovered_models,
+        )
 
-    def archive(self, provider_key: str, *, changed_by: str = "admin", reason: str | None = None) -> ProviderConfigRevision:
+    def archive(
+        self, provider_key: str, *, changed_by: str = "admin", reason: str | None = None
+    ) -> ProviderConfigRevision:
         rec = self._require(provider_key)
         if rec.head.state is ProviderState.ENABLED:
             raise InvalidTransition(provider_key, rec.head.state, ProviderState.ARCHIVED)
-        return self._transition(provider_key, ProviderState.ARCHIVED, changed_by, reason or "archived")
+        return self._transition(
+            provider_key, ProviderState.ARCHIVED, changed_by, reason or "archived"
+        )
 
-    def rollback(self, provider_key: str, revision: int, *, changed_by: str = "admin", reason: str | None = None) -> ProviderConfigRevision:
+    def rollback(
+        self,
+        provider_key: str,
+        revision: int,
+        *,
+        changed_by: str = "admin",
+        reason: str | None = None,
+    ) -> ProviderConfigRevision:
         """Re-apply an older revision's CONFIG as a new DRAFT revision (never rewrites history)."""
         rec = self._require(provider_key)
         target = next((r for r in rec.revisions if r.revision == revision), None)
@@ -288,7 +385,13 @@ class ProviderLifecycleService:
             raise UnknownProvider(f"{provider_key}: no revision {revision}")
         if rec.provider_id is not None:
             self._unregister(provider_key)
-        return self._append(provider_key, target.config, ProviderState.DRAFT, changed_by, reason or f"rollback to revision {revision} (config {target.config_hash})")
+        return self._append(
+            provider_key,
+            target.config,
+            ProviderState.DRAFT,
+            changed_by,
+            reason or f"rollback to revision {revision} (config {target.config_hash})",
+        )
 
     # -- internals ------------------------------------------------------------------------
 
@@ -298,7 +401,17 @@ class ProviderLifecycleService:
             raise UnknownProvider(provider_key)
         return rec
 
-    def _append(self, provider_key: str, config: ProviderConfig, state: ProviderState, changed_by: str, reason: str | None, *, discovered: list[str] | None = None, detail: str | None = None) -> ProviderConfigRevision:
+    def _append(
+        self,
+        provider_key: str,
+        config: ProviderConfig,
+        state: ProviderState,
+        changed_by: str,
+        reason: str | None,
+        *,
+        discovered: list[str] | None = None,
+        detail: str | None = None,
+    ) -> ProviderConfigRevision:
         rec = self._records[provider_key]
         rev = ProviderConfigRevision(
             provider_key=provider_key,
@@ -315,12 +428,29 @@ class ProviderLifecycleService:
         rec.revisions.append(rev)
         return rev
 
-    def _transition(self, provider_key: str, target: ProviderState, changed_by: str, reason: str | None, *, discovered: list[str] | None = None, detail: str | None = None) -> ProviderConfigRevision:
+    def _transition(
+        self,
+        provider_key: str,
+        target: ProviderState,
+        changed_by: str,
+        reason: str | None,
+        *,
+        discovered: list[str] | None = None,
+        detail: str | None = None,
+    ) -> ProviderConfigRevision:
         rec = self._records[provider_key]
         current = rec.head.state
         if target not in ALLOWED[current]:
             raise InvalidTransition(provider_key, current, target)
-        return self._append(provider_key, rec.head.config, target, changed_by, reason, discovered=discovered if discovered is not None else rec.head.discovered_models, detail=detail)
+        return self._append(
+            provider_key,
+            rec.head.config,
+            target,
+            changed_by,
+            reason,
+            discovered=discovered if discovered is not None else rec.head.discovered_models,
+            detail=detail,
+        )
 
     def _build_adapter(self, config: ProviderConfig) -> OpenAICompatibleAdapter:
         tenant = self._rt.tenant_id
