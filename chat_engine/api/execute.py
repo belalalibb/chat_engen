@@ -59,6 +59,8 @@ class AdmissionDenied(Exception):
     def __init__(self, denied: Any) -> None:
         self.denied = denied
         super().__init__(denied.reason)
+
+
 _RUNNABLE_STRATEGIES = frozenset({"single"})
 
 
@@ -279,8 +281,17 @@ def build_router(rt: Runtime) -> APIRouter:
         if admission is not None:
             from chat_engine.admission import Denied
 
-            est = sum(len(str(m.get("content", ""))) for m in payload.get("messages", []) if isinstance(m, dict)) // 4
-            got = await admission.reserve(_admission_scopes(decision), tokens_estimate=est, units=1.0)
+            est = (
+                sum(
+                    len(str(m.get("content", "")))
+                    for m in payload.get("messages", [])
+                    if isinstance(m, dict)
+                )
+                // 4
+            )
+            got = await admission.reserve(
+                _admission_scopes(decision), tokens_estimate=est, units=1.0
+            )
             if isinstance(got, Denied):
                 raise AdmissionDenied(got)
             reservation = got
@@ -298,7 +309,11 @@ def build_router(rt: Runtime) -> APIRouter:
                 await admission.release(reservation)
             raise
         if admission is not None and reservation is not None:
-            usage = report.nodes[-1].response.usage if report.nodes and report.nodes[-1].response else {}
+            usage = (
+                report.nodes[-1].response.usage
+                if report.nodes and report.nodes[-1].response
+                else {}
+            )
             total = usage.get("total_tokens") if isinstance(usage, dict) else None
             await admission.settle(
                 reservation,
@@ -536,7 +551,12 @@ def build_router(rt: Runtime) -> APIRouter:
                     return error_response(
                         ErrorCode.CAPABILITY_DENIED,
                         f"capability '{cap}' is not executable on provider '{pk}': {verdict.reason}",
-                        details={"capability": cap, "provider_key": pk, "reason": verdict.reason, "ce_code": "unsupported_capability"},
+                        details={
+                            "capability": cap,
+                            "provider_key": pk,
+                            "reason": verdict.reason,
+                            "ce_code": "unsupported_capability",
+                        },
                     )
 
         payload: JsonObject = {"ask": body.ask}
@@ -628,6 +648,23 @@ def build_router(rt: Runtime) -> APIRouter:
                 )
             except CompareRefused as exc:
                 return error_response(ErrorCode.MODEL_UNAVAILABLE, str(exc))
+            except AdmissionDenied as exc:
+                d = exc.denied
+                details: JsonObject = {
+                    "scope": d.scope,
+                    "dimension": d.dimension.value,
+                    "limit": d.limit,
+                    "current": d.current,
+                    "reason": d.reason,
+                }
+                if d.retry_after_ms is not None:
+                    details["retry_after_ms"] = d.retry_after_ms
+                return error_response(
+                    ErrorCode.RATE_LIMITED,
+                    "Admission denied for this request.",
+                    retryable=True,
+                    details=details,
+                )
         except BudgetExceeded as exc:
             return error_response(
                 ErrorCode.ENTITLEMENT_EXCEEDED,

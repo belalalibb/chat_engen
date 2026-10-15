@@ -245,7 +245,9 @@ class Runtime:
         if admission is not None:
             from chat_engine.admission import Limits
 
-            meta = next((b.limits_metadata for b in self.bindings.bindings_for_provider(provider.id)), None)
+            meta = next(
+                (b.limits_metadata for b in self.bindings.bindings_for_provider(provider.id)), None
+            )
             admission.set_limits(f"provider:{provider.provider_key}", Limits.from_metadata(meta))
         return rows
 

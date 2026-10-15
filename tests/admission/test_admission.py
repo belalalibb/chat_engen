@@ -7,8 +7,14 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-
-from chat_engine.admission import Denied, IdempotencyConflict, IdempotencyStore, InMemoryAdmission, Limits, Reservation
+from chat_engine.admission import (
+    Denied,
+    IdempotencyConflict,
+    IdempotencyStore,
+    InMemoryAdmission,
+    Limits,
+    Reservation,
+)
 
 
 class Clock:
@@ -131,6 +137,9 @@ def test_execute_admission_denied_maps_to_rate_limited(client, runtime) -> None:
     assert client.post("/v1/execute", json={"ask": "a"}).status_code == 200
     r = client.post("/v1/execute", json={"ask": "b"})
     assert r.status_code == 429 and r.json()["error"]["code"] == "rate_limited"
-    assert r.json()["error"]["details"]["dimension"] == "rpm" and r.json()["error"]["retryable"] is True
+    assert (
+        r.json()["error"]["details"]["dimension"] == "rpm"
+        and r.json()["error"]["retryable"] is True
+    )
     snap = client.get("/v1/admin/admission").json()
     assert snap["backend"] == "in_memory" and snap["replicas_safe"] is False

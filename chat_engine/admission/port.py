@@ -36,7 +36,11 @@ class Limits(ContractModel):
 
     @classmethod
     def conservative(cls) -> Limits:
-        return cls(rpm=CONSERVATIVE_DEFAULT_LIMITS["rpm"], concurrency=CONSERVATIVE_DEFAULT_LIMITS["concurrency"], source="conservative_default")
+        return cls(
+            rpm=CONSERVATIVE_DEFAULT_LIMITS["rpm"],
+            concurrency=CONSERVATIVE_DEFAULT_LIMITS["concurrency"],
+            source="conservative_default",
+        )
 
     @classmethod
     def from_metadata(cls, meta: JsonObject | None, *, source: str = "provider_metadata") -> Limits:
@@ -47,7 +51,12 @@ class Limits(ContractModel):
         conc = _int(meta.get("concurrency", meta.get("max_concurrency")))
         if rpm is None and tpm is None and conc is None:
             return cls.conservative()
-        return cls(rpm=rpm or CONSERVATIVE_DEFAULT_LIMITS["rpm"], tpm=tpm, concurrency=conc or CONSERVATIVE_DEFAULT_LIMITS["concurrency"], source=source)
+        return cls(
+            rpm=rpm or CONSERVATIVE_DEFAULT_LIMITS["rpm"],
+            tpm=tpm,
+            concurrency=conc or CONSERVATIVE_DEFAULT_LIMITS["concurrency"],
+            source=source,
+        )
 
 
 def _int(v: object) -> int | None:
@@ -86,8 +95,17 @@ class ScopeSnapshot:
 class AdmissionPort(Protocol):
     backend_name: str
 
-    async def reserve(self, scopes: list[str], *, tokens_estimate: int = 0, units: float = 0.0) -> Reservation | Denied: ...
-    async def settle(self, reservation: Reservation, *, tokens_actual: int | None = None, units_actual: float | None = None, success: bool = True) -> None: ...
+    async def reserve(
+        self, scopes: list[str], *, tokens_estimate: int = 0, units: float = 0.0
+    ) -> Reservation | Denied: ...
+    async def settle(
+        self,
+        reservation: Reservation,
+        *,
+        tokens_actual: int | None = None,
+        units_actual: float | None = None,
+        success: bool = True,
+    ) -> None: ...
     async def release(self, reservation: Reservation) -> None: ...
     def set_limits(self, scope: str, limits: Limits) -> None: ...
     def snapshot(self) -> list[JsonObject]: ...

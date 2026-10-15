@@ -142,7 +142,9 @@ class CapabilityLedger:
 
     # -- declaration ---------------------------------------------------------------------
 
-    def declare_from_manifest(self, provider_key: str, capabilities: ProviderCapabilities, *, model_key: str | None = None) -> int:
+    def declare_from_manifest(
+        self, provider_key: str, capabilities: ProviderCapabilities, *, model_key: str | None = None
+    ) -> int:
         n = 0
         for name in MANIFEST_CAPABILITIES:
             value = bool(getattr(capabilities, name))
@@ -151,16 +153,32 @@ class CapabilityLedger:
         # extras are "declared" only by an explicit source — manifest says nothing
         return n
 
-    def declare(self, provider_key: str, capability: str, value: bool, *, source: str, model_key: str | None = None) -> CapabilityLedgerEntry:
+    def declare(
+        self,
+        provider_key: str,
+        capability: str,
+        value: bool,
+        *,
+        source: str,
+        model_key: str | None = None,
+    ) -> CapabilityLedgerEntry:
         if capability not in ALL_CAPABILITIES:
             msg = f"unknown capability: {capability}"
             raise ValueError(msg)
         key = (provider_key, model_key, capability)
         existing = self._entries.get(key)
         if existing is None:
-            entry = CapabilityLedgerEntry(provider_key=provider_key, model_key=model_key, capability=capability, declared=Declared(value=value, source=source), updated_at=utc_now())
+            entry = CapabilityLedgerEntry(
+                provider_key=provider_key,
+                model_key=model_key,
+                capability=capability,
+                declared=Declared(value=value, source=source),
+                updated_at=utc_now(),
+            )
         else:
-            entry = existing.model_copy(update={"declared": Declared(value=value, source=source), "updated_at": utc_now()})
+            entry = existing.model_copy(
+                update={"declared": Declared(value=value, source=source), "updated_at": utc_now()}
+            )
         self._entries[key] = entry
         return entry
 
@@ -178,7 +196,14 @@ class CapabilityLedger:
     def has_probe(self, capability: str) -> bool:
         return capability in self._probes
 
-    async def probe(self, provider_key: str, capability: str, *, model_key: str | None = None, evidence_ref: str | None = None) -> ProbeResult:
+    async def probe(
+        self,
+        provider_key: str,
+        capability: str,
+        *,
+        model_key: str | None = None,
+        evidence_ref: str | None = None,
+    ) -> ProbeResult:
         fn = self._probes.get(capability)
         if fn is None:
             msg = f"no probe registered for capability: {capability}"
@@ -188,43 +213,116 @@ class CapabilityLedger:
         started = time.perf_counter()
         try:
             passed, detail, latency, evidence = await fn(provider_key, model_key)
-        except Exception as exc:  # noqa: BLE001 — a crashing probe is a FAILED probe
-            passed, detail, latency, evidence = False, f"probe raised {type(exc).__name__}", None, {}
+        except Exception as exc:
+            passed, detail, latency, evidence = (
+                False,
+                f"probe raised {type(exc).__name__}",
+                None,
+                {},
+            )
         if latency is None:
             latency = int((time.perf_counter() - started) * 1000)
-        result = ProbeResult(probe_id=str(uuid4()), provider_key=provider_key, model_key=model_key, capability=capability, passed=passed, detail=detail, latency_ms=latency, at=utc_now(), evidence=evidence)
+        result = ProbeResult(
+            probe_id=str(uuid4()),
+            provider_key=provider_key,
+            model_key=model_key,
+            capability=capability,
+            passed=passed,
+            detail=detail,
+            latency_ms=latency,
+            at=utc_now(),
+            evidence=evidence,
+        )
         self._results.append(result)
         key = (provider_key, model_key, capability)
         entry = self._entries.get(key)
         if entry is None:
-            entry = self.declare(provider_key, capability, True, source="discovery", model_key=model_key)
+            entry = self.declare(
+                provider_key, capability, True, source="discovery", model_key=model_key
+            )
         status = VerificationStatus.PASSED if passed else VerificationStatus.FAILED
         enabled = entry.enabled
         if passed and self._auto_enable and entry.declared.value:
             enabled = enabled.model_copy(update={"auto": True})
         if not passed:
             enabled = enabled.model_copy(update={"auto": False})
-        self._entries[key] = entry.model_copy(update={"verified": Verified(status=status, probe_id=result.probe_id, at=result.at, evidence_ref=evidence_ref, detail=detail), "enabled": enabled, "updated_at": utc_now()})
+        self._entries[key] = entry.model_copy(
+            update={
+                "verified": Verified(
+                    status=status,
+                    probe_id=result.probe_id,
+                    at=result.at,
+                    evidence_ref=evidence_ref,
+                    detail=detail,
+                ),
+                "enabled": enabled,
+                "updated_at": utc_now(),
+            }
+        )
         return result
 
-    def record_external_verification(self, provider_key: str, capability: str, *, passed: bool, detail: str | None, model_key: str | None = None, evidence_ref: str | None = None) -> CapabilityLedgerEntry:
+    def record_external_verification(
+        self,
+        provider_key: str,
+        capability: str,
+        *,
+        passed: bool,
+        detail: str | None,
+        model_key: str | None = None,
+        evidence_ref: str | None = None,
+    ) -> CapabilityLedgerEntry:
         """Verification evidence produced elsewhere (e.g. the lifecycle probe in CE-05)."""
         key = (provider_key, model_key, capability)
-        entry = self._entries.get(key) or self.declare(provider_key, capability, True, source="discovery", model_key=model_key)
+        entry = self._entries.get(key) or self.declare(
+            provider_key, capability, True, source="discovery", model_key=model_key
+        )
         status = VerificationStatus.PASSED if passed else VerificationStatus.FAILED
-        enabled = entry.enabled.model_copy(update={"auto": bool(passed and self._auto_enable and entry.declared.value)})
-        updated = entry.model_copy(update={"verified": Verified(status=status, probe_id=str(uuid4()), at=utc_now(), evidence_ref=evidence_ref, detail=detail), "enabled": enabled, "updated_at": utc_now()})
+        enabled = entry.enabled.model_copy(
+            update={"auto": bool(passed and self._auto_enable and entry.declared.value)}
+        )
+        updated = entry.model_copy(
+            update={
+                "verified": Verified(
+                    status=status,
+                    probe_id=str(uuid4()),
+                    at=utc_now(),
+                    evidence_ref=evidence_ref,
+                    detail=detail,
+                ),
+                "enabled": enabled,
+                "updated_at": utc_now(),
+            }
+        )
         self._entries[key] = updated
         return updated
 
     # -- admin ---------------------------------------------------------------------------
 
-    def set_enabled(self, provider_key: str, capability: str, enabled: bool, *, model_key: str | None = None, policy_ref: str | None = None) -> CapabilityLedgerEntry:
+    def set_enabled(
+        self,
+        provider_key: str,
+        capability: str,
+        enabled: bool,
+        *,
+        model_key: str | None = None,
+        policy_ref: str | None = None,
+    ) -> CapabilityLedgerEntry:
         key = (provider_key, model_key, capability)
         entry = self._entries.get(key)
         if entry is None:
             raise LookupError(f"{provider_key}/{model_key}/{capability}")
-        updated = entry.model_copy(update={"enabled": entry.enabled.model_copy(update={"by_admin": enabled, "auto": entry.enabled.auto if enabled else False, "policy_ref": policy_ref}), "updated_at": utc_now()})
+        updated = entry.model_copy(
+            update={
+                "enabled": entry.enabled.model_copy(
+                    update={
+                        "by_admin": enabled,
+                        "auto": entry.enabled.auto if enabled else False,
+                        "policy_ref": policy_ref,
+                    }
+                ),
+                "updated_at": utc_now(),
+            }
+        )
         self._entries[key] = updated
         return updated
 
@@ -237,15 +335,31 @@ class CapabilityLedger:
 
     def _refresh_stale(self, entry: CapabilityLedgerEntry) -> CapabilityLedgerEntry:
         v = entry.verified
-        if v.status is VerificationStatus.PASSED and v.at is not None and utc_now() - v.at > self._ttl:
-            return entry.model_copy(update={"verified": v.model_copy(update={"status": VerificationStatus.STALE})})
+        if (
+            v.status is VerificationStatus.PASSED
+            and v.at is not None
+            and utc_now() - v.at > self._ttl
+        ):
+            return entry.model_copy(
+                update={"verified": v.model_copy(update={"status": VerificationStatus.STALE})}
+            )
         return entry
 
-    def get(self, provider_key: str, capability: str, *, model_key: str | None = None) -> CapabilityLedgerEntry | None:
-        entry = self._entries.get((provider_key, model_key, capability)) or self._entries.get((provider_key, None, capability))
+    def get(
+        self, provider_key: str, capability: str, *, model_key: str | None = None
+    ) -> CapabilityLedgerEntry | None:
+        entry = self._entries.get((provider_key, model_key, capability)) or self._entries.get(
+            (provider_key, None, capability)
+        )
         return self._refresh_stale(entry) if entry else None
 
-    def entries(self, *, provider_key: str | None = None, capability: str | None = None, executable_only: bool = False) -> list[CapabilityLedgerEntry]:
+    def entries(
+        self,
+        *,
+        provider_key: str | None = None,
+        capability: str | None = None,
+        executable_only: bool = False,
+    ) -> list[CapabilityLedgerEntry]:
         rows = [self._refresh_stale(e) for e in self._entries.values()]
         if provider_key is not None:
             rows = [e for e in rows if e.provider_key == provider_key]
@@ -258,15 +372,37 @@ class CapabilityLedger:
     def results(self, *, provider_key: str | None = None) -> list[ProbeResult]:
         return [r for r in self._results if provider_key is None or r.provider_key == provider_key]
 
-    def gate(self, provider_key: str, capability: str, *, model_key: str | None = None) -> GateDecision:
+    def gate(
+        self, provider_key: str, capability: str, *, model_key: str | None = None
+    ) -> GateDecision:
         entry = self.get(provider_key, capability, model_key=model_key)
         if entry is None:
-            return GateDecision(allowed=False, capability=capability, provider_key=provider_key, model_key=model_key, reason="not declared")
-        return GateDecision(allowed=entry.executable, capability=capability, provider_key=provider_key, model_key=model_key, reason=entry.why_not())
+            return GateDecision(
+                allowed=False,
+                capability=capability,
+                provider_key=provider_key,
+                model_key=model_key,
+                reason="not declared",
+            )
+        return GateDecision(
+            allowed=entry.executable,
+            capability=capability,
+            provider_key=provider_key,
+            model_key=model_key,
+            reason=entry.why_not(),
+        )
 
     def providers_with(self, capability: str) -> list[str]:
-        return sorted({e.provider_key for e in self.entries(capability=capability, executable_only=True)})
+        return sorted(
+            {e.provider_key for e in self.entries(capability=capability, executable_only=True)}
+        )
 
-    def provider_ids_blocked_for(self, capability: str, *, provider_key_of: Callable[[UUID], str | None], provider_ids: list[UUID]) -> list[UUID]:
+    def provider_ids_blocked_for(
+        self,
+        capability: str,
+        *,
+        provider_key_of: Callable[[UUID], str | None],
+        provider_ids: list[UUID],
+    ) -> list[UUID]:
         ok = set(self.providers_with(capability))
         return [pid for pid in provider_ids if (provider_key_of(pid) or "") not in ok]

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from core.contracts.provider import ProviderCapabilities
-
 from chat_engine.capabilities import CapabilityLedger, VerificationStatus
+from core.contracts.provider import ProviderCapabilities
 
 
 async def _passing(_p: str, _m: str | None):
@@ -23,7 +22,9 @@ def test_manifest_declared_but_unverified_is_refused() -> None:
     assert led.gate("p", "chat").allowed is False
     assert led.gate("p", "chat").reason == "unverified (no passing probe)"
     assert led.gate("p", "vision_input").reason == "not declared"
-    assert led.gate("p", "streaming_text").reason == "not declared"  # extra caps need explicit declaration
+    assert (
+        led.gate("p", "streaming_text").reason == "not declared"
+    )  # extra caps need explicit declaration
 
 
 async def test_probe_pass_auto_enables_and_fail_isolates() -> None:
@@ -84,11 +85,20 @@ def test_execute_gate_via_api(client, runtime) -> None:
     ok = client.post("/v1/execute", json={"ask": "hi", "requirements": {"capabilities": ["chat"]}})
     assert ok.status_code == 200, ok.text
     # 'reasoning' is a Model capability upstream (router passes) but not a provider capability here
-    denied = client.post("/v1/execute", json={"ask": "hi", "requirements": {"capabilities": ["reasoning"]}})
+    denied = client.post(
+        "/v1/execute", json={"ask": "hi", "requirements": {"capabilities": ["reasoning"]}}
+    )
     assert denied.status_code == 403 and denied.json()["error"]["code"] == "capability_denied"
     assert denied.json()["error"]["details"]["ce_code"] == "unsupported_capability"
-    rows = client.get("/v1/admin/capabilities/ledger?provider_key=local_echo&executable_only=true").json()
+    rows = client.get(
+        "/v1/admin/capabilities/ledger?provider_key=local_echo&executable_only=true"
+    ).json()
     assert [e["capability"] for e in rows["entries"]] == ["chat"]
     probe = client.post("/v1/admin/capabilities/local_echo/multi_turn:probe")
     assert probe.status_code == 200 and probe.json()["passed"] is True
-    assert client.get("/v1/admin/capabilities/ledger?provider_key=local_echo&executable_only=true").json()["total"] == 2
+    assert (
+        client.get(
+            "/v1/admin/capabilities/ledger?provider_key=local_echo&executable_only=true"
+        ).json()["total"]
+        == 2
+    )

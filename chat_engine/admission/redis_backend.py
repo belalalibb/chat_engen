@@ -67,7 +67,15 @@ return {'ok', rid}
 class RedisAdmission:
     backend_name = "redis"
 
-    def __init__(self, url: str, *, prefix: str = "ce:adm", clock: Callable[[], datetime] = utc_now, default_limits: Limits | None = None, client: Any | None = None) -> None:
+    def __init__(
+        self,
+        url: str,
+        *,
+        prefix: str = "ce:adm",
+        clock: Callable[[], datetime] = utc_now,
+        default_limits: Limits | None = None,
+        client: Any | None = None,
+    ) -> None:
         import redis.asyncio as aioredis
 
         self._r = client if client is not None else aioredis.from_url(url, decode_responses=True)
@@ -76,6 +84,7 @@ class RedisAdmission:
         self._default = default_limits or Limits.conservative()
         self._script = self._r.register_script(RESERVE_LUA)
         self._known_scopes: set[str] = set()
+        self._pending: set[Any] = set()
 
     def _keys(self, scope: str) -> list[str]:
         p = f"{self._prefix}:{scope}"
@@ -90,7 +99,9 @@ class RedisAdmission:
         loop = asyncio.get_event_loop()
         coro = self._r.hset(key, mapping=mapping) if mapping else self._r.delete(key)
         if loop.is_running():
-            loop.create_task(coro)
+            task = loop.create_task(coro)
+            self._pending.add(task)
+            task.add_done_callback(self._pending.discard)
         else:
             loop.run_until_complete(coro)
 
@@ -103,28 +114,75 @@ class RedisAdmission:
         else:
             await self._r.delete(key)
 
-    async def reserve(self, scopes: list[str], *, tokens_estimate: int = 0, units: float = 0.0) -> Reservation | Denied:
+    async def reserve(
+        self, scopes: list[str], *, tokens_estimate: int = 0, units: float = 0.0
+    ) -> Reservation | Denied:
         self._known_scopes.update(scopes)
         now = self._clock()
         now_ms = int(now.timestamp() * 1000)
         keys = [k for s in scopes for k in self._keys(s)]
         rid = str(uuid4())
-        res = await self._script(keys=keys, args=[now_ms, WINDOW_SECONDS * 1000, tokens_estimate, units, len(scopes), self._default.rpm or 60, self._default.concurrency or 4, rid])
+        res = await self._script(
+            keys=keys,
+            args=[
+                now_ms,
+                WINDOW_SECONDS * 1000,
+                tokens_estimate,
+                units,
+                len(scopes),
+                self._default.rpm or 60,
+                self._default.concurrency or 4,
+                rid,
+            ],
+        )
         if res[0] == "denied":
-            idx, dim, limit, current, retry = int(res[1]), res[2], float(res[3]), float(res[4]), int(float(res[5]))
-            return Denied(scope=scopes[idx], dimension=Dim(dim), limit=limit, current=current, retry_after_ms=None if retry < 0 else retry, reason=f"{dim} limit reached")
-        return Reservation(reservation_id=rid, scopes=list(scopes), tokens_reserved=tokens_estimate, units_reserved=units, acquired_at=now)
+            idx, dim, limit, current, retry = (
+                int(res[1]),
+                res[2],
+                float(res[3]),
+                float(res[4]),
+                int(float(res[5])),
+            )
+            return Denied(
+                scope=scopes[idx],
+                dimension=Dim(dim),
+                limit=limit,
+                current=current,
+                retry_after_ms=None if retry < 0 else retry,
+                reason=f"{dim} limit reached",
+            )
+        return Reservation(
+            reservation_id=rid,
+            scopes=list(scopes),
+            tokens_reserved=tokens_estimate,
+            units_reserved=units,
+            acquired_at=now,
+        )
 
-    async def settle(self, reservation: Reservation, *, tokens_actual: int | None = None, units_actual: float | None = None, success: bool = True) -> None:
+    async def settle(
+        self,
+        reservation: Reservation,
+        *,
+        tokens_actual: int | None = None,
+        units_actual: float | None = None,
+        success: bool = True,
+    ) -> None:
         pipe = self._r.pipeline()
         for scope in reservation.scopes:
-            krpm, ktpm, kconc, kbud, _ = self._keys(scope)
+            _krpm, ktpm, kconc, kbud, _ = self._keys(scope)
             pipe.decr(kconc)
             if units_actual is not None and units_actual != reservation.units_reserved:
                 pipe.incrbyfloat(kbud, units_actual - reservation.units_reserved)
             if tokens_actual is not None and tokens_actual != reservation.tokens_reserved:
                 pipe.zrem(ktpm, f"{reservation.reservation_id}:{reservation.tokens_reserved}")
-                pipe.zadd(ktpm, {f"{reservation.reservation_id}:{tokens_actual}": int(reservation.acquired_at.timestamp() * 1000)})
+                pipe.zadd(
+                    ktpm,
+                    {
+                        f"{reservation.reservation_id}:{tokens_actual}": int(
+                            reservation.acquired_at.timestamp() * 1000
+                        )
+                    },
+                )
         await pipe.execute()
 
     async def release(self, reservation: Reservation) -> None:
@@ -145,5 +203,13 @@ class RedisAdmission:
         out: list[JsonObject] = []
         for s in sorted(self._known_scopes):
             krpm, _ktpm, kconc, kbud, klim = self._keys(s)
-            out.append({"scope": s, "rpm_used": await self._r.zcard(krpm), "in_flight": int(await self._r.get(kconc) or 0), "budget_used": float(await self._r.get(kbud) or 0), "limits": await self._r.hgetall(klim)})
+            out.append(
+                {
+                    "scope": s,
+                    "rpm_used": await self._r.zcard(krpm),
+                    "in_flight": int(await self._r.get(kconc) or 0),
+                    "budget_used": float(await self._r.get(kbud) or 0),
+                    "limits": await self._r.hgetall(klim),
+                }
+            )
         return out
