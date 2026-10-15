@@ -19,6 +19,7 @@ from chat_engine.conversations import (
     TurnKind,
     TurnStatus,
 )
+
 from tests.streaming.test_five_cases import add_streaming_provider, events_of
 
 
@@ -51,7 +52,7 @@ def test_project_crud_and_defaults(client) -> None:
     r = client.post("/v1/chat", json={"conversation_id": conv["id"], "message": "مرحبا"})
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["provider_key"] == "local-echo" and body["model_key"] == "local-echo-1"
+    assert body["provider_key"] == "local_echo" and body["model_key"] == "local-echo-1"
     assert body["turn"]["status"] == "complete" and body["handoff"]["packet_id"]
     ex = client.get(f"/v1/executions/{body['execution_id']}").json()
     assert ex["status"] == "succeeded"
@@ -66,7 +67,9 @@ def test_project_system_instructions_reach_the_packet(runtime: Runtime) -> None:
     from chat_engine.conversations import ConversationCreate, ProjectCreate
 
     p = svc.create_project(
-        ProjectCreate(name="p", system_instructions="SPEAK LIKE A PIRATE", default_constraints=["c1"])
+        ProjectCreate(
+            name="p", system_instructions="SPEAK LIKE A PIRATE", default_constraints=["c1"]
+        )
     )
     c = svc.create_conversation(ConversationCreate(project_id=p.id))
     prep = asyncio.run(svc.prepare(ChatRequest(conversation_id=c.id, message="hi")))
