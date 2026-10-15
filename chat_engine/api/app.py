@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from chat_engine import __version__
+from chat_engine import UPSTREAM_SHA, __version__
 from chat_engine.api import (
     admin_capabilities,
     admin_providers,
@@ -22,6 +22,7 @@ from chat_engine.api import (
     openai_compat,
 )
 from chat_engine.api.errors import error_response
+from chat_engine.api.openapi import install_openapi
 from chat_engine.composition.runtime import Runtime, build_runtime
 from chat_engine.util.time import utc_now
 
@@ -89,4 +90,5 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         app.include_router(conversations.build_router(runtime))
         if (environ or {}).get("CE_FEATURE_OPENAI_COMPAT", "1") != "0":
             app.include_router(openai_compat.build_router(runtime))
+    install_openapi(app, upstream_sha=UPSTREAM_SHA)
     return app

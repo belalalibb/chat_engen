@@ -194,3 +194,14 @@ def test_sdk_errors(sdk) -> None:
         asyncio.run(run())
     assert ei.value.status_code in (404, 503)
     assert ei.value.body and ei.value.body.get("code")
+
+
+def test_openapi_has_stability_tags(client) -> None:
+    schema = client.get("/openapi.json").json()
+    paths = schema["paths"]
+    assert paths["/v1/execute"]["post"]["x-ce-stability"] == "stable"
+    assert paths["/v1/chat/completions"]["post"]["x-ce-stability"] == "stable"
+    assert paths["/v1/chat"]["post"]["x-ce-stability"] == "experimental"
+    assert paths["/v1/admin/providers/managed"]["get"]["x-ce-stability"] == "admin"
+    assert schema["info"]["x-ce-upstream-sha"].startswith("0a13556")
+    assert all("x-ce-stability" in op for item in paths.values() for op in item.values())
