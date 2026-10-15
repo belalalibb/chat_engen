@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator
 from typing import Any
+from uuid import UUID, uuid4
 
 from core.contracts.base import BoundedStr, ContractModel, JsonObject
 from core.contracts.model_policy import ModelPolicy
@@ -32,9 +33,14 @@ class ChatMessageIn(ContractModel):
 
 
 class ChatStreamRequest(ContractModel):
-    """Stateless streaming request (CE-09 adds conversation-backed /v1/chat)."""
+    """Streaming request. Stateless with ``messages``; conversation-backed (CE-09)
+    with ``conversation_id``/``project_id`` + ``message`` — history, project
+    instructions, summary and skills come from the ChatService pipeline."""
 
-    messages: list[ChatMessageIn] = Field(min_length=1)
+    messages: list[ChatMessageIn] = Field(default_factory=list)
+    conversation_id: UUID | None = None
+    project_id: UUID | None = None
+    message: str | None = Field(default=None, max_length=400_000)
     model: BoundedStr | None = None  # canonical_id or model_key; None ⇒ AUTO
     provider: BoundedStr | None = None
     model_policy: ModelPolicy | None = None
@@ -124,18 +130,102 @@ def route_for(rt: Runtime, body: ChatStreamRequest) -> Any:
         return ce_error_response(ChatEngineErrorCode.CONFLICT, str(exc), http_status=503)
 
 
+def persist_stream_turn(
+    rt: Runtime,
+    conversation_id: UUID,
+    stream_id: str,
+    *,
+    packet_id: str | None,
+    skills_used: list[JsonObject],
+) -> None:
+    """Record the assistant turn for a finished stream: complete, partial (cancelled /
+    failed after deltas) or failed (nothing delivered)."""
+    from chat_engine.conversations import TurnStatus
+
+    svc: StreamService = rt.extensions["streaming"]
+    chat_svc = rt.extensions["chat"]
+    s = svc.summary(stream_id)
+    if s is None:
+        return
+    if s.status is StreamEventType.COMPLETED:
+        status = TurnStatus.COMPLETE
+    elif s.text:
+        status = TurnStatus.PARTIAL
+    else:
+        status = TurnStatus.FAILED
+    chat_svc.record_stream_turn(
+        conversation_id,
+        text=s.text,
+        status=status,
+        provider_key=s.provider_key,
+        model_key=s.model_key,
+        usage=dict(s.usage),
+        stream_id=stream_id,
+        packet_id=packet_id,
+        skills_used=skills_used,
+    )
+
+
 def build_router(rt: Runtime) -> APIRouter:
     router = APIRouter(prefix="/v1/chat", tags=["chat"])
     svc: StreamService = rt.extensions["streaming"]
 
     @router.post("/stream")
     async def chat_stream(request: Request, body: ChatStreamRequest) -> Response:
-        decision = route_for(rt, body)
-        if isinstance(decision, JSONResponse):
-            return decision
-        from uuid import uuid4
+        conversation_id: UUID | None = None
+        packet_id: str | None = None
+        skills_used: list[JsonObject] = []
+        if body.message is not None or body.conversation_id is not None:
+            # conversation-backed: reuse the ChatService pipeline (CE-09)
+            if not body.message:
+                return ce_error_response(
+                    ChatEngineErrorCode.CONFLICT,
+                    "'message' is required when streaming into a conversation.",
+                    http_status=422,
+                )
+            chat_svc = rt.extensions.get("chat")
+            if chat_svc is None:
+                return ce_error_response(
+                    ChatEngineErrorCode.CONFLICT, "Conversations are not enabled.", http_status=503
+                )
+            from chat_engine.api.conversations import chat_error_response, not_found_response
+            from chat_engine.conversations import ChatError, ChatRequest, NotFound
 
-        payload = compile_request(rt, body, packet_id=str(uuid4()))
+            try:
+                prep = await chat_svc.prepare(
+                    ChatRequest(
+                        conversation_id=body.conversation_id,
+                        project_id=body.project_id,
+                        message=body.message,
+                        model=body.model,
+                        provider=body.provider,
+                        generation=dict(body.generation),
+                        tools=list(body.tools),
+                        required_capabilities=list(body.required_capabilities),
+                        skills=list(body.skills) if body.skills else None,
+                    )
+                )
+            except NotFound as exc:
+                return not_found_response(exc)
+            except ChatError as exc:
+                return chat_error_response(exc)
+            chat_svc.store.append_turn(prep.user_turn)
+            decision = prep.decision
+            payload = prep.payload
+            conversation_id = prep.conversation.id
+            packet_id = prep.packet.packet_id
+            skills_used = prep.skills_used
+        else:
+            if not body.messages:
+                return ce_error_response(
+                    ChatEngineErrorCode.CONFLICT,
+                    "Provide 'messages' (stateless) or 'conversation_id'/'message'.",
+                    http_status=422,
+                )
+            decision = route_for(rt, body)
+            if isinstance(decision, JSONResponse):
+                return decision
+            payload = compile_request(rt, body, packet_id=str(uuid4()))
 
         async def gen() -> AsyncIterator[str]:
             async for ev in svc.run(
@@ -151,6 +241,18 @@ def build_router(rt: Runtime) -> APIRouter:
                     StreamEventType.CANCELLED,
                 ):
                     svc.cancel(ev.stream_id)
+                if conversation_id is not None and ev.type in (
+                    StreamEventType.COMPLETED,
+                    StreamEventType.FAILED,
+                    StreamEventType.CANCELLED,
+                ):
+                    persist_stream_turn(
+                        rt,
+                        conversation_id,
+                        ev.stream_id,
+                        packet_id=packet_id,
+                        skills_used=skills_used,
+                    )
 
         return StreamingResponse(
             gen(),

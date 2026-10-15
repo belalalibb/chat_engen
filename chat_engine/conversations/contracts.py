@@ -152,7 +152,9 @@ class ChatRequest(ContractModel):
     generation: JsonObject = Field(default_factory=dict)
     tools: list[JsonObject] = Field(default_factory=list)
     required_capabilities: list[BoundedStr] = Field(default_factory=list)
-    skills: list[BoundedStr] | None = None  # explicit selection wins over project/conversation assignment
+    skills: list[BoundedStr] | None = (
+        None  # explicit selection wins over project/conversation assignment
+    )
     attachments: list[JsonObject] = Field(default_factory=list)
     strategy: BoundedStr | None = None  # CE-12: sequential_handoff | judge_select | cost_tiered
     strategy_options: JsonObject = Field(default_factory=dict)
@@ -166,7 +168,9 @@ class ChatResponse(ContractModel):
     provider_key: BoundedStr | None = None
     model_key: BoundedStr | None = None
     usage: JsonObject = Field(default_factory=dict)
-    handoff: JsonObject = Field(default_factory=dict)  # {packet_id, estimated_tokens, dropped_messages, summarized}
+    handoff: JsonObject = Field(
+        default_factory=dict
+    )  # {packet_id, estimated_tokens, dropped_messages, summarized}
     trace: JsonObject | None = None  # CE-12 orchestration trace
 
 

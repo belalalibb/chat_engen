@@ -15,6 +15,7 @@ from chat_engine.api import (
     admin_providers,
     catalog,
     chat_stream,
+    conversations,
     events,
     execute,
     models,
@@ -83,4 +84,6 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         app.include_router(admin_capabilities.build_router(runtime))
     if "streaming" in runtime.extensions:
         app.include_router(chat_stream.build_router(runtime))
+    if "chat" in runtime.extensions:
+        app.include_router(conversations.build_router(runtime))
     return app

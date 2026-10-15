@@ -436,6 +436,11 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.streaming.service import StreamService
 
     rt.extensions["streaming"] = StreamService(rt)
+    # CE-09: conversations/projects/turns + sync /v1/chat over HandoffPacket
+    from chat_engine.conversations import ChatService
+    from chat_engine.conversations import InMemoryConversationStore as CEConversationStore
+
+    rt.extensions["chat"] = ChatService(rt, CEConversationStore())
     for key in rt.provider_keys:
         pid = rt.providers.get(key).provider.id
         meta = next((b.limits_metadata for b in rt.bindings.bindings_for_provider(pid)), None)

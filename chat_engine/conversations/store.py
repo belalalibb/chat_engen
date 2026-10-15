@@ -30,12 +30,16 @@ class ConversationStorePort(Protocol):
     # conversations
     def put_conversation(self, conversation: Conversation) -> Conversation: ...
     def get_conversation(self, tenant_id: UUID, conversation_id: UUID) -> Conversation: ...
-    def list_conversations(self, tenant_id: UUID, *, project_id: UUID | None = None, include_archived: bool = False) -> list[Conversation]: ...
+    def list_conversations(
+        self, tenant_id: UUID, *, project_id: UUID | None = None, include_archived: bool = False
+    ) -> list[Conversation]: ...
     def delete_conversation(self, tenant_id: UUID, conversation_id: UUID) -> None: ...
     # turns
     def append_turn(self, turn: Turn) -> Turn: ...
     def update_turn(self, turn: Turn) -> Turn: ...
-    def turns(self, conversation_id: UUID, *, after_seq: int | None = None, limit: int | None = None) -> list[Turn]: ...
+    def turns(
+        self, conversation_id: UUID, *, after_seq: int | None = None, limit: int | None = None
+    ) -> list[Turn]: ...
     def next_seq(self, conversation_id: UUID) -> int: ...
 
 
@@ -60,7 +64,10 @@ class InMemoryConversationStore:
         return p
 
     def list_projects(self, tenant_id: UUID) -> list[Project]:
-        return sorted((p for p in self._projects.values() if p.tenant_id == tenant_id), key=lambda p: p.created_at)
+        return sorted(
+            (p for p in self._projects.values() if p.tenant_id == tenant_id),
+            key=lambda p: p.created_at,
+        )
 
     def delete_project(self, tenant_id: UUID, project_id: UUID) -> None:
         self.get_project(tenant_id, project_id)
@@ -79,7 +86,9 @@ class InMemoryConversationStore:
             raise NotFound("conversation", conversation_id)
         return c
 
-    def list_conversations(self, tenant_id: UUID, *, project_id: UUID | None = None, include_archived: bool = False) -> list[Conversation]:
+    def list_conversations(
+        self, tenant_id: UUID, *, project_id: UUID | None = None, include_archived: bool = False
+    ) -> list[Conversation]:
         rows = [
             c
             for c in self._conversations.values()
@@ -108,7 +117,9 @@ class InMemoryConversationStore:
                 return turn
         raise NotFound("turn", turn.id)
 
-    def turns(self, conversation_id: UUID, *, after_seq: int | None = None, limit: int | None = None) -> list[Turn]:
+    def turns(
+        self, conversation_id: UUID, *, after_seq: int | None = None, limit: int | None = None
+    ) -> list[Turn]:
         rows = self._turns.get(conversation_id, [])
         if after_seq is not None:
             rows = [t for t in rows if t.seq > after_seq]

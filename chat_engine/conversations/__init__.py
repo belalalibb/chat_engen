@@ -3,16 +3,23 @@ from chat_engine.conversations.contracts import (
     ChatResponse,
     Conversation,
     ConversationCreate,
+    ConversationsPage,
     ConversationUpdate,
     Project,
     ProjectCreate,
+    ProjectsPage,
     ProjectUpdate,
     Turn,
     TurnKind,
+    TurnsPage,
     TurnStatus,
 )
 from chat_engine.conversations.service import ChatError, ChatService
-from chat_engine.conversations.store import ConversationStorePort, InMemoryConversationStore, NotFound
+from chat_engine.conversations.store import (
+    ConversationStorePort,
+    InMemoryConversationStore,
+    NotFound,
+)
 
 __all__ = [
     "ChatError",
@@ -23,12 +30,15 @@ __all__ = [
     "ConversationCreate",
     "ConversationStorePort",
     "ConversationUpdate",
+    "ConversationsPage",
     "InMemoryConversationStore",
     "NotFound",
     "Project",
     "ProjectCreate",
     "ProjectUpdate",
+    "ProjectsPage",
     "Turn",
     "TurnKind",
     "TurnStatus",
+    "TurnsPage",
 ]

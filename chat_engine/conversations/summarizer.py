@@ -30,7 +30,9 @@ class Summarizer:
         self._rt = rt
         self._max_chars = max_chars
 
-    async def summarize(self, turns: list[Turn], *, previous_summary: str | None, objective: str | None) -> tuple[str, JsonObject]:
+    async def summarize(
+        self, turns: list[Turn], *, previous_summary: str | None, objective: str | None
+    ) -> tuple[str, JsonObject]:
         transcript = "\n".join(f"{t.role.value}: {t.text()}" for t in turns if t.text())
         if len(transcript) > self._max_chars:
             transcript = transcript[-self._max_chars :]
@@ -38,21 +40,54 @@ class Summarizer:
         obj = f"Objective: {objective}\n\n" if objective else ""
         ask = f"{PROMPT}\n{obj}{prefix}Conversation:\n{transcript}"
         try:
-            weights = ScoringWeights(version="summarizer-cost-first", quality=0.1, reliability=0.2, cost=0.5, latency=0.15, context_fit=0.05, policy_preference=0.0)
-            decision = self._rt.router.route(RoutingRequest(operation=ProviderOperation.GENERATE_TEXT, model_policy=AutoModelPolicy(type="auto"), weights=weights))
+            weights = ScoringWeights(
+                version="summarizer-cost-first",
+                quality=0.1,
+                reliability=0.2,
+                cost=0.5,
+                latency=0.15,
+                context_fit=0.05,
+                policy_preference=0.0,
+            )
+            decision = self._rt.router.route(
+                RoutingRequest(
+                    operation=ProviderOperation.GENERATE_TEXT,
+                    model_policy=AutoModelPolicy(type="auto"),
+                    weights=weights,
+                )
+            )
             cand = decision.selected
             binding = self._rt.bindings.get(cand.provider_id, cand.model_id)
             adapter = self._rt.adapters[cand.provider_id]
             resp = await adapter.generate(
-                ProviderGenerateRequest(request_id=uuid4(), tenant_id=self._rt.tenant_id, operation=ProviderOperation.GENERATE_TEXT, provider_model_name=binding.provider_model_name, credential_ref=self._rt.credential_refs.get(cand.provider_id, ""), payload={"ask": ask, "messages": [{"role": "user", "content": ask}], "generation": {"temperature": 0, "max_tokens": 600}}, timeout_ms=45_000)
+                ProviderGenerateRequest(
+                    request_id=uuid4(),
+                    tenant_id=self._rt.tenant_id,
+                    operation=ProviderOperation.GENERATE_TEXT,
+                    provider_model_name=binding.provider_model_name,
+                    credential_ref=self._rt.credential_refs.get(cand.provider_id, ""),
+                    payload={
+                        "ask": ask,
+                        "messages": [{"role": "user", "content": ask}],
+                        "generation": {"temperature": 0, "max_tokens": 600},
+                    },
+                    timeout_ms=45_000,
+                )
             )
             content = resp.output.get("content") if resp.succeeded else None
             if isinstance(content, str) and content.strip() and "## " in content:
                 pk = self._rt.extensions["catalog_index"].provider_key(cand.provider_id)
-                return content.strip(), {"summary_source": "model", "summary_provider": pk, "summary_model": binding.provider_model_name}
-        except Exception:  # noqa: BLE001 — fall through to the extractive summary
+                return content.strip(), {
+                    "summary_source": "model",
+                    "summary_provider": pk,
+                    "summary_model": binding.provider_model_name,
+                }
+        except Exception:
             pass
-        return self._extractive(turns, previous_summary, objective), {"summary_source": "extractive", "note": "no model summary available — deterministic fallback"}
+        return self._extractive(turns, previous_summary, objective), {
+            "summary_source": "extractive",
+            "note": "no model summary available — deterministic fallback",
+        }
 
     @staticmethod
     def _extractive(turns: list[Turn], previous_summary: str | None, objective: str | None) -> str:
@@ -61,7 +96,15 @@ class Summarizer:
         lines = ["## Objective", objective or (users[0][:200] if users else "(none recorded)")]
         if previous_summary:
             lines += ["", "## Previously", previous_summary[:1500]]
-        lines += ["", "## Decisions taken"] + [f"- {a[:160]}" for a in assistants[-3:]] if assistants else ["", "## Decisions taken", "- (none)"]
+        lines += (
+            ["", "## Decisions taken"] + [f"- {a[:160]}" for a in assistants[-3:]]
+            if assistants
+            else ["", "## Decisions taken", "- (none)"]
+        )
         lines += ["", "## Facts & constraints"] + [f"- user asked: {u[:160]}" for u in users[-5:]]
-        lines += ["", "## Open items", f"- continue from the last user request: {users[-1][:200] if users else '(none)'}"]
+        lines += [
+            "",
+            "## Open items",
+            f"- continue from the last user request: {users[-1][:200] if users else '(none)'}",
+        ]
         return "\n".join(lines)
