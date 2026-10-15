@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -40,6 +40,8 @@ from core.contracts.provider import (
     ProviderManifest,
     ProviderOperation,
 )
+
+from chat_engine.streaming.contracts import StreamChunk
 
 DEFAULT_MAX_TOKENS = 2048
 GENERATION_WHITELIST = frozenset(
@@ -360,6 +362,37 @@ class OpenAICompatibleAdapter:
             usage=extract_usage(parsed),
             latency_ms=latency_ms,
         )
+
+    # -- StreamingAdapterPort (optional, CE-08) ------------------------------------------
+
+    async def stream(self, request: ProviderGenerateRequest) -> AsyncIterator[StreamChunk]:
+        """Token stream. Errors are yielded as chunks, never raised past here."""
+        from chat_engine.streaming.sse_parser import iter_sse_chunks
+
+        if request.operation not in self._manifest.operations:
+            yield StreamChunk(
+                error=ProviderError(
+                    category=ProviderErrorCategory.UNSUPPORTED_CAPABILITY,
+                    retryable=False,
+                    safe_message="operation not declared by this provider",
+                )
+            )
+            return
+        body = chat_body(request, stream=True)
+        timeout = request.timeout_ms / 1000.0 if request.timeout_ms is not None else self._timeout
+        api_key = self._resolve(request.credential_ref)
+        try:
+            async with self.client().stream(
+                "POST", "/chat/completions", headers=self.headers(api_key), json=body, timeout=timeout
+            ) as r:
+                if r.status_code != 200:
+                    await r.aread()
+                    yield StreamChunk(error=self.normalize_error(r))
+                    return
+                async for chunk in iter_sse_chunks(r.aiter_lines()):
+                    yield chunk
+        except Exception as exc:  # noqa: BLE001 — boundary
+            yield StreamChunk(error=self.normalize_error(exc))
 
     async def health_check(self, scope: HealthScope) -> ProviderHealth:
         if self._health_ref is None:

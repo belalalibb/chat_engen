@@ -9,7 +9,12 @@ chat_engine.egg-info/entry_points.txt
 chat_engine.egg-info/requires.txt
 chat_engine.egg-info/top_level.txt
 chat_engine/admission/__init__.py
+chat_engine/admission/idempotency.py
+chat_engine/admission/memory.py
+chat_engine/admission/port.py
+chat_engine/admission/redis_backend.py
 chat_engine/api/__init__.py
+chat_engine/api/admin_capabilities.py
 chat_engine/api/admin_providers.py
 chat_engine/api/app.py
 chat_engine/api/catalog.py
@@ -18,6 +23,8 @@ chat_engine/api/events.py
 chat_engine/api/execute.py
 chat_engine/api/models.py
 chat_engine/capabilities/__init__.py
+chat_engine/capabilities/ledger.py
+chat_engine/capabilities/probes.py
 chat_engine/catalog/__init__.py
 chat_engine/catalog/contracts.py
 chat_engine/catalog/index.py
@@ -40,6 +47,8 @@ chat_engine/skills/__init__.py
 chat_engine/store/__init__.py
 chat_engine/store/executions.py
 chat_engine/streaming/__init__.py
+chat_engine/streaming/contracts.py
+chat_engine/streaming/sse_parser.py
 chat_engine/usage/__init__.py
 chat_engine/util/__init__.py
 chat_engine/util/time.py
