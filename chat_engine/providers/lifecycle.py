@@ -181,7 +181,7 @@ class ProviderLifecycleService:
 
     # -- queries ------------------------------------------------------------------------
 
-    def list(self) -> list[ProviderSummary]:
+    def list_all(self) -> list[ProviderSummary]:
         return sorted((self._summary(k) for k in self._records), key=lambda s: s.provider_key)
 
     def get(self, provider_key: str) -> ProviderSummary:

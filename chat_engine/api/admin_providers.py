@@ -53,7 +53,7 @@ def build_router(rt: Runtime) -> APIRouter:
 
     @router.get("/v1/admin/providers")
     async def list_all_providers() -> Response:
-        managed = {s.provider_key: s for s in lifecycle.list()}
+        managed = {s.provider_key: s for s in lifecycle.list_all()}
         rows = []
         for key in sorted(set(rt.providers.all_keys()) | set(managed)):
             summary = managed.get(key)
@@ -106,7 +106,7 @@ def build_router(rt: Runtime) -> APIRouter:
     @router.get("/v1/admin/providers/managed")
     async def list_managed() -> Response:
         return JSONResponse(
-            content={"providers": [s.model_dump(mode="json") for s in lifecycle.list()]}
+            content={"providers": [s.model_dump(mode="json") for s in lifecycle.list_all()]}
         )
 
     @router.post("/v1/admin/providers/{provider_key}:validate")
