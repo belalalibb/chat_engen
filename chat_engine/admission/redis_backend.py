@@ -84,35 +84,32 @@ class RedisAdmission:
         self._default = default_limits or Limits.conservative()
         self._script = self._r.register_script(RESERVE_LUA)
         self._known_scopes: set[str] = set()
-        self._pending: set[Any] = set()
+        self._pending_limits: dict[str, Limits] = {}
 
     def _keys(self, scope: str) -> list[str]:
         p = f"{self._prefix}:{scope}"
         return [f"{p}:rpm", f"{p}:tpm", f"{p}:conc", f"{p}:budget", f"{p}:lim"]
 
     def set_limits(self, scope: str, limits: Limits) -> None:
-        import asyncio
-
+        """Sync API (port contract): queue the write; applied on the next reserve()."""
         self._known_scopes.add(scope)
-        mapping = {k: v for k, v in limits.model_dump(exclude_none=True).items() if k != "source"}
-        key = self._keys(scope)[4]
-        loop = asyncio.get_event_loop()
-        coro = self._r.hset(key, mapping=mapping) if mapping else self._r.delete(key)
-        if loop.is_running():
-            task = loop.create_task(coro)
-            self._pending.add(task)
-            task.add_done_callback(self._pending.discard)
-        else:
-            loop.run_until_complete(coro)
+        self._pending_limits[scope] = limits
 
     async def set_limits_async(self, scope: str, limits: Limits) -> None:
         self._known_scopes.add(scope)
-        mapping = {k: v for k, v in limits.model_dump(exclude_none=True).items() if k != "source"}
+        mapping: dict[str, float] = {
+            k: float(v) for k, v in limits.model_dump(exclude_none=True).items() if k != "source"
+        }
         key = self._keys(scope)[4]
         if mapping:
-            await self._r.hset(key, mapping=mapping)
+            await self._r.hset(key, mapping=mapping)  # type: ignore[arg-type]
         else:
             await self._r.delete(key)
+
+    async def _flush_limits(self) -> None:
+        while self._pending_limits:
+            scope, limits = self._pending_limits.popitem()
+            await self.set_limits_async(scope, limits)
 
     async def reserve(
         self, scopes: list[str], *, tokens_estimate: int = 0, units: float = 0.0

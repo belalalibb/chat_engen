@@ -1,0 +1,3 @@
+catalog entries() n=10000: samples_ms=[17190.0, 17347.7, 18432.9, 17067.1, 17270.1] p50=17270.1
+        print(f"\ncatalog entries() n={N}: samples_ms={[round(s, 1) for s in samples]} p50={p50:.1f}")
+1 failed in 111.39s (0:01:51)

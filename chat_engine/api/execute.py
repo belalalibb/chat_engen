@@ -650,7 +650,7 @@ def build_router(rt: Runtime) -> APIRouter:
                 return error_response(ErrorCode.MODEL_UNAVAILABLE, str(exc))
             except AdmissionDenied as exc:
                 d = exc.denied
-                details: JsonObject = {
+                denied_details: JsonObject = {
                     "scope": d.scope,
                     "dimension": d.dimension.value,
                     "limit": d.limit,
@@ -658,12 +658,12 @@ def build_router(rt: Runtime) -> APIRouter:
                     "reason": d.reason,
                 }
                 if d.retry_after_ms is not None:
-                    details["retry_after_ms"] = d.retry_after_ms
+                    denied_details["retry_after_ms"] = d.retry_after_ms
                 return error_response(
                     ErrorCode.RATE_LIMITED,
                     "Admission denied for this request.",
                     retryable=True,
-                    details=details,
+                    details=denied_details,
                 )
         except BudgetExceeded as exc:
             return error_response(

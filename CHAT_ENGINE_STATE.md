@@ -3,12 +3,12 @@
 ```text
 STATE_VERSION: 2
 PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-04 Canonical Model Identity & Catalog Index
+CURRENT_TASK: CE-09 Conversations, Projects & Summarization
 CURRENT_TASK_STATUS: IN_PROGRESS
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
-NEXT_TASK: CE-04 CanonicalModel/ModelAlias/CatalogIndex/Resolver + /v1/catalog/models
+NEXT_TASK: CE-09 /v1/projects, /v1/conversations, /v1/chat (sync) using HandoffPacket + summarizer
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -44,6 +44,11 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 11 | owner approval recorded; ADR-CE-0001 ACCEPTED | 120821b | — | phase 1 |
 | 12 | CE-01: baseline copy (sha256 ==), 14 golden execute + models + events, 14 manifests, COMPATIBILITY_MAP | fe13617 | `evidence/ce01/` | DONE |
 | 13 | CE-02: skeleton, pyproject (SHA pin), compat deriver + 3 guards, arch guard, secret scan | 9374cec | — | pushed |
+| 20 | CE-08: StreamingAdapterPort (optional) + tolerant SSE parser + OpenAICompatibleAdapter.stream() + StreamService (five D7 cases: supported / unsupported→422 or buffer `synthesized:true` / fail-before-first-delta→silent failover / fail-after→`stream_interrupted` resumable, no re-send / cancel) + `/v1/chat/stream` SSE, :cancel, :resume, summary; streaming_text must be probe-verified in ledger | 9e16fcc..this | `evidence/ce08/gate_output.txt` | **GATE GREEN: 91 passed** |
+| 19 | CE-07: AdmissionPort — InMemoryAdmission (rpm/tpm/concurrency/budget, all-or-nothing scopes, relative breaker 5/10, jitter) + RedisAdmission (atomic Lua) + IdempotencyStore; `/v1/execute` reserve→settle/release; 429 mapping; `/v1/admin/admission`; healthz `replicas_safe` | e0b7905..be1905b | tests/admission (200-worker storm, fake clock) | DONE |
+| 18 | CE-06: CapabilityLedger (declared ∧ verified ∧ enabled ∧ available_now; TTL stale; auto-enable on pass) + 7 probes (daily cap) + gate in `/v1/execute` → `capability_denied` + `/v1/admin/capabilities/*` | ae1271c.. | tests/capabilities | DONE |
+| 17 | CE-05: OpenAICompatibleAdapter (full port, 12-category normalization, MockTransport tests), ProviderLifecycleService (append-only revisions draft→validating→discovered→verified→enabled/disabled/archived, rollback = new revision), BYOK `/v1/credentials` (secret in once → ref), `/v1/admin/providers/*`; e2e: key→draft→validate→verify→enable→routed `/v1/execute`→disable→rollback, zero secret leakage | c3e712b..0fea875 | tests/providers | DONE |
+| 16 | CE-04: CanonicalModel/ModelAlias (confirmed/proposed/rejected), CatalogIndex O(1), CatalogService resolver → upstream explicit policies, `/v1/catalog/*`, models.dev snapshot (230 providers / 8,894 models; proposals only). D1 golden: 1000 providers → 1 row counter 1000 | 997e0ed..8788903 | `evidence/ce04/scale_10k.txt` | DONE |
 | 15 | CE-03: HandoffPacket v1 + HandoffCompiler (system block w/ objective/constraints/decisions, tool_results injection, oldest-first truncation, legacy ComposedContext bridge) wired into /v1/execute as payload["messages"] (additive; goldens unchanged); mypy now follows real upstream types | db14991 + this | `evidence/ce03/gate_output.txt` | **GATE GREEN: 45 passed** |
 | 14 | CE-02: composition runtime (core.* only), /v1/execute compat, /v1/models, /v1/executions(+events SSE), healthz, entrypoint | fb2ce90 + this | `evidence/ce02/gate_output.txt` | **GATE GREEN: 38 passed; 14/14 golden replay; import-linter 2 kept** |
 
