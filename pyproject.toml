@@ -1,0 +1,86 @@
+[project]
+name = "chat-engine"
+version = "0.1.0"
+description = "Chat Engine on top of general_ai_core (Router/Registry/ExecutionService reused, contracts untouched)"
+requires-python = ">=3.12"
+dependencies = [
+    # D0: upstream consumed as a git dependency pinned to a SHA. Upgrading the
+    # SHA is a ledger decision + full compat suite rerun (CHAT_ENGINE_STATE.md).
+    "ai-orchestration-platform @ git+https://github.com/belalalibb/general_ai_core.git@0a13556305bcf40cbf1b750d7ef1d81f7850cabf",
+    # Already transitive runtime deps of upstream; declared because we import them.
+    "pydantic>=2.7",
+    "fastapi>=0.111",
+    "httpx>=0.27",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "mypy>=1.10",
+    "ruff>=0.4",
+    "import-linter>=2",
+]
+# CE-10: official OpenAI SDK used ONLY as a hermetic test client (ledger decision).
+test-openai = ["openai>=1.40"]
+
+[project.scripts]
+chat-engine = "chat_engine.__main__:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["chat_engine*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["chat_engine", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003", "E501", "B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["chat_engine"]
+ignore_missing_imports = true
+follow_imports = "silent"
+
+[tool.importlinter]
+root_packages = ["chat_engine"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "D0/D3 - chat_engine never imports the upstream application layer or UI"
+type = "forbidden"
+source_modules = ["chat_engine"]
+forbidden_modules = ["apps", "ui"]
+
+[[tool.importlinter.contracts]]
+name = "D3 - only chat_engine.api knows FastAPI"
+type = "forbidden"
+source_modules = [
+    "chat_engine.catalog",
+    "chat_engine.handoff",
+    "chat_engine.admission",
+    "chat_engine.capabilities",
+    "chat_engine.streaming",
+    "chat_engine.conversations",
+    "chat_engine.providers",
+    "chat_engine.skills",
+    "chat_engine.credentials",
+    "chat_engine.usage",
+    "chat_engine.store",
+]
+forbidden_modules = ["fastapi", "starlette"]
