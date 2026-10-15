@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from chat_engine import __version__
-from chat_engine.api import catalog, events, execute, models
+from chat_engine.api import admin_providers, catalog, events, execute, models
 from chat_engine.api.errors import error_response
 from chat_engine.composition.runtime import Runtime, build_runtime
 from chat_engine.util.time import utc_now
@@ -69,4 +69,6 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
     # Feature routers — each checks the composition slot it needs.
     if "catalog" in runtime.extensions:
         app.include_router(catalog.build_router(runtime))
+    if "lifecycle" in runtime.extensions:
+        app.include_router(admin_providers.build_router(runtime))
     return app

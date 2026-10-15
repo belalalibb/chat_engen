@@ -331,6 +331,14 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     index = CatalogIndex(providers, models, bindings)
     rt.extensions["catalog_index"] = index
     rt.extensions["catalog"] = CatalogService(index, signals)
+    # CE-05: provider lifecycle (D2) + BYOK credentials by reference
+    from chat_engine.credentials import CredentialService
+    from chat_engine.providers.lifecycle import ProviderLifecycleService
+
+    rt.extensions["lifecycle"] = ProviderLifecycleService(rt)
+    rt.extensions["credentials"] = CredentialService(
+        rt.secrets, tenant_id=rt.tenant_id, user_id=rt.user_id
+    )
     # Real providers (keys present) are bound by chat_engine.providers.bootstrap
     # (CE-05) — imported lazily so this module stays importable without httpx
     # transports in tests.
