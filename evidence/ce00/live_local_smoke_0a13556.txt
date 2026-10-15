@@ -1,0 +1,35 @@
+# live local smoke — general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf — in-memory profile, DEV_DEMO_PRINCIPAL=1, no provider keys
+## GET /healthz
+{"status":"alive","scope":"process","time":"2026-10-15T22:12:11.335940+00:00"}
+## POST /v1/execute {ask:hello}
+{"execution_id":"0cabb42f-2708-4d5f-8c67-c169ab20deca","status":"succeeded","result":{"type":"message","content":"{\"context_blocks\": [{\"content\": \"hello\", \"source\": \"request\", \"type\": \"ask\"}], \"echo\": \"hello\", \"note\": \"hermetic local adapter \\u2014 no real model was called\", \"provider\": \"local-echo\"}","artifacts":[{"type":"context_provenance","blocks_total":1,"memory_blocks":[],"gold_blocks":0,"excluded":0}]},"usage":{"units_reserved":1,"units_settled":1,"details":{"status":"settled"}},"context":{"strategy":"single","mode":"single"}}
+## POST /v1/execute stream=true
+{"error":{"code":"validation_error","message":"Streaming is not available on this deployment slice.","retryable":false,"details":{"field":"execution_policy.stream"},"trace_id":null}}
+## POST /v1/execute explicit_models debate
+{"error":{"code":"validation_error","message":"selection_strategy 'debate' requires the evaluator/agent subsystems and is not available in this slice (supported: fallback_chain, parallel_compare)","retryable":false,"details":{"field":"model_policy"},"trace_id":null}}
+## POST /v1/execute explicit_models parallel_compare
+{"execution_id":"36a9f233-6ef5-4736-8708-ebcf03fce223","status":"succeeded","result":{"type":"message","content":"{\"context_blocks\": [{\"content\": \"hi\", \"source\": \"request\", \"type\": \"ask\"}], \"echo\": \"hi\", \"note\": \"hermetic local adapter \\u2014 no real model was called\", \"provider\": \"local-echo\"}","artifacts":[{"type":"context_provenance","blocks_total":1,"memory_blocks":[
+## POST /v1/execute explicit_model unknown
+{"error":{"code":"model_unavailable","message":"No eligible model candidates for this request.","retryable":false,"details":{"excluded":[{"model_key":"gpt-nonexistent","reason":"explicit model not registered or not active"}]},"trace_id":null}}
+## POST /v1/execute async=true
+{"execution_id":"771cc97e-fe10-49db-91c8-823524b438dd","status":"queued","poll_url":"/v1/executions/771cc97e-fe10-49db-91c8-823524b438dd"}
+## GET /v1/executions/771cc97e-fe10-49db-91c8-823524b438dd/events (SSE)
+data: {"execution_id": "771cc97e-fe10-49db-91c8-823524b438dd", "type": "execution_started"}
+
+data: {"node": "single", "type": "node_started"}
+
+data: {"node": "single", "type": "node_completed"}
+
+data: {"result": {"context_blocks": [{"content": "hello async", "source": "request", "type": "ask"}], "echo": "hello async", "note": "hermetic local adapter \u2014 no real model was called", "provider": "local-echo"}, "type": "final"}
+
+
+## GET /v1/models
+{"models":[{"id":"7c2d94fd-a873-4b48-a89f-f156e5b23b22","name":"local-echo-1","tier":"medium","modalities":["text"],"capabilities":["reasoning"],"availability":"available","providers":["local_echo"],"runtime":[{"provider":"local_echo","binding_availability":"available","eligible":true,"reason":null,"retry_after_ms":null}]}]}
+## GET /v1/templates
+{"templates":[{"ref":"app_factory.plan@1","id":"app_factory.plan","version":"1","name":"App Factory — application plan","origin":"system","status":"active","description":"Inventory the target project and QEVION's own capabilities, draft an architecture plan, review it. Generation is a later, separate template.","tags":["app-factory","planning"],"stage_count":3,"stage_keys":["inventory-summary","architecture-plan","review"],"skills":[],"required_capabilities":[]}]}
+## POST /v1/admin/providers/onboard (no bearer)
+{"error":{"code":"unauthenticated","message":"Authentication failed.","retryable":false,"details":{},"trace_id":null}} HTTP=401
+## GET /v1/admin/providers (demo principal, not admin)
+{"error":{"code":"unauthenticated","message":"Authentication failed.","retryable":false,"details":{},"trace_id":null}} HTTP=401
+## server banner
+{"event": "runtime_started", "profile": "in-memory", "providers": ["local_echo"], "auth": "demo principal (in-memory profile)", "section_14_gate": "authoritative_applier=None (R3 NEVER active)", "demo_tenant_id": "<redacted>"}
