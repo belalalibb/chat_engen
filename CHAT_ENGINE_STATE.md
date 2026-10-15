@@ -3,12 +3,12 @@
 ```text
 STATE_VERSION: 2
 PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-09 Conversations, Projects & Summarization
+CURRENT_TASK: CE-10 OpenAI-compatible API surface
 CURRENT_TASK_STATUS: IN_PROGRESS
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
-NEXT_TASK: CE-09 /v1/projects, /v1/conversations, /v1/chat (sync) using HandoffPacket + summarizer
+NEXT_TASK: CE-10 /v1/chat/completions (+stream) & OpenAI-shaped /v1/models, ADR-CE-0002 error codes, docs/API.md
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -44,6 +44,8 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 11 | owner approval recorded; ADR-CE-0001 ACCEPTED | 120821b | — | phase 1 |
 | 12 | CE-01: baseline copy (sha256 ==), 14 golden execute + models + events, 14 manifests, COMPATIBILITY_MAP | fe13617 | `evidence/ce01/` | DONE |
 | 13 | CE-02: skeleton, pyproject (SHA pin), compat deriver + 3 guards, arch guard, secret scan | 9374cec | — | pushed |
+| 21 | CE-09: Project/Conversation/Turn contracts + ConversationStorePort (in-memory) + ChatService (turn → HandoffPacket → ONE router/execution, admission, capability gate, failed-turn recording) + Summarizer (model via cost-first weights; extractive fallback labelled `summary_source=extractive`) + `/v1/projects`, `/v1/conversations` (+`/turns`), `POST /v1/chat`; `/v1/chat/stream` accepts `conversation_id`+`message` and persists complete/partial/failed turns; CE-19 hook `extensions["skills"].resolve_for_turn` | 1d7340a..this | `evidence/ce09/gate.txt` (40-turn summarization test) | **GATE GREEN: 102 passed** |
+| 22 | CE-04 perf re-measure after a2a7913: catalog `entries()` @10k p50 **284.5 ms** (was 17,270 ms) | this | `evidence/ce04/scale_10k.txt` | budget 1,500 ms MET |
 | 20 | CE-08: StreamingAdapterPort (optional) + tolerant SSE parser + OpenAICompatibleAdapter.stream() + StreamService (five D7 cases: supported / unsupported→422 or buffer `synthesized:true` / fail-before-first-delta→silent failover / fail-after→`stream_interrupted` resumable, no re-send / cancel) + `/v1/chat/stream` SSE, :cancel, :resume, summary; streaming_text must be probe-verified in ledger | 9e16fcc..this | `evidence/ce08/gate_output.txt` | **GATE GREEN: 91 passed** |
 | 19 | CE-07: AdmissionPort — InMemoryAdmission (rpm/tpm/concurrency/budget, all-or-nothing scopes, relative breaker 5/10, jitter) + RedisAdmission (atomic Lua) + IdempotencyStore; `/v1/execute` reserve→settle/release; 429 mapping; `/v1/admin/admission`; healthz `replicas_safe` | e0b7905..be1905b | tests/admission (200-worker storm, fake clock) | DONE |
 | 18 | CE-06: CapabilityLedger (declared ∧ verified ∧ enabled ∧ available_now; TTL stale; auto-enable on pass) + 7 probes (daily cap) + gate in `/v1/execute` → `capability_denied` + `/v1/admin/capabilities/*` | ae1271c.. | tests/capabilities | DONE |

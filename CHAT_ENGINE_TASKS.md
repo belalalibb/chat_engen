@@ -297,6 +297,18 @@ PHASE 6  SHIP         CE-16 (packaging/CI/Windows) → CE-17 (scale 10k) → CE-
 
 ---
 
+## CE-19 — Assignable Skills (طلب المالك 2026-10-15)
+
+- **الهدف:** اختيار Skills وإسنادها إلى Agent Profile أو قالب عمل، تفعيل/تعطيل لكل مشروع أو مهمة، وتسجيل إصدار كل Skill استُخدم في كل Turn.
+- **In:** `chat_engine/skills/`: `SkillAssignmentService` فوق `core.roles.registry.SkillRegistry` المرجعي (قاعدة الاختيار: ACTIVE ∧ LOCAL فقط — لا تُعاد كتابتها بل تُستهلك)؛ `AgentProfile{id, name, skills:[{skill_id, version?, enabled}], system_instructions, default_model}`؛ إسناد على مستويات: profile → project → conversation → turn (explicit)، مع قاعدة الدمج: الأضيق يفوز، و`enabled:false` في مستوى أضيق يُعطّل ما ورثه؛ `resolve_for_turn()` يعيد السجلات بنسخة الـ Skill الفعلية المسجَّلة (`version` من الـ registry وقت التنفيذ) وتُحفظ في `Turn.skills_used`؛ Skill `instruction` تُحقن في system message للـ HandoffPacket؛ `GET /v1/skills` بشكل المرجع الحرفي (10 §7) + `/v1/skills/{id}` + `/v1/agent-profiles` CRUD + `/v1/projects/{id}/skills` (assign/enable/disable) + `/v1/conversations/{id}/skills`؛ `GET /v1/templates` متوافق مع المرجع؛ `/v1/admin/skills` تسجيل Skill محلي (manifest 14 §2).
+- **Out:** تنفيذ Tools؛ pipeline الاستيراد؛ Capability Firewall.
+- **التبعيات:** CE-09 (الـ hook موجود)، CE-13 (شاشة Skills في UI).
+- **الملفات:** `chat_engine/skills/{contracts,assignments,service}.py`, `chat_engine/api/skills.py`, `tests/skills/*`.
+- **القبول:** Turn يحمل `skills_used=[{skill_id, version, source: profile|project|conversation|explicit}]`؛ تعطيل على مستوى المحادثة يمنع Skill المشروع؛ Skill غير ACTIVE تُرفض بـ 422 `skill_not_selectable`؛ gate أخضر.
+- **Rollback:** إزالة `extensions["skills"]` ⇒ ChatService يعمل بلا Skills.
+
+---
+
 ## CE-18 — Release Gate & Final Verification
 
 - **الهدف:** إصدار `v0.1.0` قابل للتدقيق: كل ادعاء له دليل، وكل ما لم يُثبت حيًا موسوم.
