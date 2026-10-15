@@ -49,7 +49,9 @@ def test_core_frozen_modules_unchanged() -> None:
     assert not drift, "upstream contract drift vs baseline:\n" + "\n".join(drift)
 
 
-def test_contract_count_is_116() -> None:
+def test_contract_count_matches_record() -> None:
+    """Upstream's record says 116 (measured at 9831c81b); the @0a13556 baseline
+    carries 117 — one additive contract landed in R190. We pin what the FILE says."""
     doc = _load()
     total = sum(len(m["contracts"]) for m in doc["modules"].values())
-    assert total == 116
+    assert total == 117

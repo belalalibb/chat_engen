@@ -17,6 +17,7 @@ import json
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
+from core.context.errors import ContextBudgetExceeded
 from core.contracts.base import JsonObject
 from core.contracts.context import ContextComposeRequest
 from core.contracts.conversation import Conversation, ConversationStatus, Message, MessageRole
@@ -37,7 +38,6 @@ from core.contracts.model_policy import AgentNodeMappingPolicy, ExplicitModelsPo
 from core.contracts.provider import ProviderError, ProviderOperation
 from core.contracts.routing import RoutingRequest
 from core.contracts.usage import UsageLedger
-from core.context.errors import ContextBudgetExceeded
 from core.execution.multi_model import CompareRefused, InvalidJudgePolicy, UnsupportedStrategy
 from core.execution.service import ExecutionReport
 from core.memory.errors import ConversationNotFound
@@ -65,11 +65,15 @@ def request_hash(body: ExecuteRequest) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def result_from_output(output: JsonObject, format_hint: str | None, artifacts: list[JsonObject] | None = None) -> ExecutionResult:
+def result_from_output(
+    output: JsonObject, format_hint: str | None, artifacts: list[JsonObject] | None = None
+) -> ExecutionResult:
     content = output.get("content")
     if not isinstance(content, str):
         content = json.dumps(output, sort_keys=True)
-    return ExecutionResult(type="message", content=content, format=format_hint, artifacts=list(artifacts or []))
+    return ExecutionResult(
+        type="message", content=content, format=format_hint, artifacts=list(artifacts or [])
+    )
 
 
 def usage_report(ledger: UsageLedger | None) -> UsageReport | None:
@@ -117,7 +121,13 @@ def context_provenance(report: ExecutionReport) -> JsonObject | None:
     for block in blocks:
         source = block.get("source")
         if isinstance(source, str) and source.startswith("memory:"):
-            memory_blocks.append({"memory_id": source.removeprefix("memory:"), "source": None, "type": block.get("type")})
+            memory_blocks.append(
+                {
+                    "memory_id": source.removeprefix("memory:"),
+                    "source": None,
+                    "type": block.get("type"),
+                }
+            )
     excluded = context.get("excluded")
     return {
         "type": "context_provenance",
@@ -132,7 +142,9 @@ def with_request_context(report: ExecutionReport, context: JsonObject) -> Execut
     execution = report.execution
     snapshot = dict(execution.cost_snapshot)
     snapshot[REQUEST_CONTEXT_KEY] = dict(context)
-    return dataclasses.replace(report, execution=execution.model_copy(update={"cost_snapshot": snapshot}))
+    return dataclasses.replace(
+        report, execution=execution.model_copy(update={"cost_snapshot": snapshot})
+    )
 
 
 def context_info(report: ExecutionReport) -> ExecutionContextInfo:
@@ -153,7 +165,7 @@ def progress(report: ExecutionReport) -> ExecutionProgress:
     terminal = ("succeeded", "failed", "skipped")
     total = len(report.nodes)
     done = sum(1 for e in report.nodes if e.node.status.value in terminal)
-    percent = int(round(100 * done / total)) if total else None
+    percent = round(100 * done / total) if total else None
     current = report.nodes[-1].node.node_key if report.nodes else None
     return ExecutionProgress(current_stage=current, percent=percent)
 
@@ -164,7 +176,9 @@ def async_accepted(execution_id: UUID) -> JSONResponse:
         status=ExecutionStatus.QUEUED,
         poll_url=f"/v1/executions/{execution_id}",
     )
-    return JSONResponse(status_code=202, content=accepted.model_dump(mode="json", exclude_none=True))
+    return JSONResponse(
+        status_code=202, content=accepted.model_dump(mode="json", exclude_none=True)
+    )
 
 
 def sync_response(report: ExecutionReport, body: ExecuteRequest) -> JSONResponse:
@@ -181,8 +195,12 @@ def sync_response(report: ExecutionReport, body: ExecuteRequest) -> JSONResponse
             evaluation=None,
             context=context_info(report),
         )
-        return JSONResponse(status_code=200, content=sync.model_dump(mode="json", exclude_none=True))
-    detail = execution_failure_detail(str(report.execution.id), last_provider_error(report), stage=failed_stage(report))
+        return JSONResponse(
+            status_code=200, content=sync.model_dump(mode="json", exclude_none=True)
+        )
+    detail = execution_failure_detail(
+        str(report.execution.id), last_provider_error(report), stage=failed_stage(report)
+    )
     from chat_engine.api.errors import HTTP_STATUS_BY_CODE
 
     return JSONResponse(
@@ -225,7 +243,10 @@ def build_router(rt: Runtime) -> APIRouter:
 
     def _request_context(body: ExecuteRequest) -> JsonObject:
         policy = body.execution_policy
-        ctx: JsonObject = {"mode": "single", "async": bool(policy is not None and policy.async_ is True)}
+        ctx: JsonObject = {
+            "mode": "single",
+            "async": bool(policy is not None and policy.async_ is True),
+        }
         if body.project_id is not None:
             ctx["project_id"] = body.project_id
         return ctx
@@ -276,7 +297,11 @@ def build_router(rt: Runtime) -> APIRouter:
                 "Streaming is not available on this deployment slice.",
                 details={"field": "execution_policy.stream"},
             )
-        if policy is not None and policy.strategy is not None and policy.strategy not in _RUNNABLE_STRATEGIES:
+        if (
+            policy is not None
+            and policy.strategy is not None
+            and policy.strategy not in _RUNNABLE_STRATEGIES
+        ):
             return error_response(
                 ErrorCode.VALIDATION_ERROR,
                 "execution_policy.strategy is not runnable on this deployment "
@@ -301,7 +326,9 @@ def build_router(rt: Runtime) -> APIRouter:
                 conversation_id = UUID(body.conversation_id)
             except ValueError:
                 return error_response(
-                    ErrorCode.VALIDATION_ERROR, "conversation_id must be a UUID.", details={"field": "conversation_id"}
+                    ErrorCode.VALIDATION_ERROR,
+                    "conversation_id must be a UUID.",
+                    details={"field": "conversation_id"},
                 )
         if body.role is not None:
             return error_response(
@@ -315,12 +342,22 @@ def build_router(rt: Runtime) -> APIRouter:
             seen: set[str] = set()
             for requested in body.skills:
                 if requested in seen:
-                    return error_response(ErrorCode.VALIDATION_ERROR, f"skill requested twice: {requested}", details={"field": "skills"})
+                    return error_response(
+                        ErrorCode.VALIDATION_ERROR,
+                        f"skill requested twice: {requested}",
+                        details={"field": "skills"},
+                    )
                 seen.add(requested)
                 skill = selectable.get(requested)
                 if skill is None:
-                    return error_response(ErrorCode.VALIDATION_ERROR, f"skill is not selectable: {requested}", details={"field": "skills"})
-                admitted_skills.append({"id": skill.manifest.id, "name": skill.name, "version": skill.version})
+                    return error_response(
+                        ErrorCode.VALIDATION_ERROR,
+                        f"skill is not selectable: {requested}",
+                        details={"field": "skills"},
+                    )
+                admitted_skills.append(
+                    {"id": skill.manifest.id, "name": skill.name, "version": skill.version}
+                )
 
         run_context = _request_context(body)
 
@@ -333,7 +370,11 @@ def build_router(rt: Runtime) -> APIRouter:
                         ErrorCode.VALIDATION_ERROR,
                         "Idempotency-Key was already used by this tenant with a different request body; "
                         "reuse the key only with the identical request, or send a new key.",
-                        details={"reason": "idempotency_conflict", "field": "Idempotency-Key", "execution_id": str(replayed.execution.id)},
+                        details={
+                            "reason": "idempotency_conflict",
+                            "field": "Idempotency-Key",
+                            "execution_id": str(replayed.execution.id),
+                        },
                         http_status=409,
                     )
                 if replayed.execution.status in (ExecutionStatus.QUEUED, ExecutionStatus.RUNNING):
@@ -355,7 +396,11 @@ def build_router(rt: Runtime) -> APIRouter:
                     )
                 )
             if conversation.user_id != rt.user_id:
-                return error_response(ErrorCode.UNAUTHORIZED, "Conversation belongs to another user.", details={"field": "conversation_id"})
+                return error_response(
+                    ErrorCode.UNAUTHORIZED,
+                    "Conversation belongs to another user.",
+                    details={"field": "conversation_id"},
+                )
 
         try:
             composed = rt.composer.compose(
@@ -377,13 +422,25 @@ def build_router(rt: Runtime) -> APIRouter:
         if conversation is not None:
             rt.conversations.append_message(
                 rt.tenant_id,
-                Message(id=uuid4(), conversation_id=conversation.id, role=MessageRole.USER, content=body.ask, created_at=utc_now()),
+                Message(
+                    id=uuid4(),
+                    conversation_id=conversation.id,
+                    role=MessageRole.USER,
+                    content=body.ask,
+                    created_at=utc_now(),
+                ),
             )
 
         effective_policy = body.model_policy
-        multi_model_policy = effective_policy if isinstance(effective_policy, ExplicitModelsPolicy) else None
-        required_capabilities = list(body.requirements.capabilities) if body.requirements is not None else []
-        required_modalities = list(body.requirements.modalities) if body.requirements is not None else []
+        multi_model_policy = (
+            effective_policy if isinstance(effective_policy, ExplicitModelsPolicy) else None
+        )
+        required_capabilities = (
+            list(body.requirements.capabilities) if body.requirements is not None else []
+        )
+        required_modalities = (
+            list(body.requirements.modalities) if body.requirements is not None else []
+        )
 
         decision = None
         if multi_model_policy is None:
@@ -397,18 +454,28 @@ def build_router(rt: Runtime) -> APIRouter:
                     )
                 )
             except UnsupportedPolicyType as exc:
-                return error_response(ErrorCode.VALIDATION_ERROR, str(exc), details={"field": "model_policy"})
+                return error_response(
+                    ErrorCode.VALIDATION_ERROR, str(exc), details={"field": "model_policy"}
+                )
             except NoEligibleCandidates as exc:
-                details: JsonObject = {"excluded": [r.model_dump(mode="json", exclude_none=True) for r in exc.excluded]}
+                details: JsonObject = {
+                    "excluded": [r.model_dump(mode="json", exclude_none=True) for r in exc.excluded]
+                }
                 if exc.retry_after_ms is not None:
                     details["retry_after_ms"] = exc.retry_after_ms
-                return error_response(ErrorCode.MODEL_UNAVAILABLE, "No eligible model candidates for this request.", details=details)
+                return error_response(
+                    ErrorCode.MODEL_UNAVAILABLE,
+                    "No eligible model candidates for this request.",
+                    details=details,
+                )
             except FallbackNotConfigured as exc:
                 return error_response(ErrorCode.MODEL_UNAVAILABLE, str(exc))
 
         payload: JsonObject = {"ask": body.ask}
         if body.output is not None:
-            payload["output"] = body.output.model_dump(mode="json", by_alias=True, exclude_none=True)
+            payload["output"] = body.output.model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            )
         payload["context"] = composed.model_dump(mode="json", exclude_none=True)
         if admitted_skills:
             payload["skills"] = admitted_skills
@@ -416,7 +483,7 @@ def build_router(rt: Runtime) -> APIRouter:
         # alongside the legacy keys (old adapters ignore it; new ones prefer it).
         compiler = rt.extensions.get("handoff_compiler")
         if compiler is not None:
-            payload["messages"] = compiler.messages_from_composed(composed)  # type: ignore[attr-defined]
+            payload["messages"] = compiler.messages_from_composed(composed)
 
         if policy is not None and policy.async_ is True:
             if multi_model_policy is not None:
@@ -458,22 +525,23 @@ def build_router(rt: Runtime) -> APIRouter:
                         multi_model_policy=None,
                         decision=decision,
                     )
-                    report = dataclasses.replace(report, execution=report.execution.model_copy(update={"id": execution_id}))
+                    report = dataclasses.replace(
+                        report, execution=report.execution.model_copy(update={"id": execution_id})
+                    )
                     rt.executions.put(with_request_context(report, run_context))
-                except Exception:  # noqa: BLE001 — recorded as failed, never lost
+                except Exception:
                     failed = dataclasses.replace(
                         placeholder,
-                        execution=placeholder.execution.model_copy(update={"status": ExecutionStatus.FAILED, "completed_at": utc_now()}),
+                        execution=placeholder.execution.model_copy(
+                            update={"status": ExecutionStatus.FAILED, "completed_at": utc_now()}
+                        ),
                         status_history=(ExecutionStatus.QUEUED, ExecutionStatus.FAILED),
                     )
                     rt.executions.put(failed)
-                events = rt.extensions.get("execution_events")
-                if events is not None:
-                    events.mark_terminal(execution_id)  # type: ignore[attr-defined]
 
             task = asyncio.create_task(_background())
-            rt.extensions.setdefault("background_tasks", set()).add(task)  # type: ignore[union-attr]
-            task.add_done_callback(lambda t: rt.extensions["background_tasks"].discard(t))  # type: ignore[union-attr]
+            rt.background_tasks.add(task)
+            task.add_done_callback(rt.background_tasks.discard)
             return async_accepted(execution_id)
 
         try:
@@ -487,7 +555,9 @@ def build_router(rt: Runtime) -> APIRouter:
                     decision=decision,
                 )
             except (UnsupportedStrategy, InvalidJudgePolicy) as exc:
-                return error_response(ErrorCode.VALIDATION_ERROR, str(exc), details={"field": "model_policy"})
+                return error_response(
+                    ErrorCode.VALIDATION_ERROR, str(exc), details={"field": "model_policy"}
+                )
             except CompareRefused as exc:
                 return error_response(ErrorCode.MODEL_UNAVAILABLE, str(exc))
         except BudgetExceeded as exc:
@@ -497,13 +567,20 @@ def build_router(rt: Runtime) -> APIRouter:
                 details={"requested": exc.requested, "remaining": exc.remaining},
             )
         except EntitlementNotConfigured:
-            return error_response(ErrorCode.ENTITLEMENT_EXCEEDED, "No task-unit entitlement is configured for this tenant.")
+            return error_response(
+                ErrorCode.ENTITLEMENT_EXCEEDED,
+                "No task-unit entitlement is configured for this tenant.",
+            )
 
         report = with_request_context(report, run_context)
         rt.executions.put(report)
         if idempotency_key is not None:
             rt.idempotency[(rt.tenant_id, idempotency_key)] = report.execution.id
-        if conversation is not None and report.execution.status is ExecutionStatus.SUCCEEDED and report.final_output is not None:
+        if (
+            conversation is not None
+            and report.execution.status is ExecutionStatus.SUCCEEDED
+            and report.final_output is not None
+        ):
             format_hint = body.output.format if body.output is not None else None
             rt.conversations.append_message(
                 rt.tenant_id,
@@ -537,7 +614,11 @@ def build_router(rt: Runtime) -> APIRouter:
             try:
                 status_filter = ExecutionStatus(status)
             except ValueError:
-                return error_response(ErrorCode.VALIDATION_ERROR, "Unknown status filter.", details={"field": "status"})
+                return error_response(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Unknown status filter.",
+                    details={"field": "status"},
+                )
         rows = rt.executions.list(rt.tenant_id, status=status_filter, limit=max(1, min(limit, 500)))
         return JSONResponse(
             status_code=200,
@@ -548,7 +629,9 @@ def build_router(rt: Runtime) -> APIRouter:
                         "status": r.execution.status.value,
                         "strategy": r.execution.strategy.value,
                         "created_at": r.execution.created_at.isoformat(),
-                        "completed_at": r.execution.completed_at.isoformat() if r.execution.completed_at else None,
+                        "completed_at": r.execution.completed_at.isoformat()
+                        if r.execution.completed_at
+                        else None,
                     }
                     for r in rows
                 ]

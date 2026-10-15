@@ -1,0 +1,35 @@
+== ruff
+All checks passed!
+== ruff format
+37 files already formatted
+== mypy
+Success: no issues found in 27 source files
+== lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 45 files, 79 dependencies.
+-----------------------------------
+
+D0/D3 - chat_engine never imports the upstream application layer or UI KEPT
+D3 - only chat_engine.api knows FastAPI KEPT
+
+Contracts: 2 kept, 0 broken.
+== secret scan
+secret scan clean (98 files)
+== pytest (hermetic)
+......................................                                   [100%]
+38 passed in 0.83s
+GATE GREEN

@@ -3,12 +3,12 @@
 ```text
 STATE_VERSION: 2
 PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-01 Contract Freeze & Compatibility Map
+CURRENT_TASK: CE-03 Context Handoff Contract
 CURRENT_TASK_STATUS: IN_PROGRESS
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
-LAST_TRUSTED_COMMIT: b40fdf1 (evidence: complete hermetic pytest 1656/15/0)
-NEXT_TASK: CE-01 deliverables (compat baseline + golden + compatibility map)
+LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
+NEXT_TASK: CE-03 HandoffPacket v1 + compiler → payload["messages"]
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -40,7 +40,11 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 7 | `CHAT_ENGINE_TASKS.md` CE-00..CE-18 | 581d917 | dependency map + per-task template | PROPOSED |
 | 8 | `README.md` permanent operating contract + resume protocol | 593baf9 | — | pushed |
 | 9 | complete hermetic pytest evidence (replaces truncated file) | b40fdf1 | `evidence/ce00/pytest_hermetic_core_slices_0a13556.txt` | **1656 passed, 15 skipped, EXIT=0** |
-| 10 | state update: CE-00 COMPLETE, awaiting approval | (this commit) | — | gate closed until YES |
+| 10 | state update: CE-00 COMPLETE, awaiting approval | 47dfad5 | — | gate closed until YES |
+| 11 | owner approval recorded; ADR-CE-0001 ACCEPTED | 120821b | — | phase 1 |
+| 12 | CE-01: baseline copy (sha256 ==), 14 golden execute + models + events, 14 manifests, COMPATIBILITY_MAP | fe13617 | `evidence/ce01/` | DONE |
+| 13 | CE-02: skeleton, pyproject (SHA pin), compat deriver + 3 guards, arch guard, secret scan | 9374cec | — | pushed |
+| 14 | CE-02: composition runtime (core.* only), /v1/execute compat, /v1/models, /v1/executions(+events SSE), healthz, entrypoint | fb2ce90 + this | `evidence/ce02/gate_output.txt` | **GATE GREEN: 38 passed; 14/14 golden replay; import-linter 2 kept** |
 
 ## Decisions log (dependencies / deviations)
 | date | decision | why | rejected alternative |

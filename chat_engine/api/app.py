@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from chat_engine import __version__
-from chat_engine.api import execute, models
+from chat_engine.api import events, execute, models
 from chat_engine.api.errors import error_response
 from chat_engine.composition.runtime import Runtime, build_runtime
 from chat_engine.util.time import utc_now
@@ -32,7 +32,9 @@ NOT_SERVED_UPSTREAM_ROUTES: tuple[str, ...] = (
 
 def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None = None) -> FastAPI:
     runtime = rt if rt is not None else build_runtime(environ)
-    app = FastAPI(title="chat_engine", version=__version__, docs_url="/docs", openapi_url="/openapi.json")
+    app = FastAPI(
+        title="chat_engine", version=__version__, docs_url="/docs", openapi_url="/openapi.json"
+    )
     app.state.runtime = runtime
 
     @app.exception_handler(RequestValidationError)
@@ -63,6 +65,7 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
 
     app.include_router(execute.build_router(runtime))
     app.include_router(models.build_router(runtime))
-    for factory in runtime.extensions.get("routers", []):  # type: ignore[union-attr]
+    app.include_router(events.build_router(runtime))
+    for factory in runtime.router_factories:
         app.include_router(factory(runtime))
     return app

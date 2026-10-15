@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: chat-engine
+Version: 0.1.0
+Summary: Chat Engine on top of general_ai_core (Router/Registry/ExecutionService reused, contracts untouched)
+Requires-Python: >=3.12
+Requires-Dist: ai-orchestration-platform @ git+https://github.com/belalalibb/general_ai_core.git@0a13556305bcf40cbf1b750d7ef1d81f7850cabf
+Requires-Dist: pydantic>=2.7
+Requires-Dist: fastapi>=0.111
+Requires-Dist: httpx>=0.27
+Requires-Dist: uvicorn>=0.30
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
+Requires-Dist: mypy>=1.10; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"
+Requires-Dist: import-linter>=2; extra == "dev"
+Provides-Extra: test-openai
+Requires-Dist: openai>=1.40; extra == "test-openai"

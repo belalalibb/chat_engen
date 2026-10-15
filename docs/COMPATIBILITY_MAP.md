@@ -2,7 +2,7 @@
 
 ```text
 UPSTREAM:  general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
-BASELINE:  compat/upstream_freeze_baseline_0a13556.json  (15 modules · 116 contracts · 46 routes — نسخة حرفية من المرجع)
+BASELINE:  compat/upstream_freeze_baseline_0a13556.json  (15 modules · 117 contracts · 46 routes — نسخة حرفية من المرجع؛ سجل المرجع يقول 116 لأنه قيس على commit أقدم 9831c81b)
 GOLDEN:    compat/golden/execute/*.json (14 حالة) · compat/golden/models/ · compat/golden/events/
 MANIFESTS: compat/manifests/*.json (14 = 12 template + groq + genspark_llm)  — gateway manifest يُبنى ديناميكيًا (build_gateway_manifest)
 GUARD:     tests/compat/  (يُشغَّل في كل release gate)

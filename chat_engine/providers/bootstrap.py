@@ -27,8 +27,12 @@ ENV_GROQ_KEY = "GROQ_API_KEY"
 ENV_GSK_KEY = "GSK_API_KEY"
 
 
-def _specs(env: Mapping[str, str]) -> list[tuple[str, str, ProviderManifest, tuple[str, ...], Callable[..., ProviderAdapterPort]]]:
-    specs: list[tuple[str, str, ProviderManifest, tuple[str, ...], Callable[..., ProviderAdapterPort]]] = []
+def _specs(
+    env: Mapping[str, str],
+) -> list[tuple[str, str, ProviderManifest, tuple[str, ...], Callable[..., ProviderAdapterPort]]]:
+    specs: list[
+        tuple[str, str, ProviderManifest, tuple[str, ...], Callable[..., ProviderAdapterPort]]
+    ] = []
     groq_key = env.get(ENV_GROQ_KEY, "").strip()
     if groq_key:
         from providers.real.groq import MANIFEST as GROQ_MANIFEST
@@ -42,7 +46,9 @@ def _specs(env: Mapping[str, str]) -> list[tuple[str, str, ProviderManifest, tup
         from providers.real.genspark_llm import VERIFIED_TEXT_MODELS as GENSPARK_MODELS
         from providers.real.genspark_llm import GensparkLLMAdapter
 
-        specs.append(("genspark_llm", gsk_key, GENSPARK_MANIFEST, GENSPARK_MODELS, GensparkLLMAdapter))
+        specs.append(
+            ("genspark_llm", gsk_key, GENSPARK_MANIFEST, GENSPARK_MODELS, GensparkLLMAdapter)
+        )
     return specs
 
 
@@ -51,7 +57,7 @@ def bind_real_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> list[st
     tenant = rt.tenant_id
 
     def _resolver(credential_ref: str) -> str:
-        return rt.secrets.resolve(tenant, credential_ref)
+        return str(rt.secrets.resolve(tenant, credential_ref))
 
     for provider_key, key, manifest, model_names, factory in _specs(env):
         ref = rt.secrets.store(tenant, key)

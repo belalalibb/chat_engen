@@ -10,9 +10,11 @@ is exercisable with zero credentials and never pretends a real model answered.
 
 from __future__ import annotations
 
+import asyncio
 import os
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import dataclass, field
+from typing import Any
 from uuid import UUID, uuid4
 
 from core.context.composer import ContextComposer
@@ -144,7 +146,9 @@ class LocalEchoAdapter:
         )
 
 
-def model_row(key: str, *, tier: ModelTier = ModelTier.MEDIUM, context_window: int | None = None) -> Model:
+def model_row(
+    key: str, *, tier: ModelTier = ModelTier.MEDIUM, context_window: int | None = None
+) -> Model:
     """Registry Model row for a provider-declared model name (never invented)."""
     return Model(
         id=uuid4(),
@@ -193,9 +197,11 @@ class Runtime:
     tenant_id: UUID = DEMO_TENANT_ID
     user_id: UUID = DEMO_USER_ID
     # Extension slots filled by later tasks (catalog, admission, capabilities,
-    # streaming, conversations, skills). Kept as attributes so the API layer
-    # stays a thin projection and tests can swap pieces.
-    extensions: dict[str, object] = field(default_factory=dict)
+    # streaming, conversations, skills). Typed loosely on purpose: each CE task
+    # owns its slot's type; the API layer only reads what it composes.
+    extensions: dict[str, Any] = field(default_factory=dict)
+    router_factories: list[Callable[[Runtime], Any]] = field(default_factory=list)
+    background_tasks: set[asyncio.Task[None]] = field(default_factory=set)
 
     @property
     def upstream_sha(self) -> str:
@@ -223,7 +229,7 @@ class Runtime:
         for name in model_names:
             try:
                 model = self.models.get(name)
-            except Exception:  # noqa: BLE001 — registry raises its own not-found
+            except Exception:
                 model = model_row(name, tier=tier)
                 self.models.register(model)
             self.bindings.register(
@@ -237,7 +243,7 @@ class Runtime:
             rows.append(model)
         self.provider_keys = (*self.provider_keys, provider.provider_key)
         index = self.extensions.get("catalog_index")
-        if index is not None and hasattr(index, "rebuild"):
+        if index is not None:
             index.rebuild()
         return rows
 

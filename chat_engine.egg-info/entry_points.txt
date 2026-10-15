@@ -1,0 +1,2 @@
+[console_scripts]
+chat-engine = chat_engine.__main__:main

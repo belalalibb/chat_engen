@@ -79,9 +79,7 @@ def error_response(
 ) -> JSONResponse:
     """Upstream-shaped error body (byte-compatible with apps/api/errors.py)."""
     envelope = ErrorEnvelope(
-        error=ErrorDetail(
-            code=code, message=message, retryable=retryable, details=details or {}
-        )
+        error=ErrorDetail(code=code, message=message, retryable=retryable, details=details or {})
     )
     return JSONResponse(
         status_code=http_status if http_status is not None else HTTP_STATUS_BY_CODE[code],

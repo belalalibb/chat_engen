@@ -20,7 +20,11 @@ APP_LAYER_MODULES: frozenset[str] = frozenset({"apps.api.provider_onboarding"})
 
 FROZEN_CONSTANTS: dict[str, tuple[str, ...]] = {
     "core.learning.gates": ("TRAINING_ELIGIBILITY_CONDITIONS", "PROMOTION_CONDITIONS"),
-    "core.routing.capacity": ("DEFAULT_COOLDOWN_MS", "DEFAULT_UNAVAILABLE_MS", "RPM_WINDOW_SECONDS"),
+    "core.routing.capacity": (
+        "DEFAULT_COOLDOWN_MS",
+        "DEFAULT_UNAVAILABLE_MS",
+        "RPM_WINDOW_SECONDS",
+    ),
     "core.contracts.execution_strategy": ("MAX_STAGES", "MAX_PARALLEL"),
     "core.contracts.evaluation": ("VERIFICATION_LEVEL_ORDER",),
 }

@@ -18,8 +18,9 @@ def build_router(rt: Runtime) -> APIRouter:
 
     def _provider_key(provider_id: UUID) -> str | None:
         try:
-            return rt.providers.get_by_id(provider_id).provider.provider_key
-        except Exception:  # noqa: BLE001
+            key: str = rt.providers.get_by_id(provider_id).provider.provider_key
+            return key
+        except Exception:
             return None
 
     @router.get("/v1/models")
@@ -33,7 +34,9 @@ def build_router(rt: Runtime) -> APIRouter:
                 runtime_rows: list[JsonObject] = []
                 blocked = 0
                 for binding in bindings_for:
-                    elig = board.eligibility(binding.provider_id, model.id, limits=binding.limits_metadata)
+                    elig = board.eligibility(
+                        binding.provider_id, model.id, limits=binding.limits_metadata
+                    )
                     if not elig.eligible:
                         blocked += 1
                     runtime_rows.append(
@@ -50,8 +53,13 @@ def build_router(rt: Runtime) -> APIRouter:
                     availability = BindingAvailability.UNAVAILABLE
                 elif blocked and availability is BindingAvailability.AVAILABLE:
                     availability = BindingAvailability.DEGRADED
-                entry = entry.model_copy(update={"availability": availability, "runtime": runtime_rows})
+                entry = entry.model_copy(
+                    update={"availability": availability, "runtime": runtime_rows}
+                )
             rows.append(entry)
-        return JSONResponse(status_code=200, content=ModelsListResponse(models=rows).model_dump(mode="json", exclude_none=True))
+        return JSONResponse(
+            status_code=200,
+            content=ModelsListResponse(models=rows).model_dump(mode="json", exclude_none=True),
+        )
 
     return router

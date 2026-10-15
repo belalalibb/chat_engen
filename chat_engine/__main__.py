@@ -22,11 +22,30 @@ def main(argv: list[str] | None = None) -> int:
     app = create_app()
     rt = app.state.runtime
     if args.cmd == "describe":
-        print(json.dumps({"upstream_sha": rt.upstream_sha, "providers": list(rt.provider_keys), "models": [m.model_key for m in rt.models.active_models()]}, indent=1))
+        print(
+            json.dumps(
+                {
+                    "upstream_sha": rt.upstream_sha,
+                    "providers": list(rt.provider_keys),
+                    "models": [m.model_key for m in rt.models.active_models()],
+                },
+                indent=1,
+            )
+        )
         return 0
     import uvicorn
 
-    print(json.dumps({"event": "chat_engine_started", "profile": rt.profile, "providers": list(rt.provider_keys), "upstream_sha": rt.upstream_sha[:7]}), flush=True)
+    print(
+        json.dumps(
+            {
+                "event": "chat_engine_started",
+                "profile": rt.profile,
+                "providers": list(rt.provider_keys),
+                "upstream_sha": rt.upstream_sha[:7],
+            }
+        ),
+        flush=True,
+    )
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
 
