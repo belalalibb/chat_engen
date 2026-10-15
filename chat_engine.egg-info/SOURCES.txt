@@ -10,6 +10,7 @@ chat_engine.egg-info/requires.txt
 chat_engine.egg-info/top_level.txt
 chat_engine/admission/__init__.py
 chat_engine/api/__init__.py
+chat_engine/api/admin_providers.py
 chat_engine/api/app.py
 chat_engine/api/catalog.py
 chat_engine/api/errors.py
@@ -27,11 +28,14 @@ chat_engine/composition/__init__.py
 chat_engine/composition/runtime.py
 chat_engine/conversations/__init__.py
 chat_engine/credentials/__init__.py
+chat_engine/credentials/service.py
 chat_engine/handoff/__init__.py
 chat_engine/handoff/compiler.py
 chat_engine/handoff/contracts.py
 chat_engine/providers/__init__.py
 chat_engine/providers/bootstrap.py
+chat_engine/providers/lifecycle.py
+chat_engine/providers/openai_compatible.py
 chat_engine/skills/__init__.py
 chat_engine/store/__init__.py
 chat_engine/store/executions.py
