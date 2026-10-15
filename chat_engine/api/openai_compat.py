@@ -209,24 +209,21 @@ def chunk(
 
 
 def models_list(rt: Runtime) -> JsonObject:
-    """OpenAI ``GET /v1/models`` shape from the catalog (canonical ids + model keys)."""
+    """OpenAI ``GET /v1/models`` shape from the catalog: one row per canonical model
+    plus one per concrete ``model_key`` (both are accepted in ``model``)."""
     catalog = rt.extensions["catalog"]
     data: list[JsonObject] = []
     seen: set[str] = set()
     for e in catalog.entries():
-        d = e.model_dump(mode="json") if hasattr(e, "model_dump") else dict(e)
-        ident = str(d.get("canonical_id") or d.get("model_key") or d.get("id"))
-        if ident in seen:
-            continue
-        seen.add(ident)
-        data.append(
-            {
-                "id": ident,
-                "object": "model",
-                "created": 0,
-                "owned_by": str(d.get("provider_key") or d.get("owned_by") or "chat_engine"),
-            }
-        )
+        owner = e.canonical.vendor or (e.providers[0].provider_key if e.providers else "chat_engine")
+        rows = [(e.canonical.canonical_id, owner)] + [
+            (k, p.provider_key) for p in e.providers for k in e.model_keys if k == p.model_key
+        ]
+        for ident, owned_by in rows:
+            if ident in seen:
+                continue
+            seen.add(ident)
+            data.append({"id": ident, "object": "model", "created": 0, "owned_by": owned_by})
     data.sort(key=lambda x: str(x["id"]))
     return {"object": "list", "data": data}
 
