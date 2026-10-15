@@ -1,0 +1,266 @@
+{
+  "/healthz": [
+    "GET"
+  ],
+  "/v1/admin/audit": [
+    "GET"
+  ],
+  "/v1/admin/capabilities": [
+    "GET"
+  ],
+  "/v1/admin/capabilities/actions": [
+    "GET"
+  ],
+  "/v1/admin/capabilities/exercisable": [
+    "GET"
+  ],
+  "/v1/admin/capabilities/{capability_id}/exercise": [
+    "POST"
+  ],
+  "/v1/admin/changes": [
+    "GET",
+    "POST"
+  ],
+  "/v1/admin/changes/propose": [
+    "POST"
+  ],
+  "/v1/admin/changes/{change_id}": [
+    "GET"
+  ],
+  "/v1/admin/changes/{change_id}/preview": [
+    "POST"
+  ],
+  "/v1/admin/changes/{change_id}/publish": [
+    "POST"
+  ],
+  "/v1/admin/changes/{change_id}/rollback": [
+    "POST"
+  ],
+  "/v1/admin/changes/{change_id}/validate": [
+    "POST"
+  ],
+  "/v1/admin/context-lab/checks": [
+    "GET"
+  ],
+  "/v1/admin/context-lab/validate": [
+    "POST"
+  ],
+  "/v1/admin/evaluations/{evaluation_id}": [
+    "GET"
+  ],
+  "/v1/admin/executions/{execution_id}/evaluations": [
+    "GET"
+  ],
+  "/v1/admin/learning/ask": [
+    "POST"
+  ],
+  "/v1/admin/learning/capability-retest": [
+    "POST"
+  ],
+  "/v1/admin/learning/changes-since-review": [
+    "GET"
+  ],
+  "/v1/admin/learning/dashboard": [
+    "GET"
+  ],
+  "/v1/admin/learning/intake": [
+    "POST"
+  ],
+  "/v1/admin/learning/learned": [
+    "GET"
+  ],
+  "/v1/admin/learning/mark-reviewed": [
+    "POST"
+  ],
+  "/v1/admin/learning/samples": [
+    "GET",
+    "POST"
+  ],
+  "/v1/admin/learning/samples/{sample_id}": [
+    "GET"
+  ],
+  "/v1/admin/learning/samples/{sample_id}/admit": [
+    "POST"
+  ],
+  "/v1/admin/learning/samples/{sample_id}/evaluate": [
+    "POST"
+  ],
+  "/v1/admin/learning/samples/{sample_id}/promote": [
+    "POST"
+  ],
+  "/v1/admin/learning/samples/{sample_id}/sanitize": [
+    "POST"
+  ],
+  "/v1/admin/learning/samples/{sample_id}/scan": [
+    "POST"
+  ],
+  "/v1/admin/models": [
+    "GET"
+  ],
+  "/v1/admin/notifications": [
+    "GET"
+  ],
+  "/v1/admin/notifications/{notification_id}/ack": [
+    "POST"
+  ],
+  "/v1/admin/plans/{plan_tenant_id}": [
+    "GET"
+  ],
+  "/v1/admin/providers": [
+    "GET"
+  ],
+  "/v1/admin/routing/weights": [
+    "GET"
+  ],
+  "/v1/admin/scenarios": [
+    "GET",
+    "POST"
+  ],
+  "/v1/admin/scenarios/regression-pack": [
+    "POST"
+  ],
+  "/v1/admin/scenarios/{scenario_id}/replay": [
+    "POST"
+  ],
+  "/v1/admin/self-review": [
+    "GET"
+  ],
+  "/v1/admin/skills/import": [
+    "POST"
+  ],
+  "/v1/admin/skills/imports": [
+    "GET"
+  ],
+  "/v1/admin/skills/imports/{skill_id}/activate": [
+    "POST"
+  ],
+  "/v1/admin/skills/imports/{skill_id}/approve": [
+    "POST"
+  ],
+  "/v1/admin/skills/imports/{skill_id}/review": [
+    "POST"
+  ],
+  "/v1/admin/skills/imports/{skill_id}/scan": [
+    "POST"
+  ],
+  "/v1/admin/skills/imports/{skill_id}/validate": [
+    "POST"
+  ],
+  "/v1/admin/source-changes": [
+    "GET",
+    "POST"
+  ],
+  "/v1/admin/source-changes/snapshots": [
+    "POST"
+  ],
+  "/v1/admin/source-changes/{proposal_id}": [
+    "GET"
+  ],
+  "/v1/admin/source-changes/{proposal_id}/apply": [
+    "POST"
+  ],
+  "/v1/admin/source-changes/{proposal_id}/approve": [
+    "POST"
+  ],
+  "/v1/admin/source-changes/{proposal_id}/reject": [
+    "POST"
+  ],
+  "/v1/admin/source-changes/{proposal_id}/rollback": [
+    "POST"
+  ],
+  "/v1/admin/source-changes/{proposal_id}/verify": [
+    "POST"
+  ],
+  "/v1/admin/system": [
+    "GET"
+  ],
+  "/v1/admin/usage": [
+    "GET"
+  ],
+  "/v1/agent-tools": [
+    "GET"
+  ],
+  "/v1/agent/converse": [
+    "POST"
+  ],
+  "/v1/agent/executions/{execution_id}/diagnosis": [
+    "GET"
+  ],
+  "/v1/agent/executions/{execution_id}/trace": [
+    "GET"
+  ],
+  "/v1/agent/tools": [
+    "GET"
+  ],
+  "/v1/auth/login": [
+    "POST"
+  ],
+  "/v1/auth/logout": [
+    "POST"
+  ],
+  "/v1/auth/register": [
+    "POST"
+  ],
+  "/v1/auth/session": [
+    "GET"
+  ],
+  "/v1/auth/verify": [
+    "POST"
+  ],
+  "/v1/execute": [
+    "POST"
+  ],
+  "/v1/executions": [
+    "GET"
+  ],
+  "/v1/executions/{execution_id}": [
+    "GET"
+  ],
+  "/v1/executions/{execution_id}/events": [
+    "GET"
+  ],
+  "/v1/memory/preferences": [
+    "GET"
+  ],
+  "/v1/memory/preferences/{memory_id}": [
+    "DELETE"
+  ],
+  "/v1/models": [
+    "GET"
+  ],
+  "/v1/projects": [
+    "GET",
+    "POST"
+  ],
+  "/v1/projects/{project_id}": [
+    "DELETE",
+    "GET"
+  ],
+  "/v1/skills": [
+    "GET"
+  ],
+  "/v1/templates": [
+    "GET"
+  ],
+  "/v1/templates/{ref}": [
+    "GET"
+  ],
+  "/v1/usage": [
+    "GET"
+  ],
+  "/v1/webhooks": [
+    "GET",
+    "POST"
+  ],
+  "/v1/webhooks/{subscription_id}": [
+    "DELETE"
+  ],
+  "/v1/workspaces": [
+    "GET",
+    "POST"
+  ],
+  "/v1/workspaces/{workspace_id}": [
+    "DELETE",
+    "GET"
+  ]
+}

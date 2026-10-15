@@ -1,0 +1,14 @@
+{
+  "agent_runtime": true,
+  "agent_tools_offered": 0,
+  "demo_principal": false,
+  "durable": false,
+  "provider_keys": [
+    "local_echo"
+  ],
+  "route_count": 85,
+  "ui_mounts": [
+    "/admin",
+    "/app"
+  ]
+}

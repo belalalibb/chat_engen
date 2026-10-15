@@ -1,0 +1,8 @@
+N_PROV=1000 route explicit model-0: p50=9.8ms p95=13.8ms
+N_PROV=1000 route explicit model-5: p50=1.1ms p95=1.4ms
+N_PROV=1000 route AUTO (50 models): p50=21.0ms max=21.5ms
+N_PROV=1000 catalog projection (50 models): p50=9.5ms  build=0.0s
+N_PROV=10000 route explicit model-0: p50=138.0ms p95=283.9ms
+N_PROV=10000 route explicit model-5: p50=17.6ms p95=25.2ms
+N_PROV=10000 route AUTO (200 models): p50=664.2ms max=745.3ms
+N_PROV=10000 catalog projection (200 models): p50=404.0ms  build=0.5s
