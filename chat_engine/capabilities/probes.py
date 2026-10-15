@@ -110,6 +110,7 @@ def register_default_probes(rt: Runtime, ledger: object) -> None:
 
     assert isinstance(ledger, CapabilityLedger)
     ledger.register_probe("chat", make_generation_probe(rt, capability="chat"))
+    ledger.register_probe("streaming_text", make_streaming_probe(rt))
     ledger.register_probe(
         "multi_turn",
         make_generation_probe(
@@ -186,6 +187,29 @@ def register_default_probes(rt: Runtime, ledger: object) -> None:
             check=lambda out: bool(out.get("tool_calls")) or "ping" in str(out.get("content", "")),
         ),
     )
+
+
+def make_streaming_probe(rt: Runtime) -> ProbeFn:
+    async def _probe(provider_key: str, model_key: str | None) -> tuple[bool, str | None, int | None, JsonObject]:
+        from chat_engine.streaming.contracts import StreamingAdapterPort
+
+        adapter, provider_model_name, credential_ref = _adapter_and_model(rt, provider_key, model_key)
+        if not isinstance(adapter, StreamingAdapterPort):
+            return False, "adapter does not implement StreamingAdapterPort", 0, {}
+        req = ProviderGenerateRequest(request_id=uuid4(), tenant_id=rt.tenant_id, operation=ProviderOperation.GENERATE_TEXT, provider_model_name=provider_model_name, credential_ref=credential_ref, payload={"ask": "Reply with the single word: ok", "generation": {"max_tokens": 8, "temperature": 0}}, timeout_ms=30_000)
+        deltas = 0
+        t0 = time.perf_counter()
+        first_ms: int | None = None
+        async for chunk in adapter.stream(req):
+            if chunk.error is not None:
+                return False, f"{chunk.error.category.value}: {chunk.error.safe_message}", int((time.perf_counter() - t0) * 1000), {"deltas": deltas}
+            if chunk.delta:
+                deltas += 1
+                first_ms = first_ms or int((time.perf_counter() - t0) * 1000)
+        ok = deltas >= 1
+        return ok, None if ok else "no deltas received", first_ms, {"deltas": deltas, "first_delta_ms": first_ms}
+
+    return _probe
 
 
 def _is_json(value: object) -> bool:

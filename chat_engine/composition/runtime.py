@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Mapping, MutableMapping
+from collections.abc import AsyncIterator, Mapping, MutableMapping
 from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID, uuid4
@@ -56,6 +56,7 @@ from core.usage.memory import InMemoryUsageAccounting
 
 from chat_engine import UPSTREAM_SHA
 from chat_engine.store.executions import InMemoryExecutionStore
+from chat_engine.streaming.contracts import StreamChunk
 
 #: Demo tenant/user for the keyless local profile (same posture as upstream's
 #: DEV_DEMO_PRINCIPAL=1 — explicit, never silently on in a durable profile).
@@ -138,6 +139,47 @@ class LocalEchoAdapter:
             retryable=False,
             safe_message="local echo failure",
         )
+
+
+class StreamingEchoAdapter(LocalEchoAdapter):
+    """Hermetic adapter that ALSO implements StreamingAdapterPort — streams the
+    ask word by word. Scriptable failures make the five D7 cases testable."""
+
+    def __init__(self, manifest: ProviderManifest) -> None:
+        super().__init__(manifest)
+        self.fail_after_words: int | None = None  # fail mid-stream (case 4)
+        self.fail_before_first: bool = False  # fail before any delta (case 3)
+        self.delay_s: float = 0.0
+
+    async def stream(self, request: ProviderGenerateRequest) -> AsyncIterator[StreamChunk]:
+        from core.contracts.provider import ProviderError as _PE
+
+        if self.fail_before_first:
+            yield StreamChunk(
+                error=_PE(
+                    category=ProviderErrorCategory.PROVIDER_UNAVAILABLE,
+                    retryable=True,
+                    safe_message="scripted pre-delta failure",
+                )
+            )
+            return
+        ask = str(request.payload.get("ask", ""))
+        words = ask.split(" ")
+        for i, w in enumerate(words):
+            if self.delay_s:
+                await asyncio.sleep(self.delay_s)
+            if self.fail_after_words is not None and i >= self.fail_after_words:
+                yield StreamChunk(
+                    error=_PE(
+                        category=ProviderErrorCategory.RETRYABLE_SERVER_ERROR,
+                        retryable=True,
+                        safe_message="scripted mid-stream failure",
+                    )
+                )
+                return
+            yield StreamChunk(delta=(w if i == 0 else " " + w))
+        yield StreamChunk(usage={"prompt_tokens": len(words), "completion_tokens": len(words), "total_tokens": 2 * len(words)})
+        yield StreamChunk(finish_reason="stop")
 
 
 def model_row(
@@ -374,6 +416,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     else:
         rt.extensions["admission"] = InMemoryAdmission()
     rt.extensions["idempotency"] = IdempotencyStore()
+    # CE-08: streaming service (optional port; provider must have verified streaming_text)
+    from chat_engine.streaming.service import StreamService
+
+    rt.extensions["streaming"] = StreamService(rt)
     for key in rt.provider_keys:
         pid = rt.providers.get(key).provider.id
         meta = next((b.limits_metadata for b in rt.bindings.bindings_for_provider(pid)), None)
