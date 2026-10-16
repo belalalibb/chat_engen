@@ -230,22 +230,33 @@ class Orchestrator:
         return msgs
 
     def _cheapest_first(self, n: int = 2) -> list[str]:
-        """[cheap, better] from registered models that the router can place RIGHT NOW
+        """[cheap -> better] from registered models the router can place RIGHT NOW
         (upstream: higher cost_score = cheaper). Models in cooldown / without an eligible
-        provider are skipped so a derived tier never points at a dead end."""
+        provider are skipped, and tiers are spread across DIFFERENT providers first so an
+        outage or plan refusal on one provider never exhausts every tier."""
         rows = sorted(
             self._rt.models.all_models(),
             key=lambda m: (-(m.cost_score or 0.0), -(m.quality_score or 0.0), m.model_key),
         )
-        out: list[str] = []
+        index = self._rt.extensions["catalog_index"]
+        placed: list[tuple[str, str]] = []  # (provider_key, model_key)
         for m in rows:
-            if m.model_key in out:
-                continue
             try:
-                self._chat.route(m.model_key, None, [])
+                d = self._chat.route(m.model_key, None, [])
             except ChatError:
                 continue
-            out.append(m.model_key)
+            placed.append((index.provider_key(d.selected.provider_id) or "?", m.model_key))
+        out: list[str] = []
+        seen_providers: set[str] = set()
+        for pk, mk in placed:  # first pass: one model per provider (diversity)
+            if pk not in seen_providers:
+                seen_providers.add(pk)
+                out.append(mk)
+            if len(out) >= n:
+                return out
+        for _pk, mk in placed:  # second pass: fill remaining slots
+            if mk not in out:
+                out.append(mk)
             if len(out) >= n:
                 break
         return out
