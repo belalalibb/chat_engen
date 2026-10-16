@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chat-engine-client"
+version = "0.1.0"
+description = "Typed Python SDK for chat_engine (sync + async + SSE)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["chat_engine_client*"]

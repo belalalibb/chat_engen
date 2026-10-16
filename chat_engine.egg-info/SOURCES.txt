@@ -24,6 +24,8 @@ chat_engine/api/errors.py
 chat_engine/api/events.py
 chat_engine/api/execute.py
 chat_engine/api/models.py
+chat_engine/api/openai_compat.py
+chat_engine/api/openapi.py
 chat_engine/capabilities/__init__.py
 chat_engine/capabilities/ledger.py
 chat_engine/capabilities/probes.py
