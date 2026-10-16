@@ -297,7 +297,7 @@ export class CeChat extends CeElement {
                   ${m.role === "assistant" && m.provider_key ? html`<span class="pill accent">${m.provider_key} / ${m.model_key ?? ""}</span>` : nothing}
                   ${m.text ? html`<div class="actions"><button class="ghost" title=${t("copy")} @click=${(e: Event) => this.copy(m.text, e.currentTarget as HTMLButtonElement)}>${icons.copy}</button></div>` : nothing}
                 </div>
-                <div class="text">${m.text}${m.text === "" && m.status === "failed" ? html`<span class="err">${t("failed")}</span>` : nothing}</div>
+                <div class="text">${m.text}${m.text === "" && m.status === "failed" ? html`<span class="dim">—</span>` : nothing}</div>
                 ${m.role === "assistant" ? html`<div class="meta">
                   ${m.status && m.status !== "complete" && m.status !== "streaming" ? html`<span class="pill ${m.status === "failed" ? "bad" : "warn"}">${t(m.status as any)}</span>` : nothing}
                   ${m.resumable ? html`<button class="primary" @click=${() => this.resume(m)}>${t("resume")}</button>` : nothing}

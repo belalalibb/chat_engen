@@ -55,7 +55,7 @@ export class CeApp extends CeElement {
       a.item svg { width: 19px; height: 19px; flex: none; }
       a.item:hover { background: var(--ce-bg-hover); color: var(--ce-text); }
       a.item.active { background: var(--ce-accent-soft); color: var(--ce-accent); }
-      a.item.active::before { content: ""; position: absolute; inset-inline-start: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--ce-gradient); }
+      a.item.active::before { content: ""; position: absolute; inset-inline-start: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--ce-gradient); }
       :host([collapsed]) a.item { justify-content: center; padding: 10px 0; }
 
       .foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--ce-border); }
