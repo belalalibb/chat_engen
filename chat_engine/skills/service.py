@@ -81,7 +81,9 @@ class SkillAssignmentService:
         try:
             self._registry.select(chosen.id)
         except SkillNotSelectable as exc:
-            raise SkillNotSelectableError(skill_id, str(exc.args[-1] if exc.args else exc)) from None
+            raise SkillNotSelectableError(
+                skill_id, str(exc.args[-1] if exc.args else exc)
+            ) from None
         return chosen
 
     def list_entries(self) -> list[SkillListEntry]:
@@ -152,7 +154,10 @@ class SkillAssignmentService:
             if version is None or s.version == version:
                 self._registry.replace(
                     s.model_copy(
-                        update={"status": status, "manifest": s.manifest.model_copy(update={"status": status})}
+                        update={
+                            "status": status,
+                            "manifest": s.manifest.model_copy(update={"status": status}),
+                        }
                     )
                 )
         return self.detail(skill_id)
@@ -163,7 +168,11 @@ class SkillAssignmentService:
         self._validate_assignments(req.skills)
         now = utc_now()
         p = AgentProfile(
-            id=uuid4(), tenant_id=self._rt.tenant_id, created_at=now, updated_at=now, **req.model_dump()
+            id=uuid4(),
+            tenant_id=self._rt.tenant_id,
+            created_at=now,
+            updated_at=now,
+            **req.model_dump(),
         )
         self._profiles[p.id] = p
         return p

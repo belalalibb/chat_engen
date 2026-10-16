@@ -152,11 +152,13 @@ def build_router(rt: Runtime) -> APIRouter:
     # -- scoped assignments (project / conversation) --------------------------------------------
 
     def _rows(obj: Any) -> list[SkillAssignment]:
-        return svc._as_assignments(list(obj.skills))  # noqa: SLF001 — same package family
+        return svc._as_assignments(list(obj.skills))
 
     def _effective(project: Any, conversation: Any) -> JSONResponse:
         try:
-            resolved = svc.resolve_for_turn(conversation=conversation, project=project, explicit=None)
+            resolved = svc.resolve_for_turn(
+                conversation=conversation, project=project, explicit=None
+            )
         except (SkillUnknownError, SkillNotSelectableError) as exc:
             return _err(exc)
         return JSONResponse(
@@ -176,12 +178,14 @@ def build_router(rt: Runtime) -> APIRouter:
             conversation_id, ConversationUpdate(skills=[r.model_dump(mode="json") for r in rows])
         )
 
-    def _mutate(rows: list[SkillAssignment], action: str, body: AssignRequest | None, skill_id: str | None) -> list[SkillAssignment]:
+    def _mutate(
+        rows: list[SkillAssignment], action: str, body: AssignRequest | None, skill_id: str | None
+    ) -> list[SkillAssignment]:
         if action == "assign":
             assert body is not None
             new = SkillAssignment(**body.model_dump())
             if new.enabled:
-                svc._pick(new.skill_id, new.version)  # noqa: SLF001
+                svc._pick(new.skill_id, new.version)
             return svc.upsert(rows, new)
         assert skill_id is not None
         if action == "remove":
@@ -190,7 +194,7 @@ def build_router(rt: Runtime) -> APIRouter:
         existing = next((r for r in rows if r.skill_id == skill_id), None)
         if existing is None:
             if enabled:
-                svc._pick(skill_id, None)  # noqa: SLF001
+                svc._pick(skill_id, None)
             existing = SkillAssignment(skill_id=skill_id)
         return svc.upsert(rows, existing.model_copy(update={"enabled": enabled}))
 
@@ -207,7 +211,7 @@ def build_router(rt: Runtime) -> APIRouter:
     async def project_skills_replace(project_id: UUID, body: list[AssignRequest]) -> Response:
         try:
             rows = [SkillAssignment(**b.model_dump()) for b in body]
-            svc._validate_assignments(rows)  # noqa: SLF001
+            svc._validate_assignments(rows)
             p = _save_project(project_id, rows)
         except (NotFound, SkillUnknownError, SkillNotSelectableError) as exc:
             return _err(exc)
@@ -269,7 +273,7 @@ def build_router(rt: Runtime) -> APIRouter:
     ) -> Response:
         try:
             rows = [SkillAssignment(**b.model_dump()) for b in body]
-            svc._validate_assignments(rows)  # noqa: SLF001
+            svc._validate_assignments(rows)
             _save_conversation(conversation_id, rows)
             c, p = _conv_ctx(conversation_id)
         except (NotFound, SkillUnknownError, SkillNotSelectableError) as exc:
