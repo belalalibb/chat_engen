@@ -27,6 +27,8 @@ chat_engine/api/models.py
 chat_engine/api/openai_compat.py
 chat_engine/api/openapi.py
 chat_engine/api/skills.py
+chat_engine/api/usage.py
+chat_engine/app_factory/contracts.py
 chat_engine/capabilities/__init__.py
 chat_engine/capabilities/ledger.py
 chat_engine/capabilities/probes.py
@@ -48,6 +50,10 @@ chat_engine/credentials/service.py
 chat_engine/handoff/__init__.py
 chat_engine/handoff/compiler.py
 chat_engine/handoff/contracts.py
+chat_engine/observability/__init__.py
+chat_engine/observability/logging.py
+chat_engine/observability/otel.py
+chat_engine/observability/redaction.py
 chat_engine/orchestration/__init__.py
 chat_engine/orchestration/contracts.py
 chat_engine/orchestration/service.py
@@ -65,5 +71,8 @@ chat_engine/streaming/contracts.py
 chat_engine/streaming/service.py
 chat_engine/streaming/sse_parser.py
 chat_engine/usage/__init__.py
+chat_engine/usage/contracts.py
+chat_engine/usage/pricing.py
+chat_engine/usage/recorder.py
 chat_engine/util/__init__.py
 chat_engine/util/time.py
