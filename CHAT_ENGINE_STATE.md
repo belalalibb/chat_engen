@@ -2,13 +2,13 @@
 
 ```text
 STATE_VERSION: 2
-PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-17 Scale validation + CE-18 release gate
-CURRENT_TASK_STATUS: IN_PROGRESS
+PHASE: SHIPPED v0.1.0 — 2026-10-16 (CE-00..CE-19 complete; Phase 2 = PostgreSQL ce_*, auth, routing top-K PR to upstream)
+CURRENT_TASK: NONE — released v0.1.0; awaiting owner feedback
+CURRENT_TASK_STATUS: DONE
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
-NEXT_TASK: run benchmarks/bench.py (n=1000, 10000) → docs/PERFORMANCE.md; then CE-18 verification report, CHANGELOG, tag v0.1.0, preview URL
+NEXT_TASK: (Phase 2, on owner request) CE-20 PostgreSQL ce_* stores; CE-21 upstream additive PR: indexed bindings_for_model + top-K scoring (see docs/PERFORMANCE.md §2)
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -48,6 +48,8 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 27 | CE-13: `ui_standalone/` — Vite+Lit+TS, original tokens (dark/light), ar/en i18n with RTL, 7 screens (chat stream/cancel/resume + model picker + strategy/trace + skills_used; conversations/projects; virtualized catalog + alias decide; providers lifecycle + BYOK one-shot key; capability ledger; admission/health; skills + agent profiles + assignment); served at `/` by chat_engine (`CE_UI_DIST`); `scripts/ui_no_copy_guard.py` in gate; Playwright smoke `tests/ui/smoke_playwright.py` | this | `evidence/ce13/` | DONE (UI bundle 66 KB) |
 | 29 | CE-14: `chat_engine.app_factory` — `AppFactoryRunner` (plan → chained in-packet stages via governed `Orchestrator.run_step`; scaffold JSON → per-file artifacts; `requires_approval` parks job in `awaiting_approval`; `drive()` resumes if host loop tears tasks down; cancel), `ArtifactStore` local-fs/in-memory (traversal + absolute paths rejected), `/v1/apps:generate` 202 async, `GET /v1/apps[/{id}]`, `:approve`, `:cancel`, `/artifacts/{name}`; upstream `generation_deferred` untouched; `CE_FEATURE_APP_FACTORY` | this | `evidence/ce14/gate.txt` (9 tests) | DONE |
 | 30 | CE-16: multi-stage non-root `Dockerfile` (UI built in node stage, served at `/`), `docker-compose.yml` (+redis/postgres profiles), `.github/workflows/ci.yml` (ubuntu+windows matrix: ruff/mypy/import-linter/secret-scan/no-copy/pytest/UI+TS build/Playwright/docker smoke), `scripts/dev.sh`, `scripts/dev.ps1`, `scripts/gate.ps1`, `docs/OPERATIONS.md` | this | CI run: UNVERIFIED (not executed from this sandbox — needs push-triggered Actions run) | DONE (files) |
+| 32 | CE-17: `benchmarks/bench.py` run @1k and @10k on a ~1 GB sandbox; `docs/PERFORMANCE.md` records MET (RSS, first-byte @200) and GAP (catalog page / explicit / AUTO @10k — upstream linear eligibility; additive top-K plan) honestly; derived cost tiers made provider-diverse and failure-escalating | this | `evidence/ce17/bench_{1k,10k}.json` | DONE (gaps documented, not hidden) |
+| 33 | CE-18: final gate GREEN (162 tests), Playwright **12/12** (fixed two real TS-SDK bugs found by the browser run), `CHAT_ENGINE_VERIFICATION_REPORT.md` (PROVEN/UNVERIFIED/DEFERRED), `CHANGELOG.md`, tag `v0.1.0`; live preview served from sandbox (UI at `/`) | this | `evidence/ce18/gate.txt`, `evidence/ce13/playwright_smoke.txt` | **SHIPPED** |
 | 31 | ops: sandbox is ~1 GB RAM — gate pytest split into 2 chunks; models.dev pricing snapshot now lazy (first lookup) to cut boot RSS | this | — | DONE |
 | 28 | CE-15: `chat_engine.usage` — `PricingBook` (models.dev snapshot sourced+dated, manual overrides, cached tokens), `UsageRecorder` (exactly one record per request_id across chat/stream/partial/failed/orchestration/openai_compat; estimated-token flag; cost with `pricing_ref` or `known:false`), `GET /v1/usage` grouped aggregates p50/p95, `/v1/usage/records`, `/v1/admin/pricing`; `chat_engine.observability` redaction (secret patterns + content keys), JSON logs, optional OTel (no-op without endpoint/extra — `[otel]` extra NOT added yet: no dependency without need) | this | `evidence/ce15/gate.txt` | DONE |
 | 25 | CE-12: `chat_engine.orchestration` — `Orchestrator.run_step` (ONE governed step: route → admission → ExecutionService; attribution from winning attempt) + `sequential_handoff` (previous output in-packet), `judge_select` (output_spec heuristic + optional LLM judge, failed candidates traced), `cost_tiered` (≤1 upgrade, derived tiers) + `OrchestrationTrace` persisted on turn metadata and returned by `POST /v1/chat {strategy, strategy_options}`; upstream `MultiModelExecutor`/`SelectionStrategy` untouched | this | `evidence/ce12/gate.txt` | **GATE GREEN: 135 passed** |
