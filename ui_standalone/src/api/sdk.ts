@@ -95,7 +95,7 @@ export class ChatEngine {
   // ---- core ---------------------------------------------------------------------------------
 
   private async request<T>(method: string, path: string, body?: unknown, query?: Json): Promise<T> {
-    const url = new URL(this.baseUrl + path);
+    const url = new URL(this.baseUrl + path, typeof location !== "undefined" ? location.origin : "http://localhost");
     if (query) for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
     let last: ChatEngineAPIError | undefined;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
