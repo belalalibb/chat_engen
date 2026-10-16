@@ -449,6 +449,19 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.skills import SkillAssignmentService
 
     rt.extensions["skills"] = SkillAssignmentService(rt)
+    # CE-15: usage + pricing (models.dev snapshot) + redacted logging / optional OTel
+    from chat_engine.observability.logging import configure_logging
+    from chat_engine.observability.otel import build_tracer
+    from chat_engine.usage import PricingBook, UsageRecorder
+
+    pricing = PricingBook()
+    if env.get("CE_PRICING_SNAPSHOT", "1") != "0":
+        pricing.load_models_dev()
+    rt.extensions["usage_recorder"] = UsageRecorder(
+        pricing, enabled=env.get("CE_FEATURE_USAGE", "1") != "0"
+    )
+    rt.extensions["tracer"] = build_tracer(env)
+    rt.extensions["logger"] = configure_logging(env.get("CE_LOG_LEVEL", "INFO"))
     for key in rt.provider_keys:
         pid = rt.providers.get(key).provider.id
         meta = next((b.limits_metadata for b in rt.bindings.bindings_for_provider(pid)), None)

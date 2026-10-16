@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderOperation
@@ -128,6 +128,21 @@ class Orchestrator:
                 reservation, tokens_actual=total if isinstance(total, int) else None, success=ok
             )
         self._rt.executions.put(report)
+        recorder = self._rt.extensions.get("usage_recorder")
+        if recorder is not None:
+            recorder.record(
+                request_id=str(report.execution.id),
+                tenant_id=self._rt.tenant_id,
+                surface="orchestration",
+                status="succeeded" if ok else "failed",
+                provider_key=pk,
+                model_key=row.model_key,
+                usage=usage,
+                latency_ms=resp.latency_ms if resp else None,
+                conversation_id=conversation_id if isinstance(conversation_id, UUID) else None,
+                fallback_chars=sum(len(str(m.get("content", ""))) for m in messages),
+                metadata={"packet_id": packet_id, "step_model": model},
+            )
         if not ok or resp is None:
             err = resp.error if resp else None
             raise ChatError(

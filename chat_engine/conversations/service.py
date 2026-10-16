@@ -515,6 +515,16 @@ class ChatService:
                 },
             )
             self._store.append_turn(failed)
+            recorder = self._rt.extensions.get("usage_recorder")
+            if recorder is not None:
+                recorder.record_turn(
+                    failed,
+                    conversation=prep.conversation,
+                    provider_key=provider_key,
+                    model_key=model_key,
+                    canonical_id=None,
+                    status="failed",
+                )
             raise ChatError(
                 "execution_failed",
                 err.safe_message if err else "Execution failed.",
@@ -736,6 +746,20 @@ class ChatService:
         self._store.put_conversation(
             conv.model_copy(update={"turn_count": conv.turn_count + 1, "updated_at": utc_now()})
         )
+        recorder = self._rt.extensions.get("usage_recorder")
+        if recorder is not None:
+            recorder.record_turn(
+                turn,
+                conversation=conv,
+                provider_key=provider_key,
+                model_key=model_key,
+                canonical_id=None,
+                status={
+                    TurnStatus.COMPLETE: "succeeded",
+                    TurnStatus.PARTIAL: "partial",
+                    TurnStatus.FAILED: "failed",
+                }[status],
+            )
         return turn
 
 

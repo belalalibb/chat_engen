@@ -21,6 +21,7 @@ from chat_engine.api import (
     models,
     openai_compat,
     skills,
+    usage,
 )
 from chat_engine.api.errors import error_response
 from chat_engine.api.openapi import install_openapi
@@ -93,6 +94,8 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
             app.include_router(openai_compat.build_router(runtime))
     if "skills" in runtime.extensions and "chat" in runtime.extensions:
         app.include_router(skills.build_router(runtime))
+    if "usage_recorder" in runtime.extensions:
+        app.include_router(usage.build_router(runtime))
     install_openapi(app, upstream_sha=UPSTREAM_SHA)
     mount_ui(app, environ)
     return app

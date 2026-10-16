@@ -381,6 +381,22 @@ def build_router(rt: Runtime) -> APIRouter:
                 success=report.execution.status.value == "succeeded",
             )
         rt.executions.put(report)
+        recorder = rt.extensions.get("usage_recorder")
+        if recorder is not None:
+            recorder.record(
+                request_id=str(report.execution.id),
+                tenant_id=rt.tenant_id,
+                surface="openai_compat",
+                status="succeeded"
+                if report.execution.status.value == "succeeded" and resp and resp.succeeded
+                else "failed",
+                provider_key=pk,
+                model_key=model_row.model_key,
+                usage=usage,
+                latency_ms=resp.latency_ms if resp else None,
+                fallback_chars=sum(len(m.text()) for m in body.messages),
+                metadata={"completion_id": completion_id},
+            )
         if report.execution.status.value != "succeeded" or resp is None or not resp.succeeded:
             err = resp.error if resp else None
             status = 502
