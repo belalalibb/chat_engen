@@ -4,8 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${1:-${CE_PYTHON:-python3}}"
 BIN="$(dirname "$PY")"
-echo "== ruff";        "$PY" -m ruff check chat_engine tests
-echo "== ruff format"; "$PY" -m ruff format --check chat_engine tests
+echo "== ruff";        "$PY" -m ruff check chat_engine tests sdk/python examples
+echo "== ruff format"; "$PY" -m ruff format --check chat_engine tests sdk/python examples
 UPSTREAM_SRC="$("$PY" -c 'import core, os; print(os.path.dirname(os.path.dirname(core.__file__)))')"
 echo "== mypy (MYPYPATH=$UPSTREAM_SRC)"; MYPYPATH="$UPSTREAM_SRC" "$PY" -m mypy chat_engine
 echo "== lint-imports"; "$BIN/lint-imports"

@@ -3,12 +3,12 @@
 ```text
 STATE_VERSION: 2
 PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-11 SDKs + consumer example
+CURRENT_TASK: CE-12 Multi-model orchestration strategies
 CURRENT_TASK_STATUS: IN_PROGRESS
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
-NEXT_TASK: CE-11 Python SDK (sdk/python), TS SDK types (sdk/typescript), examples/consumer_project
+NEXT_TASK: CE-12 sequential_handoff / judge_select / cost_tiered on /v1/chat with trace
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -44,6 +44,7 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 11 | owner approval recorded; ADR-CE-0001 ACCEPTED | 120821b | — | phase 1 |
 | 12 | CE-01: baseline copy (sha256 ==), 14 golden execute + models + events, 14 manifests, COMPATIBILITY_MAP | fe13617 | `evidence/ce01/` | DONE |
 | 13 | CE-02: skeleton, pyproject (SHA pin), compat deriver + 3 guards, arch guard, secret scan | 9374cec | — | pushed |
+| 24 | CE-11: `sdk/python/chat_engine_client` (sync+async, SSE parser, retry honouring `Retry-After`/`retry_after_ms`, typed views, httpx-only) + `sdk/typescript` (zero-dep fetch+SSE, `tsc --noEmit` clean) + `examples/consumer_project` (multi-turn, stream, OpenAI-compat, R1 core-name check; imports nothing from apps/ui) | this | `evidence/ce11/{gate,tsc}.txt` | **GATE GREEN: 122 passed** |
 | 23 | CE-10: OpenAI-compatible `POST /v1/chat/completions` (sync+stream, tools, usage, OpenAI error envelope) + `/v1/openai/models`; `CE_FEATURE_OPENAI_COMPAT` flag; public OpenAPI with `x-ce-stability` per op + `x-ce-upstream-sha`; ADR-CE-0002 (error codes/mapping/downgrade) + `docs/API.md`; official `openai` SDK (test-only extra `test-openai`, MIT) passes sync/stream/errors hermetically | this | `evidence/ce10/gate.txt` | **GATE GREEN: 116 passed** |
 | 21 | CE-09: Project/Conversation/Turn contracts + ConversationStorePort (in-memory) + ChatService (turn → HandoffPacket → ONE router/execution, admission, capability gate, failed-turn recording) + Summarizer (model via cost-first weights; extractive fallback labelled `summary_source=extractive`) + `/v1/projects`, `/v1/conversations` (+`/turns`), `POST /v1/chat`; `/v1/chat/stream` accepts `conversation_id`+`message` and persists complete/partial/failed turns; CE-19 hook `extensions["skills"].resolve_for_turn` | 1d7340a..this | `evidence/ce09/gate.txt` (40-turn summarization test) | **GATE GREEN: 102 passed** |
 | 22 | CE-04 perf re-measure after a2a7913: catalog `entries()` @10k p50 **284.5 ms** (was 17,270 ms) | this | `evidence/ce04/scale_10k.txt` | budget 1,500 ms MET |
