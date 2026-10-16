@@ -1,42 +1,41 @@
 == ruff
-[1;32mAll checks passed![0m
+All checks passed!
 == ruff format
 122 files already formatted
 == mypy (MYPYPATH=/home/user/ref/general_ai_core)
 Success: no issues found in 74 source files
 == lint-imports
 
-[36m╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐[0m
-[36m╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │[0m
-[36m ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗[0m
-[36m ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝[0m
-[36m╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║[0m
-[36m╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝[0m
-[36m  └──▶║║                    ▲ [0m
-[36m      ╚╝────────────────────┘[0m
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
 
-[?25l[32m∙∙∙[0m 🧱 Building graph...
-[?25h[1A[2K[?25l[2K🧐 Checking contracts [90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m0/2[0m
-[2K[1A[2K🧐 Checking contracts [90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m2/2[0m
-[2mChecking D3 - only chat_engine.api knows FastAPI[0m[2K[1A[2K🧐 Checking contracts [90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m2/2[0m
-[?25h[1A[2K[1m---------[0m
-[1mContracts[0m
-[1m---------[0m
 
-[1mAnalyzed 104 files, 484 dependencies.[0m
-[1m-------------------------------------[0m
+---------
+Contracts
+---------
 
-D0/D3 - chat_engine never imports the upstream application layer or UI [32mKEPT[0m
-D3 - only chat_engine.api knows FastAPI [32mKEPT[0m
+Analyzed 104 files, 484 dependencies.
+-------------------------------------
+
+D0/D3 - chat_engine never imports the upstream application layer or UI KEPT
+D3 - only chat_engine.api knows FastAPI KEPT
 
 Contracts: 2 kept, 0 broken.
 == secret scan
-secret scan clean (233 files)
+secret scan clean (234 files)
 == ui no-copy guard
 ui_no_copy_guard: checked 19 files against 23 reference files → CLEAN
 == pytest (hermetic, chunked for low-memory hosts)
-[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m [ 79%]
-[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                      [100%][0m
-[32m[32m[1m91 passed[0m[32m in 17.56s[0m[0m
-[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0mscripts/gate.sh: line 16:   977 Killed                  env -u GROQ_API_KEY -u GSK_API_KEY -u GSK_TOKEN -u OPENAI_API_KEY "$PY" -m pytest -q -p no:cacheprovider -W ignore -o addopts="" tests/conversations tests/api tests/sdk tests/orchestration tests/skills tests/usage tests/app_factory
-GATE_EXIT=137
+........................................................................ [ 79%]
+...................                                                      [100%]
+91 passed in 7.53s
+.......................................................................  [100%]
+71 passed in 22.41s
+GATE GREEN
+GATE_EXIT=0
