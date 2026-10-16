@@ -464,6 +464,13 @@ class ChatService:
         self._rt.executions.put(report)
         provider_key = pk
         model_key = str(self._rt.models.get_by_id(prep.decision.selected.model_id).model_key)
+        winning = next((a for a in reversed(node.attempts) if a.succeeded), None) if node else None
+        if winning is not None:  # router fallback may have answered from another provider
+            provider_key = (
+                self._rt.extensions["catalog_index"].provider_key(winning.candidate.provider_id)
+                or pk
+            )
+            model_key = str(self._rt.models.get_by_id(winning.candidate.model_id).model_key)
         catalog: CatalogService = self._rt.extensions["catalog"]
         canonical = None
         if model_key:
@@ -600,7 +607,7 @@ class ChatService:
             or prep.conversation.model
             or (prep.project.default_model if prep.project else None)
         )
-        messages = [dict(m) for m in prep.payload["messages"]]  # type: ignore[union-attr]
+        messages = [dict(m) for m in prep.payload["messages"]]
         try:
             result, trace = await orch.run(
                 strategy,
@@ -622,7 +629,10 @@ class ChatService:
                 status=TurnStatus.FAILED,
                 handoff_packet_id=prep.packet.packet_id,
                 created_at=utc_now(),
-                metadata={"error": {"code": exc.code, "message": exc.message}, "strategy": strategy.value},
+                metadata={
+                    "error": {"code": exc.code, "message": exc.message},
+                    "strategy": strategy.value,
+                },
             )
             self._store.append_turn(failed)
             exc.details = {**exc.details, "turn_id": str(failed.id)}

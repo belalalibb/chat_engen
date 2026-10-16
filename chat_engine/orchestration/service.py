@@ -22,6 +22,7 @@ from chat_engine.orchestration.contracts import (
     StepTrace,
     Strategy,
     StrategyOptions,
+    TraceBuilder,
 )
 
 if TYPE_CHECKING:
@@ -29,9 +30,7 @@ if TYPE_CHECKING:
     from chat_engine.conversations.service import ChatService
 
 PREVIEW = 160
-CONTINUE_PROMPT = (
-    "Continue and improve the previous draft. Keep what is correct; fix what is not."
-)
+CONTINUE_PROMPT = "Continue and improve the previous draft. Keep what is correct; fix what is not."
 
 
 def score_against_spec(text: str, spec: OutputSpec) -> tuple[float, list[str]]:
@@ -141,6 +140,11 @@ class Orchestrator:
                     "provider_error_category": err.category.value if err else None,
                 },
             )
+        # the provider/model that actually answered (router fallback may differ from selected)
+        winning = next((a for a in reversed(node.attempts) if a.succeeded), None) if node else None
+        if winning is not None:
+            pk = index.provider_key(winning.candidate.provider_id) or pk
+            row = self._rt.models.get_by_id(winning.candidate.model_id)
         content = resp.output.get("content")
         text = content if isinstance(content, str) else json.dumps(resp.output, sort_keys=True)
         catalog = self._rt.extensions["catalog"]
@@ -186,7 +190,7 @@ class Orchestrator:
         )
 
     @staticmethod
-    def _accumulate(trace: OrchestrationTrace, r: StepResult) -> None:
+    def _accumulate(trace: TraceBuilder, r: StepResult) -> None:
         for k, v in r.usage.items():
             if isinstance(v, int | float):
                 trace.total_usage[k] = float(trace.total_usage.get(k, 0)) + v
@@ -205,7 +209,7 @@ class Orchestrator:
     def _cheapest_first(self, n: int = 2) -> list[str]:
         """[cheap, better] from registered models (upstream: higher cost_score = cheaper)."""
         rows = sorted(
-            self._rt.models.list_all(),
+            self._rt.models.all_models(),
             key=lambda m: (-(m.cost_score or 0.0), -(m.quality_score or 0.0), m.model_key),
         )
         out: list[str] = []
@@ -256,7 +260,7 @@ class Orchestrator:
                 "sequential_handoff needs strategy_options.stages with >= 2 models",
                 http_status=422,
             )
-        trace = OrchestrationTrace(strategy=Strategy.SEQUENTIAL_HANDOFF)
+        trace = TraceBuilder(strategy=Strategy.SEQUENTIAL_HANDOFF)
         result: StepResult | None = None
         for i, model in enumerate(stages):
             role = "draft" if i == 0 else "continue"
@@ -271,13 +275,15 @@ class Orchestrator:
                 ]
             elif instr:
                 msgs = self._with_system(messages, instr)
-            result = await self.run_step(model=model, provider=opts.provider, messages=msgs, **common)
+            result = await self.run_step(
+                model=model, provider=opts.provider, messages=msgs, **common
+            )
             trace.steps.append(self._step(i + 1, role, model, result, reason="stage order"))
             self._accumulate(trace, result)
         assert result is not None
         trace.selected_step = len(stages)
         trace.decision_reason = "final stage output (each stage saw the previous output in-packet)"
-        return result, trace
+        return result, trace.build()
 
     async def judge_select(
         self, opts: StrategyOptions, messages: list[JsonObject], **common: Any
@@ -289,7 +295,7 @@ class Orchestrator:
                 "judge_select needs strategy_options.candidates with >= 2 models",
                 http_status=422,
             )
-        trace = OrchestrationTrace(strategy=Strategy.JUDGE_SELECT)
+        trace = TraceBuilder(strategy=Strategy.JUDGE_SELECT)
         results: dict[int, StepResult] = {}
         scores: dict[int, float] = {}
         for i, model in enumerate(cands):
@@ -314,12 +320,12 @@ class Orchestrator:
             raise ChatError(
                 "execution_failed", "all judge_select candidates failed", http_status=502
             )
-        best_step = sorted(
-            results, key=lambda n: (-scores[n], -(results[n].cost_score or 0), n)
-        )[0]
+        best_step = sorted(results, key=lambda n: (-scores[n], -(results[n].cost_score or 0), n))[0]
         reason = "highest output_spec score (ties -> cheaper, then order)"
         if opts.judge and len(results) > 1:
-            listing = "\n\n".join(f"[{n}] ({r.model_key})\n{r.text[:2000]}" for n, r in results.items())
+            listing = "\n\n".join(
+                f"[{n}] ({r.model_key})\n{r.text[:2000]}" for n, r in results.items()
+            )
             spec = opts.output_spec.model_dump(exclude_defaults=True)
             judge_msgs: list[JsonObject] = [
                 {
@@ -372,7 +378,7 @@ class Orchestrator:
                 reason += "; judge failed -> heuristic kept"
         trace.selected_step = best_step
         trace.decision_reason = reason
-        return results[best_step], trace
+        return results[best_step], trace.build()
 
     async def cost_tiered(
         self,
@@ -388,7 +394,7 @@ class Orchestrator:
         tiers = tiers[:2]
         if not tiers:
             raise ChatError("conflict", "cost_tiered: no models available", http_status=503)
-        trace = OrchestrationTrace(strategy=Strategy.COST_TIERED)
+        trace = TraceBuilder(strategy=Strategy.COST_TIERED)
         last_exc: ChatError | None = None
         for i, model in enumerate(tiers):
             n = i + 1
@@ -438,7 +444,7 @@ class Orchestrator:
                 if i == 0
                 else "upgraded tier result (max 1 upgrade)"
             )
-            return r, trace
+            return r, trace.build()
         assert last_exc is not None
         raise last_exc
 

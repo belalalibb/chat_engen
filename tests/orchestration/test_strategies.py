@@ -93,7 +93,12 @@ def test_score_against_spec() -> None:
     s, f = score_against_spec('{"ok": 1}', spec)
     assert s == 1.0 and f == []
     s, f = score_against_spec("bad", spec)
-    assert s == 0.0 and set(f) == {"min_chars:5", "must_include:ok", "must_not_include:bad", "json_object"}
+    assert s == 0.0 and set(f) == {
+        "min_chars:5",
+        "must_include:ok",
+        "must_not_include:bad",
+        "json_object",
+    }
     assert score_against_spec("anything", OutputSpec()) == (1.0, [])
 
 
@@ -107,7 +112,10 @@ def test_sequential_handoff_passes_draft_in_packet(client, runtime: Runtime) -> 
         client,
         message="write a haiku",
         strategy="sequential_handoff",
-        strategy_options={"stages": ["model-a", "model-b"], "stage_instructions": ["", "Polish it."]},
+        strategy_options={
+            "stages": ["model-a", "model-b"],
+            "stage_instructions": ["", "Polish it."],
+        },
     )
     assert r.status_code == 200, r.text
     body = r.json()
@@ -151,7 +159,9 @@ def test_sequential_handoff_stage_failover_same_packet(client, runtime: Runtime)
 
 
 def test_sequential_handoff_requires_two_stages(client) -> None:
-    r = _chat(client, message="q", strategy="sequential_handoff", strategy_options={"stages": ["x"]})
+    r = _chat(
+        client, message="q", strategy="sequential_handoff", strategy_options={"stages": ["x"]}
+    )
     assert r.status_code == 422 and r.json()["error"]["code"] == "conflict"
     r = _chat(client, message="q", strategy="nope")
     assert r.status_code == 422 and "allowed" in r.json()["error"]["details"]
@@ -213,7 +223,9 @@ def test_judge_select_llm_judge_pick_and_failed_candidate(client, runtime: Runti
 
 def test_judge_select_all_fail_is_502_with_failed_turn(client, runtime: Runtime) -> None:
     add_scripted(runtime, "pbroken", ["x1", "x2"], {}, fail={"x1", "x2"})
-    r = _chat(client, message="q", strategy="judge_select", strategy_options={"candidates": ["x1", "x2"]})
+    r = _chat(
+        client, message="q", strategy="judge_select", strategy_options={"candidates": ["x1", "x2"]}
+    )
     assert r.status_code == 502 and r.json()["error"]["code"] == "execution_failed"
     turn_id = r.json()["error"]["details"]["turn_id"]
     assert turn_id

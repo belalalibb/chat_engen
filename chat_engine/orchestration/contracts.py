@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 from core.contracts.base import BoundedStr, ContractModel, JsonObject
@@ -67,7 +68,31 @@ class OrchestrationTrace(ContractModel):
     decision_reason: str = ""
     total_usage: JsonObject = Field(default_factory=dict)
     total_cost_score: float = 0.0
-    upgrades: int = 0  # cost_tiered: how many times we escalated (≤1)
+    upgrades: int = 0  # cost_tiered: how many times we escalated (<=1)
+
+
+@dataclass
+class TraceBuilder:
+    """Mutable accumulator; ``build()`` emits the frozen contract."""
+
+    strategy: Strategy
+    steps: list[StepTrace] = field(default_factory=list)
+    selected_step: int | None = None
+    decision_reason: str = ""
+    total_usage: dict[str, float] = field(default_factory=dict)
+    total_cost_score: float = 0.0
+    upgrades: int = 0
+
+    def build(self) -> OrchestrationTrace:
+        return OrchestrationTrace(
+            strategy=self.strategy,
+            steps=list(self.steps),
+            selected_step=self.selected_step,
+            decision_reason=self.decision_reason,
+            total_usage=dict(self.total_usage),
+            total_cost_score=self.total_cost_score,
+            upgrades=self.upgrades,
+        )
 
 
 class StepResult(ContractModel):
@@ -89,4 +114,5 @@ __all__ = [
     "StepTrace",
     "Strategy",
     "StrategyOptions",
+    "TraceBuilder",
 ]
