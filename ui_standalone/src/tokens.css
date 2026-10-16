@@ -1,29 +1,103 @@
-/* chat_engine design tokens — original palette/typography (no reference assets). */
+/* chat_engine design tokens — visual identity v2 (dark-first, indigo→cyan accent, glass surfaces).
+   Original implementation; palette/type scale tuned for this project (no copied assets). */
 :root {
-  --ce-font: "IBM Plex Sans Arabic", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --ce-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --ce-bg: #0f1419;
-  --ce-bg-elev: #161c24;
-  --ce-bg-elev-2: #1d2530;
-  --ce-border: #2a3441;
-  --ce-text: #e6edf3;
-  --ce-text-dim: #94a3b8;
-  --ce-accent: #2dd4bf;
-  --ce-accent-ink: #042f2e;
-  --ce-warn: #f59e0b;
-  --ce-danger: #f87171;
-  --ce-ok: #4ade80;
-  --ce-radius: 10px;
-  --ce-radius-sm: 6px;
+  /* typography */
+  --ce-font-ar: "Tajawal", "IBM Plex Sans Arabic", "Segoe UI", system-ui, sans-serif;
+  --ce-font-en: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ce-font: var(--ce-font-ar);
+  --ce-mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ce-fs-xs: .74rem; --ce-fs-sm: .85rem; --ce-fs-base: .96rem; --ce-fs-lg: 1.12rem; --ce-fs-xl: 1.45rem; --ce-fs-2xl: 1.9rem;
+
+  /* surfaces (dark) */
+  --ce-bg: #0b0b12;
+  --ce-bg-2: #12121b;
+  --ce-bg-3: #1a1a29;
+  --ce-bg-elev: #1e1e2f;
+  --ce-bg-hover: #26263a;
+  --ce-border: rgba(255, 255, 255, .07);
+  --ce-border-strong: rgba(255, 255, 255, .13);
+  --ce-glass: rgba(255, 255, 255, .035);
+  --ce-glass-strong: rgba(22, 22, 36, .78);
+
+  /* text */
+  --ce-text: #ebebf4;
+  --ce-text-dim: #9b9bb4;
+  --ce-text-muted: #62627c;
+
+  /* accents */
+  --ce-accent: #6f66ff;
+  --ce-accent-hover: #7f77ff;
+  --ce-accent-soft: rgba(111, 102, 255, .10);
+  --ce-accent-glow: rgba(111, 102, 255, .28);
+  --ce-accent-ink: #ffffff;
+  --ce-cyan: #1cd6ff;
+  --ce-pink: #ff6f9c;
+  --ce-ok: #22e07a;
+  --ce-warn: #ffb547;
+  --ce-danger: #ff5c6a;
+  --ce-gradient: linear-gradient(135deg, var(--ce-accent) 0%, var(--ce-cyan) 100%);
+  --ce-gradient-soft: linear-gradient(135deg, rgba(111, 102, 255, .18), rgba(28, 214, 255, .10));
+
+  /* shape & motion */
+  --ce-radius-sm: 8px;
+  --ce-radius: 12px;
+  --ce-radius-lg: 16px;
+  --ce-radius-xl: 24px;
+  --ce-radius-full: 999px;
   --ce-gap: 12px;
-  --ce-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.35);
+  --ce-shadow-sm: 0 1px 2px rgba(0, 0, 0, .25);
+  --ce-shadow: 0 8px 28px rgba(0, 0, 0, .40);
+  --ce-shadow-glow: 0 0 0 1px var(--ce-accent-soft), 0 8px 32px var(--ce-accent-glow);
+  --ce-blur: blur(18px);
+  --ce-dur: 180ms;
+  --ce-ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* layout */
+  --ce-sidebar: 280px;
+  --ce-sidebar-min: 68px;
+  --ce-header: 64px;
+  --ce-content-max: 820px;
+
+  color-scheme: dark;
 }
-@media (prefers-color-scheme: light) {
-  :root {
-    --ce-bg: #f6f8fa; --ce-bg-elev: #ffffff; --ce-bg-elev-2: #eef2f6; --ce-border: #d7dee7;
-    --ce-text: #0f172a; --ce-text-dim: #475569; --ce-accent: #0f766e; --ce-accent-ink: #ffffff;
-    --ce-shadow: 0 1px 2px rgba(15,23,42,.06);
-  }
+
+:root[data-theme="light"] {
+  --ce-bg: #f5f5fb;
+  --ce-bg-2: #ffffff;
+  --ce-bg-3: #eeeef7;
+  --ce-bg-elev: #ffffff;
+  --ce-bg-hover: #e8e8f4;
+  --ce-border: rgba(16, 16, 40, .08);
+  --ce-border-strong: rgba(16, 16, 40, .16);
+  --ce-glass: rgba(255, 255, 255, .6);
+  --ce-glass-strong: rgba(255, 255, 255, .85);
+  --ce-text: #15152a;
+  --ce-text-dim: #555570;
+  --ce-text-muted: #8c8ca6;
+  --ce-accent: #5a50f0;
+  --ce-accent-hover: #4a40e0;
+  --ce-accent-soft: rgba(90, 80, 240, .10);
+  --ce-accent-glow: rgba(90, 80, 240, .22);
+  --ce-cyan: #0cb6de;
+  --ce-ok: #15a85a;
+  --ce-shadow-sm: 0 1px 2px rgba(20, 20, 60, .06);
+  --ce-shadow: 0 8px 24px rgba(20, 20, 60, .10);
+  color-scheme: light;
 }
-html, body { margin: 0; height: 100%; background: var(--ce-bg); color: var(--ce-text); font-family: var(--ce-font); }
+
+:root[lang="en"] { --ce-font: var(--ce-font-en); }
+
+html, body {
+  margin: 0; height: 100%;
+  background: var(--ce-bg); color: var(--ce-text);
+  font-family: var(--ce-font); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  background-image:
+    radial-gradient(900px 500px at 15% -10%, rgba(111, 102, 255, .14), transparent 60%),
+    radial-gradient(700px 400px at 100% 110%, rgba(28, 214, 255, .08), transparent 60%);
+  background-attachment: fixed;
+}
 * { box-sizing: border-box; }
+::selection { background: var(--ce-accent-glow); }
