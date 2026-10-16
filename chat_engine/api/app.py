@@ -20,6 +20,7 @@ from chat_engine.api import (
     execute,
     models,
     openai_compat,
+    skills,
 )
 from chat_engine.api.errors import error_response
 from chat_engine.api.openapi import install_openapi
@@ -90,5 +91,7 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         app.include_router(conversations.build_router(runtime))
         if (environ or {}).get("CE_FEATURE_OPENAI_COMPAT", "1") != "0":
             app.include_router(openai_compat.build_router(runtime))
+    if "skills" in runtime.extensions and "chat" in runtime.extensions:
+        app.include_router(skills.build_router(runtime))
     install_openapi(app, upstream_sha=UPSTREAM_SHA)
     return app
