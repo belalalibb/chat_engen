@@ -26,6 +26,7 @@ chat_engine/api/execute.py
 chat_engine/api/models.py
 chat_engine/api/openai_compat.py
 chat_engine/api/openapi.py
+chat_engine/api/skills.py
 chat_engine/capabilities/__init__.py
 chat_engine/capabilities/ledger.py
 chat_engine/capabilities/probes.py
@@ -55,6 +56,8 @@ chat_engine/providers/bootstrap.py
 chat_engine/providers/lifecycle.py
 chat_engine/providers/openai_compatible.py
 chat_engine/skills/__init__.py
+chat_engine/skills/contracts.py
+chat_engine/skills/service.py
 chat_engine/store/__init__.py
 chat_engine/store/executions.py
 chat_engine/streaming/__init__.py

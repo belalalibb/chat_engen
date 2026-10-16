@@ -1,0 +1,29 @@
+/* chat_engine design tokens — original palette/typography (no reference assets). */
+:root {
+  --ce-font: "IBM Plex Sans Arabic", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ce-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ce-bg: #0f1419;
+  --ce-bg-elev: #161c24;
+  --ce-bg-elev-2: #1d2530;
+  --ce-border: #2a3441;
+  --ce-text: #e6edf3;
+  --ce-text-dim: #94a3b8;
+  --ce-accent: #2dd4bf;
+  --ce-accent-ink: #042f2e;
+  --ce-warn: #f59e0b;
+  --ce-danger: #f87171;
+  --ce-ok: #4ade80;
+  --ce-radius: 10px;
+  --ce-radius-sm: 6px;
+  --ce-gap: 12px;
+  --ce-shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --ce-bg: #f6f8fa; --ce-bg-elev: #ffffff; --ce-bg-elev-2: #eef2f6; --ce-border: #d7dee7;
+    --ce-text: #0f172a; --ce-text-dim: #475569; --ce-accent: #0f766e; --ce-accent-ink: #ffffff;
+    --ce-shadow: 0 1px 2px rgba(15,23,42,.06);
+  }
+}
+html, body { margin: 0; height: 100%; background: var(--ce-bg); color: var(--ce-text); font-family: var(--ce-font); }
+* { box-sizing: border-box; }
