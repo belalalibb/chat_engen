@@ -131,8 +131,6 @@ class AppFactoryRunner:
         job = self.get(job_id)
         t = self._tasks.get(job_id)
         if job.status in (JobStatus.QUEUED, JobStatus.RUNNING) and (t is None or t.done()):
-            if t is not None and t.cancelled() and job.status is JobStatus.CANCELLED:
-                return job
             job = self._save(job.model_copy(update={"status": JobStatus.QUEUED}))
             await self._run(job_id)
             return self.get(job_id)
