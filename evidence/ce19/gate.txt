@@ -1,0 +1,55 @@
+== ruff
+All checks passed!
+== ruff format
+104 files already formatted
+== mypy (MYPYPATH=/home/user/ref/general_ai_core)
+Success: no issues found in 61 source files
+== lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 88 files, 397 dependencies.
+------------------------------------
+
+D0/D3 - chat_engine never imports the upstream application layer or UI KEPT
+D3 - only chat_engine.api knows FastAPI KEPT
+
+Contracts: 2 kept, 0 broken.
+== secret scan
+secret scan clean (203 files)
+== ui no-copy guard
+ui_no_copy_guard: checked 19 files against 23 reference files → CLEAN
+== pytest (hermetic)
+.................F...................................................... [ 49%]
+........................................................................ [ 99%]
+.                                                                        [100%]
+=================================== FAILURES ===================================
+______________________ test_feature_flag_disables_surface ______________________
+
+    def test_feature_flag_disables_surface() -> None:
+        rt = build_runtime({"CE_FEATURE_OPENAI_COMPAT": "0"})
+        c = TestClient(create_app(rt, environ={"CE_FEATURE_OPENAI_COMPAT": "0"}))
+        r = c.post(
+            "/v1/chat/completions",
+            json={"model": "local-echo-1", "messages": [{"role": "user", "content": "x"}]},
+        )
+>       assert r.status_code == 404
+E       assert 405 == 404
+E        +  where 405 = <Response [405 Method Not Allowed]>.status_code
+
+tests/api/test_openai_compat.py:140: AssertionError
+=========================== short test summary info ============================
+FAILED tests/api/test_openai_compat.py::test_feature_flag_disables_surface - ...
+1 failed, 144 passed in 63.28s (0:01:03)

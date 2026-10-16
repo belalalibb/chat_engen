@@ -31,7 +31,12 @@ def test_register_list_detail_upstream_shape(client) -> None:
     lst = client.get("/v1/skills").json()
     assert lst == {
         "skills": [
-            {"id": "code_review", "version": "1.0.0", "status": "active", "requires_tools": ["git_diff"]}
+            {
+                "id": "code_review",
+                "version": "1.0.0",
+                "status": "active",
+                "requires_tools": ["git_diff"],
+            }
         ]
     }
     d = client.get("/v1/skills/code_review").json()
@@ -47,10 +52,10 @@ def test_register_list_detail_upstream_shape(client) -> None:
 def test_turn_records_skill_versions_and_injects_instructions(client) -> None:
     _reg(client, "arabic_tone", instructions="Always reply in formal Arabic.")
     _reg(client, "code_review")
-    p = client.post("/v1/projects", json={"name": "p", "skills": [{"skill_id": "arabic_tone"}]}).json()
-    r = client.post(
-        "/v1/chat", json={"project_id": p["id"], "message": "hi", "skills": None}
-    )
+    p = client.post(
+        "/v1/projects", json={"name": "p", "skills": [{"skill_id": "arabic_tone"}]}
+    ).json()
+    r = client.post("/v1/chat", json={"project_id": p["id"], "message": "hi", "skills": None})
     assert r.status_code == 200, r.text
     used = r.json()["turn"]["skills_used"]
     assert [(u["skill_id"], u["version"], u["source"]) for u in used] == [
@@ -104,7 +109,10 @@ def test_scope_precedence_and_disable(client) -> None:
     # conversation re-enables s_project and adds s_conv
     r = client.post(f"/v1/conversations/{c['id']}/skills/s_project:enable")
     assert r.status_code == 200, r.text
-    r = client.post(f"/v1/conversations/{c['id']}/skills:assign", json={"skill_id": "s_conv", "config": {"depth": 2}})
+    r = client.post(
+        f"/v1/conversations/{c['id']}/skills:assign",
+        json={"skill_id": "s_conv", "config": {"depth": 2}},
+    )
     eff = r.json()["effective"]
     assert [(e["skill_id"], e["source"]) for e in eff] == [
         ("s_conv", "conversation"),
@@ -124,8 +132,12 @@ def test_scope_precedence_and_disable(client) -> None:
         ("s_project", "1.0.0"),
     ]
     # explicit per-turn selection wins outright
-    r = client.post("/v1/chat", json={"conversation_id": c["id"], "message": "go", "skills": ["s_profile"]})
-    assert [(u["skill_id"], u["source"]) for u in r.json()["turn"]["skills_used"]] == [("s_profile", "explicit")]
+    r = client.post(
+        "/v1/chat", json={"conversation_id": c["id"], "message": "go", "skills": ["s_profile"]}
+    )
+    assert [(u["skill_id"], u["source"]) for u in r.json()["turn"]["skills_used"]] == [
+        ("s_profile", "explicit")
+    ]
     # remove
     r = client.delete(f"/v1/conversations/{c['id']}/skills/s_conv")
     assert "s_conv" not in [a["skill_id"] for a in r.json()["assigned"]]
@@ -133,19 +145,26 @@ def test_scope_precedence_and_disable(client) -> None:
 
 def test_version_pin_and_upgrade_recorded(client) -> None:
     _reg(client, "summarize", version="1.0.0")
-    p = client.post("/v1/projects", json={"name": "p", "skills": [{"skill_id": "summarize", "version": "1.0.0"}]}).json()
+    p = client.post(
+        "/v1/projects",
+        json={"name": "p", "skills": [{"skill_id": "summarize", "version": "1.0.0"}]},
+    ).json()
     r1 = client.post("/v1/chat", json={"project_id": p["id"], "message": "a"})
     assert r1.json()["turn"]["skills_used"][0]["version"] == "1.0.0"
     _reg(client, "summarize", version="2.0.0")
     # pinned project still runs 1.0.0; unpinned conversation gets the newest active
-    r2 = client.post("/v1/chat", json={"conversation_id": r1.json()["conversation_id"], "message": "b"})
+    r2 = client.post(
+        "/v1/chat", json={"conversation_id": r1.json()["conversation_id"], "message": "b"}
+    )
     assert r2.json()["turn"]["skills_used"][0]["version"] == "1.0.0"
     assert r2.json()["turn"]["skills_used"][0]["requested_version"] == "1.0.0"
     r3 = client.post("/v1/chat", json={"message": "c", "skills": ["summarize"]})
     assert r3.json()["turn"]["skills_used"][0]["version"] == "2.0.0"
     assert client.get("/v1/skills/summarize").json()["versions"] == ["1.0.0", "2.0.0"]
     # pin to a non-existent version → 422
-    r = client.post(f"/v1/projects/{p['id']}/skills:assign", json={"skill_id": "summarize", "version": "9.9.9"})
+    r = client.post(
+        f"/v1/projects/{p['id']}/skills:assign", json={"skill_id": "summarize", "version": "9.9.9"}
+    )
     assert r.status_code == 422 and r.json()["error"]["code"] == "skill_not_selectable"
 
 
@@ -167,7 +186,10 @@ def test_disabled_skill_rejected_and_unknown_404(client) -> None:
 
 def test_agent_profile_crud(client) -> None:
     _reg(client, "a")
-    r = client.post("/v1/agent-profiles", json={"name": "P1", "skills": [{"skill_id": "a"}], "default_model": "local-echo-1"})
+    r = client.post(
+        "/v1/agent-profiles",
+        json={"name": "P1", "skills": [{"skill_id": "a"}], "default_model": "local-echo-1"},
+    )
     pid = r.json()["id"]
     assert client.get("/v1/agent-profiles").json()["total"] == 1
     r = client.patch(f"/v1/agent-profiles/{pid}", json={"name": "P2"})
@@ -181,7 +203,10 @@ def test_project_replace_assignments(client) -> None:
     _reg(client, "x1")
     _reg(client, "x2")
     p = client.post("/v1/projects", json={"name": "p"}).json()
-    r = client.put(f"/v1/projects/{p['id']}/skills", json=[{"skill_id": "x1"}, {"skill_id": "x2", "enabled": False}])
+    r = client.put(
+        f"/v1/projects/{p['id']}/skills",
+        json=[{"skill_id": "x1"}, {"skill_id": "x2", "enabled": False}],
+    )
     assert r.status_code == 200, r.text
     assert [e["skill_id"] for e in r.json()["effective"]] == ["x1"]
     assert len(r.json()["assigned"]) == 2

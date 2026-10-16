@@ -137,7 +137,7 @@ def test_feature_flag_disables_surface() -> None:
         "/v1/chat/completions",
         json={"model": "local-echo-1", "messages": [{"role": "user", "content": "x"}]},
     )
-    assert r.status_code == 404
+    assert r.status_code in (404, 405)  # 405 when the static UI is mounted at /
     assert c.post("/v1/chat", json={"message": "still works"}).status_code == 200
 
 

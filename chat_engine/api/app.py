@@ -116,4 +116,3 @@ def mount_ui(app: FastAPI, environ: Mapping[str, str] | None) -> None:
     dist = Path(candidate)
     if (dist / "index.html").is_file():
         app.mount("/", StaticFiles(directory=str(dist), html=True), name="ui")
-
