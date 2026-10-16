@@ -75,6 +75,25 @@ class _Snapshot:
     loaded: bool
 
 
+_SNAPSHOT_CACHE: dict[tuple[str, int], _Snapshot] = {}
+#: only the facts sync_identities() reads (keeps the shared copy small)
+_SNAPSHOT_FIELDS = (
+    "name",
+    "family",
+    "context",
+    "output_limit",
+    "input",
+    "output",
+    "release_date",
+    "reasoning",
+    "tool_call",
+    "structured_output",
+    "attachment",
+    "cost_input",
+    "cost_output",
+)
+
+
 class CatalogService:
     def __init__(
         self,
@@ -95,20 +114,29 @@ class CatalogService:
 
     @staticmethod
     def _load_snapshot(path: Path | None) -> _Snapshot:
-        by_norm: dict[str, list[tuple[str, dict[str, object]]]] = defaultdict(list)
+        """Parse once per process (keyed by path+mtime): the snapshot is immutable data
+        shared by every CatalogService instance — ~10 MB per copy otherwise."""
         if path is None or not path.exists():
             return _Snapshot(by_norm={}, loaded=False)
+        key = (str(path), path.stat().st_mtime_ns)
+        cached = _SNAPSHOT_CACHE.get(key)
+        if cached is not None:
+            return cached
+        by_norm: dict[str, list[tuple[str, dict[str, object]]]] = defaultdict(list)
         doc = json.loads(path.read_text())
         for pkey, provider in doc.get("providers", {}).items():
             for mkey, m in provider.get("models", {}).items():
                 mid = str(m.get("id") or mkey)
                 canonical_id = mid if "/" in mid else f"{pkey}/{mid}"
-                facts = dict(m)
+                facts = {k: m.get(k) for k in _SNAPSHOT_FIELDS if k in m}
                 facts["_provider"] = pkey
                 by_norm[normalize_name(mid)].append((canonical_id, facts))
                 if normalize_name(mkey) != normalize_name(mid):
                     by_norm[normalize_name(mkey)].append((canonical_id, facts))
-        return _Snapshot(by_norm=dict(by_norm), loaded=True)
+        snap = _Snapshot(by_norm=dict(by_norm), loaded=True)
+        _SNAPSHOT_CACHE.clear()
+        _SNAPSHOT_CACHE[key] = snap
+        return snap
 
     @property
     def snapshot_loaded(self) -> bool:
