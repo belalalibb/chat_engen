@@ -163,10 +163,21 @@ def main() -> int:
                 counts["ok"] += 1
                 await adm.settle(got, tokens_actual=10, success=True)
 
+        # burst: 200 workers at once against conservative limits (concurrency=4) —
+        # all-or-nothing semantics mean most are denied; that is the contract, not a bug
         await asyncio.gather(*(w() for _ in range(200)))
-        return counts
+        burst = dict(counts)
+        counts["ok"] = counts["denied"] = 0
+        sem = asyncio.Semaphore(4)
 
-    out["admission_200_workers"] = asyncio.run(hammer())
+        async def paced() -> None:
+            async with sem:
+                await w()
+
+        await asyncio.gather(*(paced() for _ in range(200)))
+        return {"burst_200": burst, "paced_4_concurrent": dict(counts)}
+
+    out["admission"] = asyncio.run(hammer())
     out["rss_mb_peak"] = round(rss_mb(), 1)
 
     verdicts = {
