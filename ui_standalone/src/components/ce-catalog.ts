@@ -21,7 +21,7 @@ export class CeCatalog extends CeElement {
   @state() private items: any[] = [];
   @state() private total = 0;
   @state() private q = "";
-  @state() private scrollTop = 0;
+  @state() private scrollY = 0;
   @state() private aliases: any[] = [];
   @state() private error = "";
   private loading = false;
@@ -50,7 +50,7 @@ export class CeCatalog extends CeElement {
 
   private onScroll(e: Event) {
     const el = e.target as HTMLElement;
-    this.scrollTop = el.scrollTop;
+    this.scrollY = el.scrollTop;
     if (el.scrollTop + el.clientHeight > el.scrollHeight - ROW_H * 20) this.more();
   }
 
@@ -61,7 +61,7 @@ export class CeCatalog extends CeElement {
 
   render() {
     const vh = Math.max(1, Math.ceil(((this.renderRoot.querySelector(".viewport") as HTMLElement)?.clientHeight ?? 600) / ROW_H) + 6);
-    const start = Math.max(0, Math.floor(this.scrollTop / ROW_H) - 3);
+    const start = Math.max(0, Math.floor(this.scrollY / ROW_H) - 3);
     const end = Math.min(this.items.length, start + vh);
     return html`
       <div class="card">
