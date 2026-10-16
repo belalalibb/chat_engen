@@ -1,0 +1,5 @@
+== ruff
+[1;32mAll checks passed![0m
+== ruff format
+122 files already formatted
+== mypy (MYPYPATH=/home/user/ref/general_ai_core)

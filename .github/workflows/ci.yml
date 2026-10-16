@@ -1,0 +1,62 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  gate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Install (upstream pinned by SHA via pyproject; dev + test-openai extras)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,test-openai]"
+      - name: ruff
+        run: python -m ruff check chat_engine tests sdk/python examples && python -m ruff format --check chat_engine tests sdk/python examples
+      - name: mypy
+        shell: bash
+        run: MYPYPATH="$(python -c 'import core,os;print(os.path.dirname(os.path.dirname(core.__file__)))')" python -m mypy chat_engine
+      - name: import-linter (D0/D3)
+        run: lint-imports
+      - name: secret scan
+        run: python scripts/secret_scan.py
+      - name: ui no-copy guard (reference absent in CI ⇒ note only)
+        run: python scripts/ui_no_copy_guard.py
+      - name: pytest (hermetic; live keys never present in CI)
+        run: python -m pytest -q -p no:warnings
+      - name: UI typecheck + build
+        working-directory: ui_standalone
+        run: npm install --no-audit --no-fund && npx tsc -p tsconfig.json --noEmit && npx vite build
+      - name: TS SDK typecheck
+        working-directory: sdk/typescript
+        run: npx -y -p typescript@5 tsc -p tsconfig.json --noEmit
+      - name: Playwright smoke (ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          python -m pip install playwright && python -m playwright install --with-deps chromium
+          PORT=8080 python -m chat_engine serve & sleep 4
+          python tests/ui/smoke_playwright.py http://localhost:8080
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t chat_engine:ci .
+      - name: Smoke /healthz and hermetic /v1/chat
+        run: |
+          docker run -d --rm -p 8080:8080 --name ce chat_engine:ci
+          for i in $(seq 1 20); do curl -fs localhost:8080/healthz && break || sleep 1; done
+          curl -fs -X POST localhost:8080/v1/chat -H 'content-type: application/json' -d '{"message":"hello","model":"local-echo-1"}' | head -c 300
+          curl -fs -o /dev/null -w "ui=%{http_code}\n" localhost:8080/
+          docker stop ce

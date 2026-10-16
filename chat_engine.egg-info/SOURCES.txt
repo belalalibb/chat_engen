@@ -17,6 +17,7 @@ chat_engine/api/__init__.py
 chat_engine/api/admin_capabilities.py
 chat_engine/api/admin_providers.py
 chat_engine/api/app.py
+chat_engine/api/apps.py
 chat_engine/api/catalog.py
 chat_engine/api/chat_stream.py
 chat_engine/api/conversations.py
@@ -28,7 +29,10 @@ chat_engine/api/openai_compat.py
 chat_engine/api/openapi.py
 chat_engine/api/skills.py
 chat_engine/api/usage.py
+chat_engine/app_factory/__init__.py
+chat_engine/app_factory/artifacts.py
 chat_engine/app_factory/contracts.py
+chat_engine/app_factory/runner.py
 chat_engine/capabilities/__init__.py
 chat_engine/capabilities/ledger.py
 chat_engine/capabilities/probes.py
