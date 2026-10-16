@@ -1,5 +1,9 @@
 # CHANGELOG — chat_engine
 
+## v0.1.1 — 2026-10-16 (UI visual identity refresh)
+
+- `ui_standalone/`: new visual identity adapted from the owner's reference (dark-first indigo→cyan accent, glass surfaces, Tajawal/Inter/IBM Plex Mono, light theme, collapsible sidebar, welcome hero, avatar message rows, pill composer). Original implementation; no reference assets copied. All Playwright hooks preserved (12/12), gate green.
+
 ## v0.1.0 — 2026-10-16 (Phase 1 FOUNDATION)
 
 Standalone chat engine composed from `general_ai_core @ 0a13556` (SHA-pinned git dependency, additive-only; import-linter forbids `apps.*`/`ui/`).
