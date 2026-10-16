@@ -1,0 +1,44 @@
+== ruff
+[1;32mAll checks passed![0m
+== ruff format
+122 files already formatted
+== mypy (MYPYPATH=/home/user/ref/general_ai_core)
+Success: no issues found in 74 source files
+== lint-imports
+
+[36m╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐[0m
+[36m╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │[0m
+[36m ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗[0m
+[36m ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝[0m
+[36m╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║[0m
+[36m╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝[0m
+[36m  └──▶║║                    ▲ [0m
+[36m      ╚╝────────────────────┘[0m
+
+[?25l[32m∙∙∙[0m 🧱 Building graph...
+[?25h[1A[2K[?25l[2K🧐 Checking contracts [90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m0/2[0m
+[2K[1A[2K🧐 Checking contracts [90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m2/2[0m
+[2mChecking D3 - only chat_engine.api knows FastAPI[0m[2K[1A[2K🧐 Checking contracts [90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m [32m2/2[0m
+[?25h[1A[2K[1m---------[0m
+[1mContracts[0m
+[1m---------[0m
+
+[1mAnalyzed 104 files, 484 dependencies.[0m
+[1m-------------------------------------[0m
+
+D0/D3 - chat_engine never imports the upstream application layer or UI [32mKEPT[0m
+D3 - only chat_engine.api knows FastAPI [32mKEPT[0m
+
+Contracts: 2 kept, 0 broken.
+== secret scan
+secret scan clean (236 files)
+== ui no-copy guard
+ui_no_copy_guard: checked 19 files against 23 reference files → CLEAN
+== pytest (hermetic, chunked for low-memory hosts)
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m [ 79%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                      [100%][0m
+[32m[32m[1m91 passed[0m[32m in 8.69s[0m[0m
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m  [100%][0m
+[32m[32m[1m71 passed[0m[32m in 22.74s[0m[0m
+GATE GREEN
+GATE_EXIT=0

@@ -1,0 +1,24 @@
+{
+  "n_providers": 10000,
+  "streams": 500,
+  "onboard_s": 348.353,
+  "rss_mb_after_onboard": 580.4,
+  "catalog_entries_p50_ms": 197.57,
+  "catalog_entries_p95_ms": 212.39,
+  "catalog_page_p95_ms": 1264.68,
+  "explicit_p95_ms": 1273.73,
+  "auto_p95_ms": 2293.71,
+  "stream_first_byte_p95_ms": 335.89,
+  "admission_200_workers": {
+    "ok": 0,
+    "denied": 200
+  },
+  "rss_mb_peak": 656.2,
+  "budgets": {
+    "catalog_page_p95": "GAP",
+    "explicit_p95": "GAP",
+    "auto_p95": "GAP",
+    "stream_first_byte_p95": "GAP",
+    "rss_peak": "MET"
+  }
+}
