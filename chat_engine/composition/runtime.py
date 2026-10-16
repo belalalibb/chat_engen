@@ -441,6 +441,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.conversations import InMemoryConversationStore as CEConversationStore
 
     rt.extensions["chat"] = ChatService(rt, CEConversationStore())
+    # CE-12: multi-model strategies over the same governed pipeline
+    from chat_engine.orchestration import Orchestrator
+
+    rt.extensions["orchestrator"] = Orchestrator(rt, rt.extensions["chat"])
     for key in rt.provider_keys:
         pid = rt.providers.get(key).provider.id
         meta = next((b.limits_metadata for b in rt.bindings.bindings_for_provider(pid)), None)

@@ -406,6 +406,8 @@ class ChatService:
     async def chat(self, req: ChatRequest) -> ChatResponse:
         prep = await self.prepare(req)
         self._store.append_turn(prep.user_turn)
+        if req.strategy and req.strategy != "single":
+            return await self._chat_orchestrated(req, prep)
         request_hash = hashlib.sha256(
             json.dumps(req.model_dump(mode="json"), sort_keys=True).encode()
         ).hexdigest()
@@ -571,6 +573,110 @@ class ChatService:
             model_key=model_key,
             usage=usage,
             handoff={k: v for k, v in prep.compiled.items() if k != "messages"},
+        )
+
+    async def _chat_orchestrated(self, req: ChatRequest, prep: Prepared) -> ChatResponse:
+        """CE-12: multi-model strategies; the chosen step becomes the assistant turn and the
+        full trace is persisted on the turn (``metadata.trace``) and returned."""
+        from chat_engine.orchestration import Strategy, StrategyOptions
+
+        orch = self._rt.extensions.get("orchestrator")
+        if orch is None:
+            raise ChatError("conflict", "orchestration is not enabled", http_status=503)
+        try:
+            strategy = Strategy(req.strategy or "single")
+        except ValueError:
+            raise ChatError(
+                "conflict",
+                f"unknown strategy '{req.strategy}'",
+                http_status=422,
+                details={"allowed": [s.value for s in Strategy]},
+            ) from None
+        opts = StrategyOptions.model_validate(req.strategy_options)
+        if opts.provider is None and req.provider:
+            opts = opts.model_copy(update={"provider": req.provider})
+        default_model = (
+            req.model
+            or prep.conversation.model
+            or (prep.project.default_model if prep.project else None)
+        )
+        messages = [dict(m) for m in prep.payload["messages"]]  # type: ignore[union-attr]
+        try:
+            result, trace = await orch.run(
+                strategy,
+                opts,
+                messages=messages,
+                ask=req.message,
+                packet_id=prep.packet.packet_id,
+                conversation_id=prep.conversation.id,
+                generation=dict(req.generation) if req.generation else None,
+                default_model=default_model,
+            )
+        except ChatError as exc:
+            failed = Turn(
+                id=uuid4(),
+                conversation_id=prep.conversation.id,
+                seq=self._store.next_seq(prep.conversation.id),
+                role=CanonicalRole.ASSISTANT,
+                parts=[],
+                status=TurnStatus.FAILED,
+                handoff_packet_id=prep.packet.packet_id,
+                created_at=utc_now(),
+                metadata={"error": {"code": exc.code, "message": exc.message}, "strategy": strategy.value},
+            )
+            self._store.append_turn(failed)
+            exc.details = {**exc.details, "turn_id": str(failed.id)}
+            raise
+        trace_json = trace.model_dump(mode="json", exclude_none=True)
+        turn = Turn(
+            id=uuid4(),
+            conversation_id=prep.conversation.id,
+            seq=self._store.next_seq(prep.conversation.id),
+            role=CanonicalRole.ASSISTANT,
+            parts=[TextPart(text=result.text)],
+            provider_key=result.provider_key,
+            model_key=result.model_key,
+            canonical_id=result.canonical_id,
+            usage=dict(result.usage),
+            latency_ms=result.latency_ms,
+            handoff_packet_id=prep.packet.packet_id,
+            execution_id=result.execution_id,
+            skills_used=prep.skills_used,
+            created_at=utc_now(),
+            metadata={"strategy": strategy.value, "trace": trace_json},
+        )
+        self._store.append_turn(turn)
+        self._store.put_conversation(
+            prep.conversation.model_copy(
+                update={
+                    "turn_count": prep.conversation.turn_count + 2,
+                    "updated_at": utc_now(),
+                    "title": prep.conversation.title
+                    if prep.conversation.turn_count
+                    else req.message[:60],
+                }
+            )
+        )
+        recorder = self._rt.extensions.get("usage_recorder")
+        if recorder is not None:
+            recorder.record_turn(
+                turn,
+                conversation=prep.conversation,
+                provider_key=result.provider_key,
+                model_key=result.model_key,
+                canonical_id=result.canonical_id,
+                status="succeeded",
+            )
+        return ChatResponse(
+            conversation_id=prep.conversation.id,
+            turn=turn,
+            user_turn_id=prep.user_turn.id,
+            execution_id=result.execution_id,
+            provider_key=result.provider_key,
+            model_key=result.model_key,
+            usage=dict(result.usage),
+            handoff={k: v for k, v in prep.compiled.items() if k != "messages"},
+            trace=trace_json,
         )
 
     def record_stream_turn(
