@@ -145,7 +145,7 @@ def test_version_pin_and_upgrade_recorded(client) -> None:
     assert r3.json()["turn"]["skills_used"][0]["version"] == "2.0.0"
     assert client.get("/v1/skills/summarize").json()["versions"] == ["1.0.0", "2.0.0"]
     # pin to a non-existent version → 422
-    r = client.post("/v1/projects/%s/skills:assign" % p["id"], json={"skill_id": "summarize", "version": "9.9.9"})
+    r = client.post(f"/v1/projects/{p['id']}/skills:assign", json={"skill_id": "summarize", "version": "9.9.9"})
     assert r.status_code == 422 and r.json()["error"]["code"] == "skill_not_selectable"
 
 
