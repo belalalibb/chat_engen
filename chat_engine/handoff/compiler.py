@@ -79,6 +79,10 @@ def _system_text(packet: HandoffPacket) -> str:
         lines += ["", "## Skills in effect"] + [
             f"- {s.get('id')}@{s.get('version')}" for s in packet.skills
         ]
+        for s in packet.skills:
+            body = s.get("instructions")
+            if isinstance(body, str) and body.strip():
+                lines += ["", f"### Skill: {s.get('name') or s.get('id')}", body.strip()]
     return "\n".join(lines)
 
 

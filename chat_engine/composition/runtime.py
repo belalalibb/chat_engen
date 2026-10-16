@@ -445,6 +445,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.orchestration import Orchestrator
 
     rt.extensions["orchestrator"] = Orchestrator(rt, rt.extensions["chat"])
+    # CE-19: assignable skills over the upstream SkillRegistry
+    from chat_engine.skills import SkillAssignmentService
+
+    rt.extensions["skills"] = SkillAssignmentService(rt)
     for key in rt.provider_keys:
         pid = rt.providers.get(key).provider.id
         meta = next((b.limits_metadata for b in rt.bindings.bindings_for_provider(pid)), None)

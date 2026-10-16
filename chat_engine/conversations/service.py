@@ -170,9 +170,23 @@ class ChatService:
         assigner = self._rt.extensions.get("skills")
         if assigner is None:
             return []
-        resolved = assigner.resolve_for_turn(
-            conversation=conversation, project=project, explicit=explicit
-        )
+        from chat_engine.skills import SkillNotSelectableError, SkillUnknownError
+
+        try:
+            resolved = assigner.resolve_for_turn(
+                conversation=conversation, project=project, explicit=explicit
+            )
+        except SkillUnknownError as exc:
+            raise ChatError(
+                "not_found", str(exc), http_status=404, details={"skill_id": exc.skill_id}
+            ) from None
+        except SkillNotSelectableError as exc:
+            raise ChatError(
+                "skill_not_selectable",
+                str(exc),
+                http_status=422,
+                details={"skill_id": exc.skill_id, "reason": exc.reason},
+            ) from None
         return [dict(r) for r in resolved]
 
     def build_packet(
