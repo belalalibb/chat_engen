@@ -95,7 +95,10 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
             app.include_router(openai_compat.build_router(runtime))
     if "skills" in runtime.extensions and "chat" in runtime.extensions:
         app.include_router(skills.build_router(runtime))
-    if "app_factory" in runtime.extensions and (environ or {}).get("CE_FEATURE_APP_FACTORY", "1") != "0":
+    if (
+        "app_factory" in runtime.extensions
+        and (environ or {}).get("CE_FEATURE_APP_FACTORY", "1") != "0"
+    ):
         app.include_router(apps.build_router(runtime))
     if "usage_recorder" in runtime.extensions:
         app.include_router(usage.build_router(runtime))

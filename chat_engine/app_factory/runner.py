@@ -65,7 +65,9 @@ class AppFactoryRunner:
             name=req.name,
             status=JobStatus.QUEUED,
             brief=req.brief,
-            stages=[StageRun(key=s.key, status="pending", model=s.model or req.model) for s in stages],
+            stages=[
+                StageRun(key=s.key, status="pending", model=s.model or req.model) for s in stages
+            ],
             created_at=now,
             updated_at=now,
             metadata=dict(req.metadata),
@@ -74,8 +76,14 @@ class AppFactoryRunner:
         self._specs[job.id] = stages
         self._reqs[job.id] = req
         self._outputs[job.id] = []
-        self._tasks[job.id] = asyncio.create_task(self._run(job.id))
+        self._spawn(job.id)
         return job
+
+    def _spawn(self, job_id: UUID) -> None:
+        task = asyncio.create_task(self._run(job_id))
+        self._tasks[job_id] = task
+        self._rt.background_tasks.add(task)  # strong ref: never GC-cancelled mid-flight
+        task.add_done_callback(self._rt.background_tasks.discard)
 
     def get(self, job_id: UUID) -> AppJob:
         job = self._jobs.get(job_id)
@@ -84,24 +92,51 @@ class AppFactoryRunner:
         return job
 
     def list_jobs(self) -> list[AppJob]:
-        return sorted((j for j in self._jobs.values() if j.tenant_id == self._rt.tenant_id), key=lambda j: j.created_at)
+        return sorted(
+            (j for j in self._jobs.values() if j.tenant_id == self._rt.tenant_id),
+            key=lambda j: j.created_at,
+        )
 
     def approve(self, job_id: UUID, *, approved_by: str) -> AppJob:
         job = self.get(job_id)
         if job.status is not JobStatus.AWAITING_APPROVAL:
-            raise ChatError("conflict", f"job is {job.status.value}, not awaiting approval", http_status=409)
+            raise ChatError(
+                "conflict", f"job is {job.status.value}, not awaiting approval", http_status=409
+            )
         idx = job.current_stage
-        stage = job.stages[idx].model_copy(update={"status": "pending", "approved_by": approved_by, "approved_at": utc_now()})
-        job = self._save(job.model_copy(update={"status": JobStatus.QUEUED, "stages": [*job.stages[:idx], stage, *job.stages[idx + 1 :]]}))
-        self._tasks[job.id] = asyncio.create_task(self._run(job.id))
+        stage = job.stages[idx].model_copy(
+            update={"status": "pending", "approved_by": approved_by, "approved_at": utc_now()}
+        )
+        job = self._save(
+            job.model_copy(
+                update={
+                    "status": JobStatus.QUEUED,
+                    "stages": [*job.stages[:idx], stage, *job.stages[idx + 1 :]],
+                }
+            )
+        )
+        self._spawn(job.id)
         return job
 
     def cancel(self, job_id: UUID) -> AppJob:
-        job = self.get(job_id)
+        job = self._save(self.get(job_id).model_copy(update={"status": JobStatus.CANCELLED}))
         t = self._tasks.get(job_id)
         if t is not None and not t.done():
             t.cancel()
-        return self._save(job.model_copy(update={"status": JobStatus.CANCELLED}))
+        return job
+
+    async def drive(self, job_id: UUID) -> AppJob:
+        """Resume a job whose background task was torn down by the host loop (e.g. test
+        clients recreate loops per request). Stage index makes this idempotent."""
+        job = self.get(job_id)
+        t = self._tasks.get(job_id)
+        if job.status in (JobStatus.QUEUED, JobStatus.RUNNING) and (t is None or t.done()):
+            if t is not None and t.cancelled() and job.status is JobStatus.CANCELLED:
+                return job
+            job = self._save(job.model_copy(update={"status": JobStatus.QUEUED}))
+            await self._run(job_id)
+            return self.get(job_id)
+        return job
 
     async def wait(self, job_id: UUID, timeout: float = 30.0) -> AppJob:
         t = self._tasks.get(job_id)
@@ -118,7 +153,9 @@ class AppFactoryRunner:
 
     def _set_stage(self, job: AppJob, idx: int, **upd: Any) -> AppJob:
         st = job.stages[idx].model_copy(update=upd)
-        return self._save(job.model_copy(update={"stages": [*job.stages[:idx], st, *job.stages[idx + 1 :]]}))
+        return self._save(
+            job.model_copy(update={"stages": [*job.stages[:idx], st, *job.stages[idx + 1 :]]})
+        )
 
     def _messages(self, job: AppJob, spec: StageSpec, req: GenerateRequest) -> list[JsonObject]:
         system = (
@@ -150,7 +187,9 @@ class AppFactoryRunner:
         for i, (path, content) in enumerate(obj.items()):
             if i >= MAX_SCAFFOLD_FILES or not isinstance(path, str):
                 break
-            data = (content if isinstance(content, str) else json.dumps(content, indent=2)).encode()[:MAX_FILE_BYTES]
+            data = (
+                content if isinstance(content, str) else json.dumps(content, indent=2)
+            ).encode()[:MAX_FILE_BYTES]
             try:
                 refs.append(self._store.put(job_id, f"scaffold/{path}", data, stage=stage))
             except ValueError:
@@ -170,67 +209,91 @@ class AppFactoryRunner:
                 run = job.stages[idx]
                 if spec.requires_approval and not req.auto_approve and run.approved_by is None:
                     self._set_stage(job, idx, status="awaiting_approval")
-                    self._save(self.get(job_id).model_copy(update={"status": JobStatus.AWAITING_APPROVAL}))
+                    self._save(
+                        self.get(job_id).model_copy(update={"status": JobStatus.AWAITING_APPROVAL})
+                    )
                     return
                 job = self._set_stage(job, idx, status="running", started_at=utc_now())
                 model = spec.model or req.model
-                if model is None:
-                    # AUTO: let the router pick (model=None path of ChatService.route)
-                    model_arg = None
-                else:
-                    model_arg = model
+                if model is None:  # AUTO: let the router pick
+                    decision = self._rt.extensions["chat"].route(None, req.provider, [])
+                    model = self._rt.models.get_by_id(decision.selected.model_id).model_key
                 result = await orch.run_step(
-                    model=model_arg or "",
+                    model=model,
                     provider=req.provider,
                     messages=self._messages(job, spec, req),
                     ask=f"{spec.key}: {job.name}",
                     packet_id=packet_id,
                     conversation_id=None,
-                ) if model_arg else await self._auto_step(orch, job, spec, req, packet_id)
+                )
                 self._outputs[job_id].append((spec.key, result.text))
                 name = spec.output_name or f"{spec.key}.md"
-                ref = self._store.put(job_id, name, result.text.encode(), stage=spec.key, content_type="application/json" if name.endswith(".json") else "text/markdown")
-                extracted = self._extract_scaffold(job_id, result.text, spec.key) if spec.key == "scaffold" else []
+                ref = self._store.put(
+                    job_id,
+                    name,
+                    result.text.encode(),
+                    stage=spec.key,
+                    content_type="application/json" if name.endswith(".json") else "text/markdown",
+                )
+                extracted = (
+                    self._extract_scaffold(job_id, result.text, spec.key)
+                    if spec.key == "scaffold"
+                    else []
+                )
                 usage = dict(job.usage)
                 for k, v in result.usage.items():
                     if isinstance(v, int | float):
                         usage[k] = float(usage.get(k, 0)) + v
                 job = self._set_stage(
-                    job, idx,
-                    status="succeeded", finished_at=utc_now(), provider_key=result.provider_key,
-                    model_key=result.model_key, execution_id=result.execution_id, artifact=ref,
+                    job,
+                    idx,
+                    status="succeeded",
+                    finished_at=utc_now(),
+                    provider_key=result.provider_key,
+                    model_key=result.model_key,
+                    execution_id=result.execution_id,
+                    artifact=ref,
                     extracted_files=len(extracted),
                 )
-                job = self._save(job.model_copy(update={
-                    "artifacts": [*job.artifacts, ref, *extracted],
-                    "usage": usage,
-                    "current_stage": idx + 1,
-                }))
+                job = self._save(
+                    job.model_copy(
+                        update={
+                            "artifacts": [*job.artifacts, ref, *extracted],
+                            "usage": usage,
+                            "current_stage": idx + 1,
+                        }
+                    )
+                )
             self._save(job.model_copy(update={"status": JobStatus.SUCCEEDED}))
         except asyncio.CancelledError:
-            self._save(self.get(job_id).model_copy(update={"status": JobStatus.CANCELLED}))
+            cur = self.get(job_id)
+            if cur.status is not JobStatus.CANCELLED:  # host tore the loop down: resumable
+                idx = min(cur.current_stage, len(cur.stages) - 1)
+                self._set_stage(cur, idx, status="pending")
+                self._save(self.get(job_id).model_copy(update={"status": JobStatus.QUEUED}))
+            raise
         except ChatError as exc:
             job = self.get(job_id)
-            self._set_stage(job, job.current_stage, status="failed", error=f"{exc.code}: {exc.message}", finished_at=utc_now())
-            self._save(self.get(job_id).model_copy(update={"status": JobStatus.FAILED, "error": f"{exc.code}: {exc.message}"}))
+            self._set_stage(
+                job,
+                job.current_stage,
+                status="failed",
+                error=f"{exc.code}: {exc.message}",
+                finished_at=utc_now(),
+            )
+            self._save(
+                self.get(job_id).model_copy(
+                    update={"status": JobStatus.FAILED, "error": f"{exc.code}: {exc.message}"}
+                )
+            )
         except Exception as exc:  # pragma: no cover — defensive: job must never hang
             job = self.get(job_id)
-            self._set_stage(job, job.current_stage, status="failed", error=str(exc), finished_at=utc_now())
-            self._save(self.get(job_id).model_copy(update={"status": JobStatus.FAILED, "error": str(exc)}))
-
-    async def _auto_step(self, orch: Any, job: AppJob, spec: StageSpec, req: GenerateRequest, packet_id: str) -> Any:
-        """AUTO routing: ChatService.route(None, ...) picks; reuse run_step through a tiny shim."""
-        chat = self._rt.extensions["chat"]
-        decision = chat.route(None, req.provider, [])
-        model_key = self._rt.models.get_by_id(decision.selected.model_id).model_key
-        return await orch.run_step(
-            model=model_key,
-            provider=req.provider,
-            messages=self._messages(job, spec, req),
-            ask=f"{spec.key}: {job.name}",
-            packet_id=packet_id,
-            conversation_id=None,
-        )
+            self._set_stage(
+                job, job.current_stage, status="failed", error=str(exc), finished_at=utc_now()
+            )
+            self._save(
+                self.get(job_id).model_copy(update={"status": JobStatus.FAILED, "error": str(exc)})
+            )
 
 
 __all__ = ["AppFactoryRunner", "JobNotFound"]

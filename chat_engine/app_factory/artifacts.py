@@ -18,8 +18,8 @@ _SAFE = re.compile(r"^[A-Za-z0-9._\-/]+$")
 
 
 def _safe_name(name: str) -> str:
-    name = name.strip().lstrip("/")
-    if not name or ".." in name.split("/") or not _SAFE.match(name):
+    name = name.strip()
+    if not name or name.startswith("/") or ".." in name.split("/") or not _SAFE.match(name):
         raise ValueError(f"unsafe artifact name: {name!r}")
     return name
 
@@ -27,7 +27,9 @@ def _safe_name(name: str) -> str:
 class ArtifactStorePort(Protocol):
     backend_name: str
 
-    def put(self, job_id: UUID, name: str, data: bytes, *, stage: str, content_type: str = "text/plain") -> ArtifactRef: ...
+    def put(
+        self, job_id: UUID, name: str, data: bytes, *, stage: str, content_type: str = "text/plain"
+    ) -> ArtifactRef: ...
     def get(self, ref: str) -> bytes: ...
     def list(self, job_id: UUID) -> list[ArtifactRef]: ...
 
@@ -46,7 +48,9 @@ class LocalArtifactStore:
             raise ValueError("artifact path escapes store root")
         return p
 
-    def put(self, job_id: UUID, name: str, data: bytes, *, stage: str, content_type: str = "text/plain") -> ArtifactRef:
+    def put(
+        self, job_id: UUID, name: str, data: bytes, *, stage: str, content_type: str = "text/plain"
+    ) -> ArtifactRef:
         p = self._path(job_id, name)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(data)
@@ -69,7 +73,9 @@ class LocalArtifactStore:
 
     def list(self, job_id: UUID) -> list[ArtifactRef]:
         prefix = f"artifact://{job_id}/"
-        return sorted((r for k, r in self._index.items() if k.startswith(prefix)), key=lambda r: r.name)
+        return sorted(
+            (r for k, r in self._index.items() if k.startswith(prefix)), key=lambda r: r.name
+        )
 
 
 class InMemoryArtifactStore:
@@ -79,7 +85,9 @@ class InMemoryArtifactStore:
         self._blobs: dict[str, bytes] = {}
         self._index: dict[str, ArtifactRef] = {}
 
-    def put(self, job_id: UUID, name: str, data: bytes, *, stage: str, content_type: str = "text/plain") -> ArtifactRef:
+    def put(
+        self, job_id: UUID, name: str, data: bytes, *, stage: str, content_type: str = "text/plain"
+    ) -> ArtifactRef:
         name = _safe_name(name)
         ref = ArtifactRef(
             ref=f"artifact://{job_id}/{name}",
@@ -98,7 +106,9 @@ class InMemoryArtifactStore:
 
     def list(self, job_id: UUID) -> list[ArtifactRef]:
         prefix = f"artifact://{job_id}/"
-        return sorted((r for k, r in self._index.items() if k.startswith(prefix)), key=lambda r: r.name)
+        return sorted(
+            (r for k, r in self._index.items() if k.startswith(prefix)), key=lambda r: r.name
+        )
 
 
 __all__ = ["ArtifactStorePort", "InMemoryArtifactStore", "LocalArtifactStore"]
