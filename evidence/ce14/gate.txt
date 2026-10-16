@@ -3,3 +3,6 @@
 == ruff format
 122 files already formatted
 == mypy (MYPYPATH=/home/user/ref/general_ai_core)
+chat_engine/app_factory/runner.py:134: error: Non-overlapping identity check (left operand type: "Literal[JobStatus.QUEUED, JobStatus.RUNNING]", right operand type: "Literal[JobStatus.CANCELLED]")  [comparison-overlap]
+Found 1 error in 1 file (checked 74 source files)
+GATE_EXIT=1
