@@ -16,6 +16,10 @@ const dict = {
     skills: "المهارات", skill_id: "المعرّف", version: "الإصدار", status: "الحالة", register_skill: "تسجيل مهارة محلية", instructions: "التعليمات", assign: "إسناد", effective: "الفعّالة", agent_profiles: "ملفات الوكيل", source: "المصدر", skills_used: "المهارات المستخدمة",
     trace: "الأثر", step: "الخطوة", reason: "السبب", selected: "المختار", usage: "الاستهلاك", latency: "زمن الاستجابة",
     lang: "English", empty: "لا توجد عناصر", loading: "جارٍ التحميل…", error: "خطأ", ok: "تم", rows: "صفوف",
+    theme: "المظهر", collapse: "طيّ القائمة", workspace: "مساحة العمل", admin_section: "الإدارة",
+    welcome_title: "مرحباً بك في chat_engine", welcome_sub: "محرّك محادثة متعدد المزوّدين. اختر نموذجاً أو اتركه تلقائياً، وابدأ الحوار.",
+    chip_1: "لخّص لي هذا النص", chip_2: "اكتب كود Python يقرأ ملف CSV", chip_3: "اشرح مفهوم Handoff بين النماذج", chip_4: "ساعدني في صياغة بريد احترافي",
+    you: "أنت", assistant: "المساعد", system_lbl: "النظام", copy: "نسخ", copied: "نُسخ", hint_send: "Ctrl+Enter للإرسال", online: "متصل", offline: "غير متصل",
   },
   en: {
     app_title: "chat_engine",
@@ -32,6 +36,10 @@ const dict = {
     skills: "Skills", skill_id: "ID", version: "Version", status: "Status", register_skill: "Register local skill", instructions: "Instructions", assign: "Assign", effective: "Effective", agent_profiles: "Agent profiles", source: "Source", skills_used: "Skills used",
     trace: "Trace", step: "Step", reason: "Reason", selected: "Selected", usage: "Usage", latency: "Latency",
     lang: "العربية", empty: "Nothing here", loading: "Loading…", error: "Error", ok: "OK", rows: "rows",
+    theme: "Theme", collapse: "Collapse sidebar", workspace: "Workspace", admin_section: "Administration",
+    welcome_title: "Welcome to chat_engine", welcome_sub: "A multi-provider chat engine. Pick a model or leave it on auto, and start the conversation.",
+    chip_1: "Summarize this text for me", chip_2: "Write Python that reads a CSV file", chip_3: "Explain model handoff", chip_4: "Help me draft a professional email",
+    you: "You", assistant: "Assistant", system_lbl: "System", copy: "Copy", copied: "Copied", hint_send: "Ctrl+Enter to send", online: "Online", offline: "Offline",
   },
 } as const;
 
@@ -51,3 +59,15 @@ export const setLang = (l: Lang) => {
 };
 export const onLang = (f: () => void) => { listeners.add(f); return () => listeners.delete(f); };
 setLang(current);
+
+/* theme (dark-first; persisted) */
+export type Theme = "dark" | "light";
+let theme: Theme = (localStorage.getItem("ce.theme") as Theme) || "dark";
+export const getTheme = () => theme;
+export const setTheme = (th: Theme) => {
+  theme = th;
+  localStorage.setItem("ce.theme", th);
+  document.documentElement.setAttribute("data-theme", th);
+  listeners.forEach((f) => f());
+};
+setTheme(theme);
