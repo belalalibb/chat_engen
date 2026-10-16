@@ -86,7 +86,7 @@ export class ChatEngine {
 
   constructor(opts: ClientOptions = {}) {
     this.baseUrl = (opts.baseUrl ?? "http://localhost:8080").replace(/\/$/, "");
-    this.fetchImpl = opts.fetch ?? fetch;
+    this.fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init));  // keep window as receiver
     this.maxRetries = opts.maxRetries ?? 3;
     this.headers = { "content-type": "application/json", ...(opts.headers ?? {}) };
     if (opts.apiKey) this.headers["authorization"] = `Bearer ${opts.apiKey}`;
