@@ -1,25 +1,14 @@
-node:events:505
-    throw er; // Unhandled 'error' event
-    ^
+PASS app renders
+PASS rtl default
+PASS user + assistant bubbles ['user', 'assistant']
+FAIL trace rendered for strategy
+PASS catalog virtualized rows rows=9
+PASS skill registered + listed
+PASS providers screen renders
+PASS capabilities screen renders
+PASS admission screen renders
+PASS conversations screen renders
+PASS lang toggle flips dir
+PASS no page errors
 
-Error: write EPIPE
-    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
-    at writeGeneric (node:internal/stream_base_commons:150:3)
-    at Socket._writeGeneric (node:net:1262:11)
-    at Socket._write (node:net:1274:8)
-    at writeOrBuffer (node:internal/streams/writable:574:12)
-    at _write (node:internal/streams/writable:503:10)
-    at Writable.write (node:internal/streams/writable:512:10)
-    at PipeTransport.send (/home/user/ref/general_ai_core/.venv/lib/python3.13/site-packages/playwright/driver/package/lib/coreBundle.js:36134:25)
-    at dispatcherConnection.onmessage (/home/user/ref/general_ai_core/.venv/lib/python3.13/site-packages/playwright/driver/package/lib/coreBundle.js:72062:59)
-    at DispatcherConnection.dispatch (/home/user/ref/general_ai_core/.venv/lib/python3.13/site-packages/playwright/driver/package/lib/coreBundle.js:20213:14)
-Emitted 'error' event on Socket instance at:
-    at emitErrorNT (node:internal/streams/destroy:170:8)
-    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  errno: -32,
-  code: 'EPIPE',
-  syscall: 'write'
-}
-
-Node.js v24.21.0
+11/12 passed

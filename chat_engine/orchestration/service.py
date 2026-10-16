@@ -145,14 +145,22 @@ class Orchestrator:
             )
         if not ok or resp is None:
             err = resp.error if resp else None
+            node_err = dict(node.node.error) if node and isinstance(node.node.error, dict) else {}
+            category = err.category.value if err else node_err.get("category")
+            message = (
+                err.safe_message
+                if err
+                else str(node_err.get("safe_message") or "Execution failed.")
+            )
             raise ChatError(
                 "execution_failed",
-                err.safe_message if err else "Execution failed.",
+                message,
                 http_status=502,
                 details={
                     "execution_id": str(report.execution.id),
                     "step_model": model,
-                    "provider_error_category": err.category.value if err else None,
+                    "provider_error_category": category,
+                    "provider_code": node_err.get("provider_code"),
                 },
             )
         # the provider/model that actually answered (router fallback may differ from selected)
@@ -410,10 +418,10 @@ class Orchestrator:
         default_model: str | None,
         **common: Any,
     ) -> tuple[StepResult, OrchestrationTrace]:
-        tiers = list(opts.tiers) or self._cheapest_first(2)
+        tiers = list(opts.tiers) or self._cheapest_first(3)
         if default_model and default_model not in tiers:
             tiers = [tiers[0], default_model] if tiers else [default_model]
-        tiers = tiers[:2]
+        tiers = tiers[:3] if not opts.tiers else tiers[:2]
         if not tiers:
             raise ChatError("conflict", "cost_tiered: no models available", http_status=503)
         trace = TraceBuilder(strategy=Strategy.COST_TIERED)
@@ -426,12 +434,12 @@ class Orchestrator:
                     model=model, provider=opts.provider, messages=messages, **common
                 )
             except ChatError as exc:
+                # a FAILED tier (quota, outage) is not a spec miss: escalate to the next
+                # routable tier; the single spec-upgrade budget is only spent on spec misses
                 last_exc = exc
                 trace.steps.append(
                     self._step(n, "tier", model, None, reason=f"{exc.code}: {exc.message}")
                 )
-                if can_upgrade:
-                    trace.upgrades += 1
                 continue
             score, fails = score_against_spec(r.text, opts.output_spec)
             self._accumulate(trace, r)

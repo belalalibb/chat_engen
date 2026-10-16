@@ -511,7 +511,11 @@ class ChatService:
                 metadata={
                     "error": {"category": err.category.value, "message": err.safe_message}
                     if err
-                    else {"message": "execution failed"}
+                    else (
+                        dict(node.node.error)
+                        if node and isinstance(node.node.error, dict)
+                        else {"message": "execution failed"}
+                    )
                 },
             )
             self._store.append_turn(failed)
@@ -525,14 +529,20 @@ class ChatService:
                     canonical_id=None,
                     status="failed",
                 )
+            node_err = dict(node.node.error) if node and isinstance(node.node.error, dict) else {}
             raise ChatError(
                 "execution_failed",
-                err.safe_message if err else "Execution failed.",
+                err.safe_message
+                if err
+                else str(node_err.get("safe_message") or "Execution failed."),
                 http_status=502,
                 details={
                     "execution_id": str(report.execution.id),
                     "turn_id": str(failed.id),
-                    "provider_error_category": err.category.value if err else None,
+                    "provider_error_category": err.category.value
+                    if err
+                    else node_err.get("category"),
+                    "provider_code": node_err.get("provider_code"),
                 },
             )
         content = resp.output.get("content")
