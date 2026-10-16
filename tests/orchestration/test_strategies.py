@@ -32,7 +32,7 @@ class ScriptedAdapter(LocalEchoAdapter):
         self.calls: list[dict] = []
 
     async def generate(self, request: ProviderGenerateRequest) -> ProviderGenerateResponse:
-        model = request.model_name
+        model = request.provider_model_name
         self.calls.append({"model": model, "messages": list(request.payload.get("messages", []))})
         if model in self.fail:
             return ProviderGenerateResponse(
@@ -287,7 +287,7 @@ async def test_steps_go_through_admission(runtime: Runtime) -> None:
     add_scripted(runtime, "pa", ["model-a"], {"model-a": "A"})
     add_scripted(runtime, "pb", ["model-b"], {"model-b": "B"})
     adm = runtime.extensions["admission"]
-    adm.set_limits("provider:pb", Limits.conservative().model_copy(update={"rpm": 0}))
+    adm.set_limits("provider:pb", Limits.conservative().model_copy(update={"budget": 0.5}))
     svc = runtime.extensions["chat"]
     from chat_engine.conversations import ChatError
 
