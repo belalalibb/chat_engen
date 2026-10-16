@@ -21,6 +21,7 @@ from chat_engine_client import (  # noqa: E402
     RetryExhausted,
 )
 from chat_engine_client.client import parse_sse  # noqa: E402
+
 from tests.streaming.test_five_cases import add_streaming_provider  # noqa: E402
 
 

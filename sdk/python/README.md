@@ -10,7 +10,7 @@ pip install -e sdk/python        # or: pip install chat-engine-client (CE-16 pre
 from chat_engine_client import ChatEngine
 
 with ChatEngine("http://localhost:8080") as ce:
-    r = ce.chat("مرحبا")                               # يُنشئ محادثة
+    r = ce.chat("مرحبا")  # يُنشئ محادثة
     r = ce.chat("تابع", conversation_id=r.conversation_id)
     for ev in ce.chat_stream("اشرح أكثر", conversation_id=r.conversation_id):
         print(ev.delta, end="")

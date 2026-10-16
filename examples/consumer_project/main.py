@@ -21,7 +21,9 @@ def main() -> int:
     base = os.environ.get("CHAT_ENGINE_URL", "http://localhost:8080")
     with ChatEngine(base) as ce:
         h = ce.health()
-        print("[health]", h["status"], "upstream", h["upstream_sha"][:7], "providers", h["providers"])
+        print(
+            "[health]", h["status"], "upstream", h["upstream_sha"][:7], "providers", h["providers"]
+        )
         proj = ce.create_project("consumer demo", system_instructions="Answer briefly.")
         r1 = ce.chat("What is chat_engine?", project_id=proj["id"])
         print("[turn 1]", r1.provider_key, r1.model_key, "->", r1.text[:80])

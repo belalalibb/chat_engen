@@ -26,7 +26,7 @@ def _backoff(attempt: int, err: ChatEngineAPIError | None, headers: httpx.Header
             return float(headers["retry-after"])
         except ValueError:
             pass
-    return min(8.0, 0.25 * (2**attempt)) * (0.5 + random.random())  # noqa: S311
+    return min(8.0, 0.25 * (2**attempt)) * (0.5 + random.random())
 
 
 def parse_sse(lines: Iterable[str]) -> Iterator[StreamEvent]:
@@ -111,6 +111,15 @@ class _Base:
             body = {"error": {"message": resp.text, "code": f"http_{resp.status_code}"}}
         raise ChatEngineAPIError(resp.status_code, body)
 
+    def _final(self, resp: httpx.Response, attempt: int) -> None:
+        """Last attempt: a still-retryable status after ≥1 retry ⇒ RetryExhausted."""
+        if attempt > 0 and resp.status_code in RETRYABLE:
+            try:
+                self._raise(resp)
+            except ChatEngineAPIError as e:
+                raise RetryExhausted(e.status, e.body) from None
+        self._raise(resp)
+
 
 class ChatEngine(_Base):
     """Synchronous client."""
@@ -142,7 +151,7 @@ class ChatEngine(_Base):
                     last = e
                 time.sleep(_backoff(attempt, last, resp.headers))
                 continue
-            self._raise(resp)
+            self._final(resp, attempt)
             return {} if resp.status_code == 204 else dict(resp.json())
         raise RetryExhausted(last.status if last else 503, last.body if last else {})
 
@@ -278,7 +287,7 @@ class AsyncChatEngine(_Base):
                     last = e
                 await asyncio.sleep(_backoff(attempt, last, resp.headers))
                 continue
-            self._raise(resp)
+            self._final(resp, attempt)
             return {} if resp.status_code == 204 else dict(resp.json())
         raise RetryExhausted(last.status if last else 503, last.body if last else {})
 
