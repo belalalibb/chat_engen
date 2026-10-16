@@ -9,7 +9,7 @@ export class CeConversations extends CeElement {
   static styles = [CeElement.baseStyles, css`
     :host { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ce-gap); }
     @media (max-width: 900px) { :host { grid-template-columns: 1fr; } }
-    tr.click { cursor: pointer; } tr.click:hover td { background: var(--ce-bg-elev-2); }
+    tr.click { cursor: pointer; } tr.click:hover td { background: var(--ce-accent-soft); }
   `];
 
   @state() private projects: any[] = [];

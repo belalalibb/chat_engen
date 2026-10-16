@@ -11,10 +11,10 @@ const PAGE = 500;
 @customElement("ce-catalog")
 export class CeCatalog extends CeElement {
   static styles = [CeElement.baseStyles, css`
-    .viewport { height: calc(100vh - 220px); overflow: auto; border: 1px solid var(--ce-border); border-radius: var(--ce-radius-sm); position: relative; }
+    .viewport { height: calc(100vh - 220px); overflow: auto; border: 1px solid var(--ce-border); border-radius: var(--ce-radius); position: relative; background: var(--ce-bg-2); }
     .spacer { position: relative; }
     .r { position: absolute; left: 0; right: 0; height: ${ROW_H}px; display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr; align-items: center; padding: 0 10px; border-bottom: 1px solid var(--ce-border); font-size: .88rem; }
-    .r:hover { background: var(--ce-bg-elev-2); }
+    .r:hover { background: var(--ce-accent-soft); }
     .hdr { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr; padding: 6px 10px; color: var(--ce-text-dim); font-size: .8rem; }
   `];
 

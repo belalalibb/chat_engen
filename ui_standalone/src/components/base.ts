@@ -9,7 +9,8 @@ export class CeElement extends LitElement {
   static baseStyles = css`
     :host { display: block; color: var(--ce-text); font-family: var(--ce-font); font-size: var(--ce-fs-base); }
     *, *::before, *::after { box-sizing: border-box; }
-    h2 { font-size: var(--ce-fs-lg); margin: 0 0 var(--ce-gap); font-weight: 700; letter-spacing: -.01em; }
+    h2 { font-size: var(--ce-fs-lg); margin: 0 0 var(--ce-gap); font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+    .card > h2::before { content: ""; width: 4px; height: 16px; border-radius: 3px; background: var(--ce-gradient); flex: none; }
     h3 { font-size: var(--ce-fs-base); margin: 0 0 8px; font-weight: 600; }
 
     /* surfaces */
