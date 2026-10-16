@@ -29,6 +29,4 @@ D3 - only chat_engine.api knows FastAPI KEPT
 Contracts: 2 kept, 0 broken.
 == secret scan
 SECRET SCAN FAILED:
-tests/usage/test_usage.py:240: ghp_[A-Za-z0-9]{20,}
-tests/usage/test_usage.py:240: sk-[A-Za-z0-9\-_]{20,}
-tests/usage/test_usage.py:264: ghp_[A-Za-z0-9]{20,}
+tests/usage/test_usage.py:267: ghp_[A-Za-z0-9]{20,}

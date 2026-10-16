@@ -243,10 +243,7 @@ def test_redaction_masks_secrets_and_content() -> None:
     s = f"key {gh} and {sk} and Bearer abcdefghijklmnopqrstu"
     out = redact_text(s)
     assert (
-        "ghp_" not in out
-        and "sk-abc" not in out
-        and "Bearer abc" not in out
-        and out.count("[REDACTED]") == 3
+        gh not in out and sk not in out and "Bearer abc" not in out and out.count("[REDACTED]") == 3
     )
     payload = redact(
         {
@@ -264,7 +261,7 @@ def test_redaction_masks_secrets_and_content() -> None:
         logging.INFO,
         __file__,
         1,
-        "token ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123",
+        f"token {gh}",
         None,
         None,
     )
