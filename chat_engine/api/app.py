@@ -94,4 +94,26 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
     if "skills" in runtime.extensions and "chat" in runtime.extensions:
         app.include_router(skills.build_router(runtime))
     install_openapi(app, upstream_sha=UPSTREAM_SHA)
+    mount_ui(app, environ)
     return app
+
+
+def mount_ui(app: FastAPI, environ: Mapping[str, str] | None) -> None:
+    """Serve the built standalone UI (``ui_standalone/dist``) at ``/`` when present.
+
+    Resolution: ``CE_UI_DIST`` env → repo-relative ``ui_standalone/dist``. Absent ⇒ no
+    static mount (API-only process). Registered LAST so ``/v1/*`` always wins.
+    """
+    import os
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
+
+    env = environ if environ is not None else os.environ
+    candidate = env.get("CE_UI_DIST") or str(
+        Path(__file__).resolve().parents[2] / "ui_standalone" / "dist"
+    )
+    dist = Path(candidate)
+    if (dist / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=str(dist), html=True), name="ui")
+
