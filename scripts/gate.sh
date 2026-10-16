@@ -11,5 +11,7 @@ echo "== mypy (MYPYPATH=$UPSTREAM_SRC)"; MYPYPATH="$UPSTREAM_SRC" "$PY" -m mypy 
 echo "== lint-imports"; "$BIN/lint-imports"
 echo "== secret scan"; "$PY" scripts/secret_scan.py
 echo "== ui no-copy guard"; "$PY" scripts/ui_no_copy_guard.py
-echo "== pytest (hermetic)"; env -u GROQ_API_KEY -u GSK_API_KEY -u GSK_TOKEN -u OPENAI_API_KEY "$PY" -m pytest tests -p no:cacheprovider -W ignore -q -o addopts=""
+echo "== pytest (hermetic, chunked for low-memory hosts)"
+env -u GROQ_API_KEY -u GSK_API_KEY -u GSK_TOKEN -u OPENAI_API_KEY "$PY" -m pytest -q -p no:cacheprovider -W ignore -o addopts="" tests/compat tests/arch tests/handoff tests/catalog tests/providers tests/capabilities tests/admission tests/streaming
+env -u GROQ_API_KEY -u GSK_API_KEY -u GSK_TOKEN -u OPENAI_API_KEY "$PY" -m pytest -q -p no:cacheprovider -W ignore -o addopts="" tests/conversations tests/api tests/sdk tests/orchestration tests/skills tests/usage tests/app_factory
 echo "GATE GREEN"

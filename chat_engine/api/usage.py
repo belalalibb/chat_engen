@@ -89,7 +89,7 @@ def build_router(rt: Runtime) -> APIRouter:
             return JSONResponse(
                 content={"pricing": p.model_dump(mode="json", exclude_none=True) if p else None}
             )
-        rows = rec.pricing.records()
+        rows = rec.pricing.records()  # triggers lazy snapshot load
         return JSONResponse(
             content={
                 "snapshot_loaded": rec.pricing.snapshot_loaded,

@@ -12,11 +12,17 @@ SNAPSHOT = Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "models
 
 
 class PricingBook:
-    def __init__(self) -> None:
+    def __init__(self, *, lazy_snapshot: Path | None = None) -> None:
         self._by_exact: dict[tuple[str, str], PricingRecord] = {}  # (provider_key, model_key)
         self._by_model: dict[str, PricingRecord] = {}  # model_key → any-provider price
         self.snapshot_loaded = False
         self.snapshot_fetched_at: str | None = None
+        self._lazy = lazy_snapshot  # parsed on first lookup/records(), not at boot
+
+    def _ensure(self) -> None:
+        if self._lazy is not None:
+            path, self._lazy = self._lazy, None
+            self.load_models_dev(path)
 
     # -- loading ------------------------------------------------------------------------------
 
@@ -78,6 +84,7 @@ class PricingBook:
     def lookup(self, provider_key: str | None, model_key: str | None) -> PricingRecord | None:
         if model_key is None:
             return None
+        self._ensure()
         if provider_key and (provider_key, model_key) in self._by_exact:
             return self._by_exact[(provider_key, model_key)]
         # manual any-provider override beats snapshot fallback
@@ -103,6 +110,7 @@ class PricingBook:
         return round(amount, 8)
 
     def records(self) -> list[PricingRecord]:
+        self._ensure()
         seen: dict[str, PricingRecord] = {}
         for r in list(self._by_exact.values()) + list(self._by_model.values()):
             seen[r.ref] = r
