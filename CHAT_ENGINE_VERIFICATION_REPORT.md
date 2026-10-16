@@ -18,7 +18,8 @@
 | سجل استهلاك واحد بالضبط لكل طلب عبر 6 أسطح | `tests/usage/test_usage.py` | تمر |
 | App Factory: 3 مراحل → artifacts، توقّف عند `requires_approval` واستئناف | `tests/app_factory/test_runner.py` | تمر |
 | Skills: إسناد بالنطاقات، تعطيل، نسخة مسجّلة في كل Turn | `tests/skills/test_assignable_skills.py` | تمر |
-| UI smoke في متصفح حقيقي (Playwright): 7 شاشات، RTL/LTR، تسجيل مهارة، كتالوج virtualized | `evidence/ce13/playwright_smoke.txt` | 11/12 PASS؛ الفاشل الوحيد = "trace rendered" لأن المزوّد الحي الوحيد في الصندوق (`genspark_llm`) يرفض الاستدلال بـ `plan_refusal_200` (quota_exceeded) — الآن `cost_tiered` ينوّع المزوّدين ويعود إلى `local_echo`؛ إعادة التشغيل مسجّلة أدناه إن أُعيدت قبل الإصدار |
+| UI smoke في متصفح حقيقي (Playwright/Chromium): 7 شاشات، RTL/LTR، بث + فقاعات، أثر الاستراتيجية، تسجيل مهارة، كتالوج virtualized | `evidence/ce13/playwright_smoke.txt` | **12/12 PASS** (كشف وأصلح خطأين حقيقيين في SDK TS: `new URL` مع base نسبي، و`fetch` بلا receiver) |
+| `cost_tiered` على الخادم الحي مع مزوّد يرفض الاستدلال (`plan_refusal_200`) | تشغيل يدوي مسجَّل في الـ ledger | يتدرّج إلى `local_echo` ويعيد trace: `claude-opus-4-5 failed → local-echo-1 succeeded` |
 
 ## 2. UNVERIFIED (no live key)
 
