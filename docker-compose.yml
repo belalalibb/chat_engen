@@ -1,0 +1,27 @@
+services:
+  chat_engine:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      PORT: "8080"
+      # Live keys are OPTIONAL and never baked in — pass from your shell:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GSK_API_KEY: ${GSK_API_KEY:-}
+      # Multi-replica safe admission (optional):
+      ADMISSION_REDIS_URL: ${ADMISSION_REDIS_URL:-}
+      CE_ARTIFACT_DIR: /data/artifacts
+    volumes: ["ce_data:/data"]
+    depends_on: []
+  redis:
+    image: redis:7-alpine
+    profiles: ["redis"]
+    ports: ["6379:6379"]
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment: { POSTGRES_USER: ce, POSTGRES_PASSWORD: ce, POSTGRES_DB: ce }
+    ports: ["5432:5432"]
+    volumes: ["pg_data:/var/lib/postgresql/data"]
+volumes:
+  ce_data: {}
+  pg_data: {}
