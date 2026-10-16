@@ -1,0 +1,34 @@
+== ruff
+All checks passed!
+== ruff format
+115 files already formatted
+== mypy (MYPYPATH=/home/user/ref/general_ai_core)
+Success: no issues found in 69 source files
+== lint-imports
+
+╔══╗─────────▶╔╗ ╔╗      ╔╗◀───┐
+╚╣╠╝◀─────┐  ╔╝╚╗║║────▶╔╝╚╗   │
+ ║║   ╔══╦══╦╩╗╔╝║║  ╔╦═╩╗╔╝╔═╦══╗
+ ║║╔══╣╔╗║╔╗║╔╣║ ║║ ╔╬╣╔╗║║ ║│║╔═╝
+╔╣╠╣║║║╚╝║╚╝║║║╚╗║╚═╝║║║║║╚╗║═╣║
+╚══╩╩╩╣╔═╩══╩╝╚═╝╚═══╩╩╝╚╩═╩╩═╩╝
+  └──▶║║                    ▲ 
+      ╚╝────────────────────┘
+
+
+---------
+Contracts
+---------
+
+Analyzed 99 files, 445 dependencies.
+------------------------------------
+
+D0/D3 - chat_engine never imports the upstream application layer or UI KEPT
+D3 - only chat_engine.api knows FastAPI KEPT
+
+Contracts: 2 kept, 0 broken.
+== secret scan
+SECRET SCAN FAILED:
+tests/usage/test_usage.py:240: ghp_[A-Za-z0-9]{20,}
+tests/usage/test_usage.py:240: sk-[A-Za-z0-9\-_]{20,}
+tests/usage/test_usage.py:264: ghp_[A-Za-z0-9]{20,}
