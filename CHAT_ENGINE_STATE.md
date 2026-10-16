@@ -3,12 +3,12 @@
 ```text
 STATE_VERSION: 2
 PHASE: 1 — FOUNDATION (owner approved full plan 2026-10-15; autonomous execution CE-01..CE-18 + CE-19 Skills)
-CURRENT_TASK: CE-19 Assignable Skills (pulled before UI so CE-13 can show it)
+CURRENT_TASK: CE-14 App Factory execution
 CURRENT_TASK_STATUS: IN_PROGRESS
 OWNER_APPROVAL: YES — 2026-10-15 (full approval + delegation: no intermediate gates; deliver preview URL only at completion; added requirement: Assignable Skills → CE-19)
 UPSTREAM_REF: general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 LAST_TRUSTED_COMMIT: (see ledger — updated per checkpoint)
-NEXT_TASK: CE-19 chat_engine/skills — AgentProfile, assignments (profile/project/conversation/explicit), resolve_for_turn with versions, /v1/skills upstream-shaped + assignment API
+NEXT_TASK: CE-14 AppFactoryRunner (spec→scaffold→review via sequential_handoff, ArtifactStore, approval gate, async /v1/apps:generate)
 ```
 
 ## What the owner must approve (gate for CE-01)
@@ -44,6 +44,9 @@ Approval may be partial (e.g. "approve all except D9 → use React"): record the
 | 11 | owner approval recorded; ADR-CE-0001 ACCEPTED | 120821b | — | phase 1 |
 | 12 | CE-01: baseline copy (sha256 ==), 14 golden execute + models + events, 14 manifests, COMPATIBILITY_MAP | fe13617 | `evidence/ce01/` | DONE |
 | 13 | CE-02: skeleton, pyproject (SHA pin), compat deriver + 3 guards, arch guard, secret scan | 9374cec | — | pushed |
+| 26 | CE-19: `chat_engine.skills` — `SkillAssignmentService` over upstream `SkillRegistry` (selectability = upstream ACTIVE∧LOCAL, never re-implemented); AgentProfile; scopes profile→project→conversation→explicit (narrowest wins, `enabled:false` disables inherited, explicit replaces); `resolve_for_turn` records registry version per skill → `Turn.skills_used`; instruction bodies injected into packet system text; API: upstream-shaped `GET /v1/skills`, detail, `/v1/admin/skills` register/enable/disable, `/v1/agent-profiles` CRUD, project/conversation assign/enable/disable/remove/replace + effective view | this | `evidence/ce19/gate.txt` (10 tests) | DONE |
+| 27 | CE-13: `ui_standalone/` — Vite+Lit+TS, original tokens (dark/light), ar/en i18n with RTL, 7 screens (chat stream/cancel/resume + model picker + strategy/trace + skills_used; conversations/projects; virtualized catalog + alias decide; providers lifecycle + BYOK one-shot key; capability ledger; admission/health; skills + agent profiles + assignment); served at `/` by chat_engine (`CE_UI_DIST`); `scripts/ui_no_copy_guard.py` in gate; Playwright smoke `tests/ui/smoke_playwright.py` | this | `evidence/ce13/` | DONE (UI bundle 66 KB) |
+| 28 | CE-15: `chat_engine.usage` — `PricingBook` (models.dev snapshot sourced+dated, manual overrides, cached tokens), `UsageRecorder` (exactly one record per request_id across chat/stream/partial/failed/orchestration/openai_compat; estimated-token flag; cost with `pricing_ref` or `known:false`), `GET /v1/usage` grouped aggregates p50/p95, `/v1/usage/records`, `/v1/admin/pricing`; `chat_engine.observability` redaction (secret patterns + content keys), JSON logs, optional OTel (no-op without endpoint/extra — `[otel]` extra NOT added yet: no dependency without need) | this | `evidence/ce15/gate.txt` | DONE |
 | 25 | CE-12: `chat_engine.orchestration` — `Orchestrator.run_step` (ONE governed step: route → admission → ExecutionService; attribution from winning attempt) + `sequential_handoff` (previous output in-packet), `judge_select` (output_spec heuristic + optional LLM judge, failed candidates traced), `cost_tiered` (≤1 upgrade, derived tiers) + `OrchestrationTrace` persisted on turn metadata and returned by `POST /v1/chat {strategy, strategy_options}`; upstream `MultiModelExecutor`/`SelectionStrategy` untouched | this | `evidence/ce12/gate.txt` | **GATE GREEN: 135 passed** |
 | 24 | CE-11: `sdk/python/chat_engine_client` (sync+async, SSE parser, retry honouring `Retry-After`/`retry_after_ms`, typed views, httpx-only) + `sdk/typescript` (zero-dep fetch+SSE, `tsc --noEmit` clean) + `examples/consumer_project` (multi-turn, stream, OpenAI-compat, R1 core-name check; imports nothing from apps/ui) | this | `evidence/ce11/{gate,tsc}.txt` | **GATE GREEN: 122 passed** |
 | 23 | CE-10: OpenAI-compatible `POST /v1/chat/completions` (sync+stream, tools, usage, OpenAI error envelope) + `/v1/openai/models`; `CE_FEATURE_OPENAI_COMPAT` flag; public OpenAPI with `x-ce-stability` per op + `x-ce-upstream-sha`; ADR-CE-0002 (error codes/mapping/downgrade) + `docs/API.md`; official `openai` SDK (test-only extra `test-openai`, MIT) passes sync/stream/errors hermetically | this | `evidence/ce10/gate.txt` | **GATE GREEN: 116 passed** |
