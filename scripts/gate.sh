@@ -10,5 +10,6 @@ UPSTREAM_SRC="$("$PY" -c 'import core, os; print(os.path.dirname(os.path.dirname
 echo "== mypy (MYPYPATH=$UPSTREAM_SRC)"; MYPYPATH="$UPSTREAM_SRC" "$PY" -m mypy chat_engine
 echo "== lint-imports"; "$BIN/lint-imports"
 echo "== secret scan"; "$PY" scripts/secret_scan.py
+echo "== ui no-copy guard"; "$PY" scripts/ui_no_copy_guard.py
 echo "== pytest (hermetic)"; env -u GROQ_API_KEY -u GSK_API_KEY -u GSK_TOKEN -u OPENAI_API_KEY "$PY" -m pytest tests -p no:cacheprovider -W ignore -q -o addopts=""
 echo "GATE GREEN"
