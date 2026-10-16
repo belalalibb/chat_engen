@@ -461,6 +461,15 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         pricing, enabled=env.get("CE_FEATURE_USAGE", "1") != "0"
     )
     rt.extensions["tracer"] = build_tracer(env)
+    # CE-14: App Factory (artifacts only; approval gate)
+    from pathlib import Path as _Path
+
+    from chat_engine.app_factory import AppFactoryRunner, InMemoryArtifactStore, LocalArtifactStore
+
+    art_dir = env.get("CE_ARTIFACT_DIR")
+    rt.extensions["app_factory"] = AppFactoryRunner(
+        rt, LocalArtifactStore(_Path(art_dir)) if art_dir else InMemoryArtifactStore()
+    )
     rt.extensions["logger"] = configure_logging(env.get("CE_LOG_LEVEL", "INFO"))
     for key in rt.provider_keys:
         pid = rt.providers.get(key).provider.id
