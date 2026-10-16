@@ -37,13 +37,13 @@ def build_tracer(env: Mapping[str, str]) -> Tracer:
     if not endpoint:
         return Tracer(None)
     try:
-        from opentelemetry import trace  # type: ignore[import-not-found]
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # type: ignore[import-not-found]
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
             OTLPSpanExporter,
         )
-        from opentelemetry.sdk.resources import Resource  # type: ignore[import-not-found]
-        from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore[import-not-found]
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
     except Exception:  # extra not installed ⇒ honest no-op
         return Tracer(None)
     provider = TracerProvider(resource=Resource.create({"service.name": "chat_engine"}))

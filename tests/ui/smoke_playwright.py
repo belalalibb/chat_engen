@@ -36,7 +36,9 @@ def main() -> int:
         chat.locator("[data-testid=composer]").fill("hello from playwright")
         chat.locator("[data-testid=send]").click()
         page.wait_for_timeout(2500)
-        roles = chat.locator(".msg").evaluate_all("els => els.map(e => e.getAttribute('data-role'))")
+        roles = chat.locator(".msg").evaluate_all(
+            "els => els.map(e => e.getAttribute('data-role'))"
+        )
         check("user + assistant bubbles", roles[:1] == ["user"] and len(roles) >= 2, str(roles))
 
         # orchestration via sync path shows a trace
@@ -57,7 +59,10 @@ def main() -> int:
         page.fill("ce-skills [data-testid=skill-id]", "pw_skill")
         page.click("ce-skills [data-testid=register-skill]")
         page.wait_for_timeout(800)
-        check("skill registered + listed", page.locator("ce-skills tr[data-skill=pw_skill]").count() == 1)
+        check(
+            "skill registered + listed",
+            page.locator("ce-skills tr[data-skill=pw_skill]").count() == 1,
+        )
 
         for nav in ("providers", "capabilities", "admission", "conversations"):
             page.click(f"[data-nav={nav}]")

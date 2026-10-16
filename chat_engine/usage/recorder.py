@@ -22,7 +22,18 @@ from chat_engine.usage.pricing import PricingBook
 if TYPE_CHECKING:
     from chat_engine.conversations.contracts import Conversation, Turn
 
-GROUPS = {"tenant_id", "project_id", "conversation_id", "provider_key", "model_key", "canonical_id", "surface", "status", "day", "strategy"}
+GROUPS = {
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "provider_key",
+    "model_key",
+    "canonical_id",
+    "surface",
+    "status",
+    "day",
+    "strategy",
+}
 
 
 def tokens_from_usage(usage: JsonObject, *, fallback_chars: int = 0) -> TokenCounts:

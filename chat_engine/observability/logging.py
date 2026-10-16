@@ -29,7 +29,10 @@ class JsonFormatter(logging.Formatter):
 
 def configure_logging(level: str = "INFO") -> logging.Logger:
     root = logging.getLogger("chat_engine")
-    if not any(isinstance(h, logging.StreamHandler) and isinstance(h.formatter, JsonFormatter) for h in root.handlers):
+    if not any(
+        isinstance(h, logging.StreamHandler) and isinstance(h.formatter, JsonFormatter)
+        for h in root.handlers
+    ):
         h = logging.StreamHandler(sys.stdout)
         h.setFormatter(JsonFormatter())
         root.addHandler(h)

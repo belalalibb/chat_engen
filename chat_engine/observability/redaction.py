@@ -15,7 +15,23 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]{16,}"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
 ]
-SENSITIVE_KEYS = {"secret", "api_key", "apikey", "authorization", "password", "token", "credential", "messages", "content", "ask", "message", "text", "delta", "instructions", "system_instructions"}
+SENSITIVE_KEYS = {
+    "secret",
+    "api_key",
+    "apikey",
+    "authorization",
+    "password",
+    "token",
+    "credential",
+    "messages",
+    "content",
+    "ask",
+    "message",
+    "text",
+    "delta",
+    "instructions",
+    "system_instructions",
+}
 MASK = "[REDACTED]"
 
 

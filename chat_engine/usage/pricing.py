@@ -36,7 +36,11 @@ class PricingBook:
                 ci, co = m.get("cost_input"), m.get("cost_output")
                 if not isinstance(ci, int | float) or not isinstance(co, int | float):
                     continue
-                cc = m.get("cost_cache_read") if isinstance(m.get("cost_cache_read"), int | float) else None
+                cc = (
+                    m.get("cost_cache_read")
+                    if isinstance(m.get("cost_cache_read"), int | float)
+                    else None
+                )
                 rec = PricingRecord(
                     ref=f"models.dev:{pkey}/{mkey}@{verified_at.date().isoformat()}",
                     provider_key=str(pkey),
@@ -88,7 +92,10 @@ class PricingBook:
     def cost_for(rec: PricingRecord, tokens: TokenCounts) -> float:
         cached = tokens.cached or 0
         billable_in = max(0, tokens.input - cached)
-        amount = billable_in * rec.input_per_1m / 1_000_000 + tokens.output * rec.output_per_1m / 1_000_000
+        amount = (
+            billable_in * rec.input_per_1m / 1_000_000
+            + tokens.output * rec.output_per_1m / 1_000_000
+        )
         if cached and rec.cached_input_per_1m is not None:
             amount += cached * rec.cached_input_per_1m / 1_000_000
         elif cached:
