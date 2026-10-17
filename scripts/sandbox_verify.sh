@@ -16,7 +16,7 @@ sudo "$PY" -m playwright install-deps chromium >/dev/null 2>&1 || true
 echo "== 2 gate (servers stopped)"; kill_port 8080; kill_port 8800; sleep 1
 timeout 500 bash scripts/gate.sh "$PY" > evidence/ce20/gate.txt 2>&1; echo "GATE_EXIT=$? $(tail -1 evidence/ce20/gate.txt)"
 
-echo "== 3 servers"; WITH_PLAYWRIGHT=0 bash scripts/sandbox_up.sh 2>&1 | grep -E "GATEWAY_UP|CHAT_ENGINE_UP"
+echo "== 3 servers"; WITH_PLAYWRIGHT=0 bash scripts/sandbox_up.sh > "$RUN_DIR/up.log" 2>&1; grep -E "GATEWAY_UP|CHAT_ENGINE_UP" "$RUN_DIR/up.log"
 
 echo "== 4 smoke"; timeout 300 "$PY" tests/ui/smoke_playwright.py http://localhost:8080 > evidence/ce20/playwright_smoke.txt 2>&1; tail -1 evidence/ce20/playwright_smoke.txt
 

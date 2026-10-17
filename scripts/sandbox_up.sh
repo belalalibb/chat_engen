@@ -24,7 +24,7 @@ if [ -f "$GATEWAY_DIR/app.py" ]; then
 else
   CE_ENV=/dev/null
 fi
-( set -a && . "$CE_ENV" && set +a && PORT=8080 setsid nohup "$PY" -m chat_engine serve > "$RUN_DIR/ce.log" 2>&1 < /dev/null & )
+( set -a && . "$CE_ENV" && set +a && PORT=8080 setsid nohup "$PY" -m chat_engine serve > "$RUN_DIR/ce.log" 2>&1 < /dev/null & ) ; disown 2>/dev/null || true
 for _ in $(seq 1 90); do curl -sf http://localhost:8080/healthz >/dev/null 2>&1 && break; sleep 1; done
 curl -s http://localhost:8080/healthz | python3 -c 'import json,sys; h=json.load(sys.stdin); print("CHAT_ENGINE_UP providers=%d gateway_bound=%d skipped=%s" % (len(h["providers"]), len(h.get("gateway",{}).get("bound",[])), list(h.get("gateway",{}).get("skipped",{}))))'
 echo "ALL_READY"
