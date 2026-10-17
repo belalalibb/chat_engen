@@ -54,7 +54,8 @@ def _s(v: object) -> str | None:
 
 
 def _i(v: object) -> int | None:
-    return v if isinstance(v, int) and not isinstance(v, bool) else None
+    """Positive int facts only; models.dev ships ``0`` for unknown limits ⇒ None."""
+    return v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else None
 
 
 def _sl(v: object) -> list[str]:
