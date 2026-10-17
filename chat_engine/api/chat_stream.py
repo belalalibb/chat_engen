@@ -93,6 +93,10 @@ def route_for(rt: Runtime, body: ChatStreamRequest) -> Any:
     """Resolve model (canonical or key) → upstream policy → RoutingDecision, or an error response."""
     catalog: CatalogService = rt.extensions["catalog"]
     policy = body.model_policy
+    if policy is None and body.model is None:
+        from chat_engine.conversations.service import AUTO_WITH_FAILOVER
+
+        policy = AUTO_WITH_FAILOVER
     if policy is None and body.model is not None:
         try:
             policy = catalog.resolve_policy(body.model, provider_key=body.provider)

@@ -63,6 +63,7 @@ chat_engine/orchestration/contracts.py
 chat_engine/orchestration/service.py
 chat_engine/providers/__init__.py
 chat_engine/providers/bootstrap.py
+chat_engine/providers/gateway.py
 chat_engine/providers/lifecycle.py
 chat_engine/providers/openai_compatible.py
 chat_engine/skills/__init__.py

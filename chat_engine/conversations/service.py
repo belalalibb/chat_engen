@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from core.contracts.base import JsonObject
+from core.contracts.model_policy import AutoModelPolicy, FallbackScope
 from core.contracts.provider import ProviderOperation
 from core.contracts.routing import RoutingDecision, RoutingRequest
 from core.routing.errors import FallbackNotConfigured, NoEligibleCandidates
@@ -48,6 +49,10 @@ if TYPE_CHECKING:
 
 DEFAULT_CONTEXT_WINDOW = 32_000
 SUMMARIZE_WHEN_DROPPED = 6  # if the compiler would drop ≥ N turns, summarize instead
+
+AUTO_WITH_FAILOVER = AutoModelPolicy(
+    type="auto", allow_fallback=True, fallback_scope=FallbackScope.MAX_ESCALATION
+)
 
 
 class ChatError(Exception):
@@ -301,7 +306,9 @@ class ChatService:
         self, model: str | None, provider: str | None, required_capabilities: list[str]
     ) -> RoutingDecision:
         catalog: CatalogService = self._rt.extensions["catalog"]
-        policy = None
+        # AUTO: let execution fail over across every eligible candidate (upstream
+        # max_escalation) — one quota-exhausted provider must not sink the turn.
+        policy: Any = AUTO_WITH_FAILOVER
         if model:
             try:
                 policy = catalog.resolve_policy(model, provider_key=provider)
