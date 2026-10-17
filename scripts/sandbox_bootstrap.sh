@@ -24,8 +24,10 @@ PY="$REF_DIR/general_ai_core/.venv/bin/python"
 if [ ! -x "$PY" ]; then
   python3 -m venv "$REF_DIR/general_ai_core/.venv"
   "$PY" -m pip install -q --upgrade pip
-  "$PY" -m pip install -q -e "$REF_DIR/general_ai_core"
   "$PY" -m pip install -q -e ".[dev]"
+  # chat_engine's git pin installs upstream as a plain copy; re-point it at the editable
+  # checkout LAST so mypy/gate see one source tree (same SHA, no behavioural difference).
+  "$PY" -m pip install -q --no-deps -e "$REF_DIR/general_ai_core"
   "$PY" -m pip install -q playwright filelock pytest-asyncio
 fi
 echo "VENV_READY $PY"

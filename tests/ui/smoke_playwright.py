@@ -7,6 +7,7 @@ Prints PASS/FAIL per check; exit 1 on any failure. Output is the evidence (evide
 
 from __future__ import annotations
 
+import contextlib
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -35,12 +36,10 @@ def main() -> int:
         chat = page.locator("ce-chat")
         chat.locator("[data-testid=composer]").fill("hello from playwright")
         chat.locator("[data-testid=send]").click()
-        try:
+        with contextlib.suppress(Exception):  # outcome is asserted by the check below
             chat.locator(".msg[data-role=assistant]:not([data-status=streaming])").first.wait_for(
                 timeout=90_000
             )
-        except Exception:  # noqa: BLE001
-            pass
         roles = chat.locator(".msg").evaluate_all(
             "els => els.map(e => e.getAttribute('data-role'))"
         )
@@ -51,10 +50,8 @@ def main() -> int:
         chat.locator("[data-testid=composer]").fill("cost tiered please")
         chat.locator("[data-testid=send]").click()
         # live providers (gateway) may take tens of seconds; hermetic local_echo is instant
-        try:
+        with contextlib.suppress(Exception):
             chat.locator("details").first.wait_for(timeout=90_000)
-        except Exception:  # noqa: BLE001 — reported by the check below
-            pass
         check("trace rendered for strategy", chat.locator("details").count() >= 1)
 
         page.click("[data-nav=catalog]")
