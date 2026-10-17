@@ -1,6 +1,6 @@
 [project]
 name = "chat-engine"
-version = "0.1.1"
+version = "0.1.2"
 description = "Chat Engine on top of general_ai_core (Router/Registry/ExecutionService reused, contracts untouched)"
 requires-python = ">=3.12"
 dependencies = [

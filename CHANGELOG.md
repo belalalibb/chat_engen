@@ -1,5 +1,13 @@
 # CHANGELOG — chat_engine
 
+## v0.1.2 — 2026-10-17 (CE-20 Remote Gateway Providers)
+
+- `chat_engine/providers/gateway.py`: bind providers behind the owner's Remote Provider Gateway (ADR-0008) from `CE_GATEWAY_*` using upstream `RemoteGatewayAdapter`; `/v1/describe`-driven discovery; `/healthz.gateway` bound/skipped report.
+- Routing: AUTO uses `max_escalation` failover; buffered stream fallback fails over across candidates; tenant admission ceiling configurable (`CE_TENANT_RPM`, `CE_TENANT_CONCURRENCY`).
+- Catalog: models.dev `context: 0` treated as unknown (CanonicalModel `ge=1`).
+- UI: `stream_fallback=buffer`; failure detail shown next to the status pill.
+- Scripts: `sandbox_bootstrap.sh`, `sandbox_run.sh`, `sandbox_up.sh` (secrets generated outside the repo).
+
 ## v0.1.1 — 2026-10-16 (UI visual identity refresh)
 
 - `ui_standalone/`: new visual identity adapted from the owner's reference (dark-first indigo→cyan accent, glass surfaces, Tajawal/Inter/IBM Plex Mono, light theme, collapsible sidebar, welcome hero, avatar message rows, pill composer). Original implementation; no reference assets copied. All Playwright hooks preserved (12/12), gate green.
