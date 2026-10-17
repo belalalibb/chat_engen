@@ -293,3 +293,46 @@ async def test_openai_compatible_adapter_streams_over_mock_transport() -> None:
         chunks[-1].usage == {"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3}
         or chunks[-2].usage
     )
+
+
+def test_case2c_buffered_fallback_fails_over_to_next_provider(client, runtime: Runtime) -> None:
+    """Two sync-only providers share a model; the first refuses => the burst comes from
+    the second (CE-20: gateway providers are sync-only and some are quota-exhausted)."""
+    from core.contracts.provider import (
+        ProviderError,
+        ProviderErrorCategory,
+        ProviderGenerateResponse,
+    )
+
+    class RefusingEcho(StreamingEchoAdapter):
+        async def generate(self, request):  # type: ignore[override]
+            return ProviderGenerateResponse(
+                request_id=request.request_id,
+                succeeded=False,
+                output=None,
+                usage={},
+                latency_ms=0,
+                error=ProviderError(
+                    category=ProviderErrorCategory.QUOTA_EXCEEDED,
+                    retryable=False,
+                    safe_message="upstream quota exceeded",
+                ),
+            )
+
+    bad = add_streaming_provider(runtime, "buf_bad", model="buf-model", verified=False)
+    add_streaming_provider(runtime, "buf_ok", model="buf-model", verified=False)
+    pid = runtime.providers.get("buf_bad").provider.id
+    runtime.adapters[pid] = RefusingEcho(bad.get_manifest())
+    r = client.post(
+        "/v1/chat/stream",
+        json={
+            "messages": [{"role": "user", "content": "hi"}],
+            "model": "buf-model",
+            "stream_fallback": "buffer",
+        },
+    )
+    evs = events_of(r)
+    assert evs[-1]["type"] == "completed", evs[-1]
+    assert evs[-1]["data"]["provider_key"] == "buf_ok"
+    assert evs[-1]["data"]["synthesized"] is True
+    assert not [e for e in evs if e["type"] == "failed"]

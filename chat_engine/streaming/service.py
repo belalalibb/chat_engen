@@ -165,11 +165,26 @@ class StreamService:
             # case 2: not streamable
             if not self.supports_streaming(cand.provider_id):
                 if stream_fallback == "buffer" and adapter is not None:
+                    buffered_ok = False
                     async for e in self._buffered(
-                        st, ev, adapter, cand, binding.provider_model_name, timeout_ms
+                        st,
+                        ev,
+                        adapter,
+                        cand,
+                        binding.provider_model_name,
+                        timeout_ms,
+                        is_last=cand is candidates[-1],
                     ):
+                        if e.type is StreamEventType.COMPLETED:
+                            buffered_ok = True
+                        if e.type is StreamEventType.FAILED and not e.data.get("final"):
+                            continue  # provider failover: try the next candidate
                         yield e
-                    return
+                    if buffered_ok or cand is candidates[-1]:
+                        return
+                    failovers += 1
+                    st.summary = st.summary.model_copy(update={"failovers": failovers})
+                    continue
                 if cand is candidates[-1] and not first_delta_seen:
                     yield ev(
                         StreamEventType.FAILED,
@@ -459,8 +474,13 @@ class StreamService:
         cand: CandidateScore,
         provider_model_name: str,
         timeout_ms: int | None,
+        *,
+        is_last: bool = True,
     ) -> AsyncIterator[StreamEvent]:
-        """Case 2 with explicit policy: one sync generate, one burst, honestly tagged."""
+        """Case 2 with explicit policy: one sync generate, one burst, honestly tagged.
+
+        A provider failure yields FAILED with ``final`` = ``is_last``; the caller
+        swallows non-final failures and fails over to the next candidate."""
         req = ProviderGenerateRequest(
             request_id=uuid4(),
             tenant_id=self._rt.tenant_id,
@@ -480,6 +500,8 @@ class StreamService:
                     "reason": StreamFailureReason.PROVIDER_ERROR.value,
                     "resumable": False,
                     "synthesized": True,
+                    "provider_key": pk,
+                    "final": is_last,
                     "detail": f"{err.category.value}: {err.safe_message}" if err else None,
                 },
             )
