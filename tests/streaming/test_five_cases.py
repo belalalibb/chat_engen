@@ -309,7 +309,7 @@ def test_case2c_buffered_fallback_fails_over_to_next_provider(client, runtime: R
             return ProviderGenerateResponse(
                 request_id=request.request_id,
                 succeeded=False,
-                output=None,
+                output={},
                 usage={},
                 latency_ms=0,
                 error=ProviderError(
