@@ -57,10 +57,38 @@ def score_against_spec(text: str, spec: OutputSpec) -> tuple[float, list[str]]:
     return 1.0 - len(failures) / len(checks), failures
 
 
+#: Provider refusals that are not about THIS request (quota, credentials, outage): the
+#: provider is unlikely to serve the next derived tier either, so it is skipped for a
+#: short window when tiers/candidates are derived automatically. Process-local, honest
+#: (no persistence), and never applied to explicitly requested models.
+_SKIP_CATEGORIES = frozenset(
+    {"quota_exceeded", "invalid_credential", "auth_expired", "provider_unavailable", "rate_limited"}
+)
+_SKIP_WINDOW_S = 120.0
+
+
 class Orchestrator:
     def __init__(self, rt: Runtime, chat: ChatService) -> None:
         self._rt = rt
         self._chat = chat
+        self._recent_failures: dict[str, float] = {}  # provider_key -> monotonic deadline
+
+    def _note_failure(self, provider_key: str | None, category: str | None) -> None:
+        if provider_key and category in _SKIP_CATEGORIES:
+            import time
+
+            self._recent_failures[provider_key] = time.monotonic() + _SKIP_WINDOW_S
+
+    def _recently_failed(self, provider_key: str) -> bool:
+        import time
+
+        deadline = self._recent_failures.get(provider_key)
+        if deadline is None:
+            return False
+        if deadline < time.monotonic():
+            self._recent_failures.pop(provider_key, None)
+            return False
+        return True
 
     # -- one governed step ---------------------------------------------------------------------
 
@@ -152,6 +180,7 @@ class Orchestrator:
                 if err
                 else str(node_err.get("safe_message") or "Execution failed.")
             )
+            self._note_failure(pk, str(category) if category else None)
             raise ChatError(
                 "execution_failed",
                 message,
@@ -245,7 +274,10 @@ class Orchestrator:
                 d = self._chat.route(m.model_key, None, [])
             except ChatError:
                 continue
-            placed.append((index.provider_key(d.selected.provider_id) or "?", m.model_key))
+            pk = index.provider_key(d.selected.provider_id) or "?"
+            if self._recently_failed(pk):
+                continue
+            placed.append((pk, m.model_key))
         out: list[str] = []
         seen_providers: set[str] = set()
         for pk, mk in placed:  # first pass: one model per provider (diversity)
@@ -429,10 +461,10 @@ class Orchestrator:
         default_model: str | None,
         **common: Any,
     ) -> tuple[StepResult, OrchestrationTrace]:
-        tiers = list(opts.tiers) or self._cheapest_first(3)
+        tiers = list(opts.tiers) or self._cheapest_first(4)
         if default_model and default_model not in tiers:
             tiers = [tiers[0], default_model] if tiers else [default_model]
-        tiers = tiers[:3] if not opts.tiers else tiers[:2]
+        tiers = tiers[:4] if not opts.tiers else tiers[:2]
         if not tiers:
             raise ChatError("conflict", "cost_tiered: no models available", http_status=503)
         trace = TraceBuilder(strategy=Strategy.COST_TIERED)
