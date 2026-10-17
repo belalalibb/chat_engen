@@ -19,6 +19,7 @@ interface Msg {
   resumable?: boolean;
   delivered_until_seq?: number;
   usage?: Record<string, unknown>;
+  detail?: string | null;
 }
 
 @customElement("ce-chat")
@@ -216,7 +217,7 @@ export class CeChat extends CeElement {
         if (this.abort.signal.aborted) break;
         if (ev.type === "message_delta") patch({ text: live.text + String(ev.data.delta ?? ""), stream_id: ev.stream_id });
         else if (ev.type === "completed") patch({ status: "complete", provider_key: ev.data.provider_key as string, model_key: ev.data.model_key as string, usage: ev.data.usage as any, stream_id: ev.stream_id });
-        else if (ev.type === "failed") patch({ status: live.text ? "partial" : "failed", resumable: !!ev.data.resumable, delivered_until_seq: Number(ev.data.delivered_until_seq ?? 0), stream_id: ev.stream_id, provider_key: ev.data.provider_key as string });
+        else if (ev.type === "failed") patch({ status: live.text ? "partial" : "failed", resumable: !!ev.data.resumable, delivered_until_seq: Number(ev.data.delivered_until_seq ?? 0), stream_id: ev.stream_id, provider_key: ev.data.provider_key as string, detail: String(ev.data.detail ?? ev.data.reason ?? "") || null });
         else if (ev.type === "cancelled") patch({ status: "partial", stream_id: ev.stream_id, delivered_until_seq: Number(ev.data.delivered_until_seq ?? 0) });
         else if (ev.type === "started") patch({ stream_id: ev.stream_id });
       }
@@ -299,7 +300,8 @@ export class CeChat extends CeElement {
                 </div>
                 <div class="text">${m.text}${m.text === "" && m.status === "failed" ? html`<span class="dim">—</span>` : nothing}</div>
                 ${m.role === "assistant" ? html`<div class="meta">
-                  ${m.status && m.status !== "complete" && m.status !== "streaming" ? html`<span class="pill ${m.status === "failed" ? "bad" : "warn"}">${t(m.status as any)}</span>` : nothing}
+                  ${m.status && m.status !== "complete" && m.status !== "streaming" ? html`<span class="pill ${m.status === "failed" ? "bad" : "warn"}" title=${m.detail ?? ""}>${t(m.status as any)}</span>` : nothing}
+                  ${m.detail ? html`<span class="muted mono">${m.detail}</span>` : nothing}
                   ${m.resumable ? html`<button class="primary" @click=${() => this.resume(m)}>${t("resume")}</button>` : nothing}
                   ${(m.skills_used ?? []).map((s) => html`<span class="pill" title=${s.source ?? ""}>${s.skill_id}@${s.version ?? "?"}</span>`)}
                   ${m.usage && (m.usage as any).total_tokens ? html`<span class="muted mono">${(m.usage as any).total_tokens} tok</span>` : nothing}
