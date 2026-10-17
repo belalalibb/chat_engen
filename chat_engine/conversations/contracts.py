@@ -158,6 +158,9 @@ class ChatRequest(ContractModel):
     attachments: list[JsonObject] = Field(default_factory=list)
     strategy: BoundedStr | None = None  # CE-12: sequential_handoff | judge_select | cost_tiered
     strategy_options: JsonObject = Field(default_factory=dict)
+    # accepted for body parity with /v1/chat/stream (clients reuse one body); the sync path
+    # never streams, so the value is ignored here instead of failing extra=forbid with 422
+    stream_fallback: BoundedStr | None = None
 
 
 class ChatResponse(ContractModel):

@@ -288,6 +288,14 @@ def test_cost_tiered_derives_tiers_when_absent(client) -> None:
     assert r.json()["trace"]["strategy"] == "cost_tiered"
 
 
+def test_sync_chat_tolerates_stream_fallback_knob(client) -> None:
+    """Regression (CE-20 live smoke): the UI reuses one body for /v1/chat and
+    /v1/chat/stream; the stream-only ``stream_fallback`` knob must not 422 the sync path."""
+    r = _chat(client, message="q", strategy="cost_tiered", stream_fallback="buffer")
+    assert r.status_code == 200, r.text
+    assert r.json()["trace"]["strategy"] == "cost_tiered"
+
+
 # --- governance ----------------------------------------------------------------------------------
 
 

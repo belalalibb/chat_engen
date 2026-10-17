@@ -172,13 +172,13 @@ export class CeChat extends CeElement {
     this.error = "";
     this.text = "";
     this.msgs = [...this.msgs, { id: crypto.randomUUID(), role: "user", text: message }];
-    // gateway-backed providers are sync-only: let the stream service buffer one burst honestly
-    const body: Record<string, unknown> = { message, stream_fallback: "buffer" };
+    const body: Record<string, unknown> = { message };
     if (this.conversationId) body.conversation_id = this.conversationId;
     if (this.model) body.model = this.model;
 
     if (this.strategy !== "single") {
-      // orchestration is sync (CE-12) — show the trace
+      // orchestration is sync (CE-12) — show the trace. ChatRequest is extra=forbid, so the
+      // stream-only `stream_fallback` knob must NOT travel on this body (it 422s otherwise).
       try {
         const r = await api.chat({ ...body, strategy: this.strategy, strategy_options: this.strategyOptions() } as any);
         this.setConversation(r.conversation_id);
@@ -186,7 +186,8 @@ export class CeChat extends CeElement {
       } catch (e) { this.error = String(e); }
       return;
     }
-    await this.stream(body);
+    // gateway-backed providers are sync-only: let the stream service buffer one burst honestly
+    await this.stream({ ...body, stream_fallback: "buffer" });
   }
 
   private fromTurn(tn: Turn, trace?: Record<string, unknown> | null): Msg {
