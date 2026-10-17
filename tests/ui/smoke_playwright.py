@@ -35,7 +35,12 @@ def main() -> int:
         chat = page.locator("ce-chat")
         chat.locator("[data-testid=composer]").fill("hello from playwright")
         chat.locator("[data-testid=send]").click()
-        page.wait_for_timeout(2500)
+        try:
+            chat.locator(".msg[data-role=assistant]:not([data-status=streaming])").first.wait_for(
+                timeout=90_000
+            )
+        except Exception:  # noqa: BLE001
+            pass
         roles = chat.locator(".msg").evaluate_all(
             "els => els.map(e => e.getAttribute('data-role'))"
         )
@@ -45,7 +50,11 @@ def main() -> int:
         chat.locator("select").nth(1).select_option("cost_tiered")
         chat.locator("[data-testid=composer]").fill("cost tiered please")
         chat.locator("[data-testid=send]").click()
-        page.wait_for_timeout(2500)
+        # live providers (gateway) may take tens of seconds; hermetic local_echo is instant
+        try:
+            chat.locator("details").first.wait_for(timeout=90_000)
+        except Exception:  # noqa: BLE001 — reported by the check below
+            pass
         check("trace rendered for strategy", chat.locator("details").count() >= 1)
 
         page.click("[data-nav=catalog]")
