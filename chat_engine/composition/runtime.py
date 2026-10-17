@@ -482,4 +482,9 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.providers.bootstrap import bind_real_providers_from_env
 
     bind_real_providers_from_env(rt, env)
+    # Remote-gateway-backed providers (ADR-0008 data plane; upstream adapter reused).
+    from chat_engine.providers.gateway import bind_gateway_providers_from_env
+
+    gw = bind_gateway_providers_from_env(rt, env)
+    rt.extensions["gateway_report"] = {"bound": list(gw.bound), "skipped": dict(gw.skipped)}
     return rt

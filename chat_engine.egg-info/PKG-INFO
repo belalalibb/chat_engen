@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: chat-engine
-Version: 0.1.0
+Version: 0.1.1
 Summary: Chat Engine on top of general_ai_core (Router/Registry/ExecutionService reused, contracts untouched)
 Requires-Python: >=3.12
 Requires-Dist: ai-orchestration-platform @ git+https://github.com/belalalibb/general_ai_core.git@0a13556305bcf40cbf1b750d7ef1d81f7850cabf

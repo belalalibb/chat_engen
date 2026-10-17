@@ -72,6 +72,7 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
             "upstream_sha": runtime.upstream_sha,
             "profile": runtime.profile,
             "providers": list(runtime.provider_keys),
+            "gateway": runtime.extensions.get("gateway_report", {"bound": [], "skipped": {}}),
             "admission_backend": backend,
             "replicas_safe": backend != "in_memory",
             "compat": {"not_served": list(NOT_SERVED_UPSTREAM_ROUTES)},
