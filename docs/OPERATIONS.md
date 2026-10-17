@@ -29,6 +29,26 @@
 
 **لا توجد أسرار في الصورة أو المستودع.** المفاتيح تُمرَّر من الـ shell أو عبر `/v1/credentials` (تُخزَّن في `InMemorySecretManager` المرجعي، وتُعاد بصمة + last4 فقط).
 
+## 2b. ربط Remote Provider Gateway (ADR-0008) — مزوّدو المالك
+
+chat_engine يعيد استخدام محوّل المرجع `providers.real.gateway.RemoteGatewayAdapter` (بلا نسخ) لربط أي مزوّد يعمل خلف **Remote Provider Gateway** (عقد `POST /v1/execute` + `X-Gateway-Secret` + `X-Route-Token`). مزوّد واحد في chat_engine = مسار (route token) واحد في البوابة.
+
+| المتغيّر | مثال | الأثر |
+|---|---|---|
+| `CE_GATEWAY_BASE_URL` | `http://127.0.0.1:8800` (loopback) أو `https://gw.example` | غيابه ⇒ لا مزوّدات بوابة (الافتراضي الصادق). `http://` مسموح فقط لـ loopback |
+| `CE_GATEWAY_SECRET` / `CE_GATEWAY_SECRET_VERSION` | `…` / `1` | السر المشترك وإصداره (dual-accept rotation في البوابة) |
+| `CE_GATEWAY_ROUTES` | `gw_overchat=TOKEN1,gw_deepai=TOKEN2` | `provider_key=route_token` لكل مزوّد |
+
+**الاكتشاف بيانات لا تخمين:** لكل مسار يُستدعى `GET /v1/describe` في البوابة؛ منه تُؤخذ `display_name`، العمليات، القدرات، وأسماء النماذج. مسار بلا `generate_text` أو بلا نماذج أو غير قابل للوصول ⇒ **يُتخطّى بسبب مُعلَن** في `GET /healthz → gateway.skipped` (مثال: `voyage` = embeddings فقط). كل القيم السرّية تُخزَّن مرة واحدة في مدير الأسرار وتصل المحوّل عبر resolvers فقط؛ لا تُسجَّل ولا تظهر في أي repr.
+
+**البث:** مزوّدو البوابة متزامنون (`/v1/execute` بلا SSE)؛ واجهة chat_engine ترسل `stream_fallback=buffer` فيُسلَّم الرد كدفعة واحدة موسومة `synthesized: true` بصدق. **AUTO** (بلا نموذج) يستخدم `max_escalation` فيتجاوز التنفيذ المزوّدات المستنفدة (`quota_exceeded`…) إلى التالي.
+
+### تشغيل محلي كامل (sandbox) بأمرين
+```bash
+GATEWAY_REPO_URL=https://x-access-token:$TOKEN@github.com/ORG/REPO.git scripts/sandbox_bootstrap.sh   # venv + UI + clone + توليد أسرار في ~/run (ليست في المستودع)
+scripts/sandbox_run.sh   # يشغّل البوابة على 127.0.0.1:8800 ثم chat_engine على 8080 ويطبع المزوّدات المربوطة
+```
+
 ## 3. الصحة والمراقبة
 
 - `GET /healthz` → `{status, version, upstream_sha, providers[], admission_backend, replicas_safe, compat.not_served[]}`.

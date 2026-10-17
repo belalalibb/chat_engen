@@ -321,6 +321,19 @@ PHASE 6  SHIP         CE-16 (packaging/CI/Windows) → CE-17 (scale 10k) → CE-
 
 ---
 
+## CE-20 — Remote Gateway Providers (طلب المالك 2026-10-17)
+
+**الطلب:** ربط مزوّدات مستودع المالك `GPT-5-6-Sol-code/__gateway-service` (14 مزوّداً خلف Remote Provider Gateway ADR-0008) بـ chat_engine، اختبارها، وتسليم رابط معاينة مع الربط.
+
+**المخرجات:**
+- `chat_engine/providers/gateway.py` — ربط من `CE_GATEWAY_*` عبر محوّل المرجع `RemoteGatewayAdapter` (إعادة استخدام، لا نسخ)؛ اكتشاف عبر `/v1/describe`؛ تقرير `bound/skipped` في `/healthz`.
+- `tests/providers/test_gateway_binding.py` — hermetic (MockTransport): نصف تهيئة ⇒ خطأ، repr مُنقّى، مسار موصوف يُسجَّل ومسار ميت يُتخطّى، `/v1/chat` من طرف لطرف بغلاف wire صحيح.
+- إصلاحان حقيقيان كشفهما الربط الحي: `catalog._i` (models.dev `context: 0`) و AUTO بلا failover.
+- `scripts/sandbox_bootstrap.sh` + `scripts/sandbox_run.sh` — بيئة قابلة لإعادة البناء بعد كل reset؛ الأسرار تُولَّد في `~/run` خارج المستودع.
+- `docs/OPERATIONS.md §2b`، `evidence/ce20/`.
+
+**نتيجة الفحص الحي (2026-10-17، على sandbox):** 13 مسار مربوط (voyage مُتخطّى: embeddings فقط). يجيب فعلاً: `overchat`, `deepai`, `llamacoder`, `parallel`. يرفض upstream (ليس خطأ chat_engine): `groq` (مفتاح غير مهيأ في البوابة), `freebuff`/`ivycraft`/`runpod_console` (`invalid_credential`), `notegpt` (`auth_expired`), `youmind` (`quota_exceeded`), `syntx`/`tinyfish`/`upstage` (`provider_unavailable`). الحالة تتغيّر مع حسابات/كوكيز المالك — تُقرأ من `/healthz` و`/v1/models` وقت التشغيل.
+
 ## القواعد العابرة لكل المهام (Definition of Done)
 
 1. **Release gate (D8):** `ruff` + `mypy chat_engine/` + `lint-imports` + `pytest` (hermetic، بلا مفاتيح) + `tests/compat` + `scripts/secret_scan.py` — كلها خضراء.
