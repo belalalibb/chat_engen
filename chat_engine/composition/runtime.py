@@ -431,6 +431,15 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         rt.extensions["admission"] = RedisAdmission(redis_url)
     else:
         rt.extensions["admission"] = InMemoryAdmission()
+    # Tenant-wide ceiling (CE_TENANT_RPM / CE_TENANT_CONCURRENCY). Provider scopes keep
+    # their own (conservative or metadata) limits; the tenant scope only guards the
+    # process as a whole, so its default is wider than one provider's 60 rpm.
+    tenant_rpm = int(env.get("CE_TENANT_RPM", "600") or 600)
+    tenant_conc = int(env.get("CE_TENANT_CONCURRENCY", "16") or 16)
+    rt.extensions["admission"].set_limits(
+        f"tenant:{rt.tenant_id}",
+        Limits(rpm=max(1, tenant_rpm), concurrency=max(1, tenant_conc), source="tenant_env"),
+    )
     rt.extensions["idempotency"] = IdempotencyStore()
     # CE-08: streaming service (optional port; provider must have verified streaming_text)
     from chat_engine.streaming.service import StreamService

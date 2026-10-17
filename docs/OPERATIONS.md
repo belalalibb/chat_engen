@@ -17,6 +17,7 @@
 |---|---|---|
 | `PORT` / `HOST` | `8080` / `0.0.0.0` | منفذ/عنوان الخدمة |
 | `GROQ_API_KEY`, `GSK_API_KEY` | — | عند وجودها تُربط مزوّدات حقيقية عبر محوّلات المرجع (BYOK بديل: `POST /v1/credentials`) |
+| `CE_TENANT_RPM` / `CE_TENANT_CONCURRENCY` | `600` / `16` | سقف نطاق المستأجر (`tenant:*`)؛ حدود كل مزوّد تبقى مستقلة (metadata أو 60 rpm المحافظ) |
 | `ADMISSION_REDIS_URL` | — | يبدّل `InMemoryAdmission` إلى `RedisAdmission` (Lua ذرّي) |
 | `CE_UI_DIST` | `ui_standalone/dist` | مسار UI المبنية؛ غيابها ⇒ API فقط |
 | `CE_FEATURE_OPENAI_COMPAT` | `1` | `0` يعطّل `/v1/chat/completions` و`/v1/openai/*` |
