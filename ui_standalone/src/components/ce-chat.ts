@@ -172,7 +172,8 @@ export class CeChat extends CeElement {
     this.error = "";
     this.text = "";
     this.msgs = [...this.msgs, { id: crypto.randomUUID(), role: "user", text: message }];
-    const body: Record<string, unknown> = { message };
+    // gateway-backed providers are sync-only: let the stream service buffer one burst honestly
+    const body: Record<string, unknown> = { message, stream_fallback: "buffer" };
     if (this.conversationId) body.conversation_id = this.conversationId;
     if (this.model) body.model = this.model;
 
