@@ -329,6 +329,7 @@ PHASE 6  SHIP         CE-16 (packaging/CI/Windows) → CE-17 (scale 10k) → CE-
 - `chat_engine/providers/gateway.py` — ربط من `CE_GATEWAY_*` عبر محوّل المرجع `RemoteGatewayAdapter` (إعادة استخدام، لا نسخ)؛ اكتشاف عبر `/v1/describe`؛ تقرير `bound/skipped` في `/healthz`.
 - `tests/providers/test_gateway_binding.py` — hermetic (MockTransport): نصف تهيئة ⇒ خطأ، repr مُنقّى، مسار موصوف يُسجَّل ومسار ميت يُتخطّى، `/v1/chat` من طرف لطرف بغلاف wire صحيح.
 - إصلاحان حقيقيان كشفهما الربط الحي: `catalog._i` (models.dev `context: 0`) و AUTO بلا failover.
+- إصلاحات إضافية كشفها الفحص الحي: سقف admission للمستأجر قابل للضبط (`CE_TENANT_RPM`)، failover للـ buffered stream عبر المرشحين، وخطأ 422 في `cost_tiered` من الواجهة (الواجهة كانت ترسل `stream_fallback` على جسم `/v1/chat` المتزامن وهو `extra=forbid`) — الآن `ChatRequest` يقبل المفتاح ويتجاهله، والواجهة ترسله على مسار الـ stream فقط؛ اختبار انحدار `test_sync_chat_tolerates_stream_fallback_knob`. Playwright **12/12** ضد البوابة الحيّة (`evidence/ce20/playwright_smoke.txt`).
 - `scripts/sandbox_bootstrap.sh` + `scripts/sandbox_run.sh` — بيئة قابلة لإعادة البناء بعد كل reset؛ الأسرار تُولَّد في `~/run` خارج المستودع.
 - `docs/OPERATIONS.md §2b`، `evidence/ce20/`.
 

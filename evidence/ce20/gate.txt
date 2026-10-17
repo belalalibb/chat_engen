@@ -34,7 +34,8 @@ ui_no_copy_guard: checked 20 files against 23 reference files → CLEAN
 == pytest (hermetic, chunked for low-memory hosts)
 ........................................................................ [ 74%]
 .........................                                                [100%]
-97 passed in 7.93s
-.....................sss...............................................  [100%]
-68 passed, 3 skipped in 19.02s
+97 passed in 8.75s
+.....................sss................................................ [100%]
+69 passed, 3 skipped in 19.81s
 GATE GREEN
+GATE_EXIT 0

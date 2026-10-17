@@ -6,6 +6,7 @@
 - Routing: AUTO uses `max_escalation` failover; buffered stream fallback fails over across candidates; tenant admission ceiling configurable (`CE_TENANT_RPM`, `CE_TENANT_CONCURRENCY`).
 - Catalog: models.dev `context: 0` treated as unknown (CanonicalModel `ge=1`).
 - UI: `stream_fallback=buffer`; failure detail shown next to the status pill.
+- Contracts/UI: sync `POST /v1/chat` accepts (and ignores) the stream-only `stream_fallback` knob so one client body serves both paths; the UI now sends it only on the stream path — fixes the 422 that broke `cost_tiered` from the UI against the live gateway (Playwright 12/12 live). `__version__` synced to `0.1.2`.
 - Scripts: `sandbox_bootstrap.sh`, `sandbox_run.sh`, `sandbox_up.sh` (secrets generated outside the repo).
 
 ## v0.1.1 — 2026-10-16 (UI visual identity refresh)
