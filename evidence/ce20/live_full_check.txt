@@ -27,117 +27,117 @@ OK       GET /v1/conversations
 OK       GET /v1/apps                                              
 
 == provider x model matrix: 112 pairs
-UPSTREAM chat genspark_llm / claude-opus-4-5                       http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (351 ms)
-UPSTREAM chat genspark_llm / claude-sonnet-4-5                     http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (370 ms)
-UPSTREAM chat genspark_llm / deep-seek-v4-flash                    http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (204 ms)
-UPSTREAM chat genspark_llm / gpt-5-mini                            http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (192 ms)
-UPSTREAM chat genspark_llm / gpt-5-nano                            http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (225 ms)
-BREAKER  chat genspark_llm / gpt-5.2                               http=429 admission_denied/provider:genspark_llm/rpm retry_after=29991ms: Admission denied for this request.  (7 ms)
-BREAKER  chat genspark_llm / grok-4.6                              http=429 admission_denied/provider:genspark_llm/rpm retry_after=29985ms: Admission denied for this request.  (6 ms)
-BREAKER  chat genspark_llm / kimi-k3                               http=429 admission_denied/provider:genspark_llm/rpm retry_after=29979ms: Admission denied for this request.  (6 ms)
-OK       chat gw_deepai / deepseek-v3.2                            gw_deepai/deepseek-v3.2 -> 'OK'  (816 ms)
-OK       chat gw_deepai / deepseek-v4-flash                        gw_deepai/deepseek-v4-flash -> 'OK'  (883 ms)
-OK       chat gw_deepai / gemini-2.5-flash-lite                    gw_deepai/gemini-2.5-flash-lite -> 'OK'  (4993 ms)
-OK       chat gw_deepai / gemma-4                                  gw_deepai/gemma-4 -> 'OK'  (4954 ms)
-OK       chat gw_deepai / glm-5.3-flash                            gw_deepai/glm-5.3-flash -> 'OK'  (4615 ms)
-OK       chat gw_deepai / gpt-4o-mini                              gw_deepai/gpt-4o-mini -> 'OK'  (5814 ms)
-OK       chat gw_deepai / gpt-5.6-luna                             gw_deepai/gpt-5.6-luna -> 'OK'  (5345 ms)
-OK       chat gw_deepai / gpt-6-luna                               gw_deepai/gpt-6-luna -> 'OK'  (5464 ms)
-UPSTREAM chat gw_deepai / gpt-oss-120b                             http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_deepai / llama-3.1-8b-instant                     http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_deepai / llama-3.3-70b-instruct                   http=502 execution_failed/timeout: gateway request timed out  (60022 ms)
-UPSTREAM chat gw_deepai / qwen3.8-flash                            http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_deepai / standard                                 http=502 execution_failed/timeout: gateway request timed out  (60022 ms)
-BREAKER  chat gw_deepai / tencent-hy3                              http=429 admission_denied/provider:gw_deepai/rpm retry_after=29991ms: Admission denied for this request.  (7 ms)
-UPSTREAM chat gw_freebuff / glm-5.3-flash                          http=502 execution_failed/invalid_credential: upstream credential invalid  (837 ms)
-UPSTREAM chat gw_groq / allam-2-7b                                 http=502 execution_failed/invalid_credential: provider credential is not configured at the gateway  (824 ms)
-UPSTREAM chat gw_groq / llama-3.1-8b-instant                       http=502 execution_failed/invalid_credential: provider credential is not configured at the gateway  (890 ms)
-UPSTREAM chat gw_ivycraft / gpt-5.6-terra                          http=502 execution_failed/invalid_credential: upstream credential invalid  (825 ms)
-UPSTREAM chat gw_ivycraft / gpt-image-2.5-sunburst                 http=502 execution_failed/invalid_credential: upstream credential invalid  (892 ms)
-UPSTREAM chat gw_ivycraft / text-to-speech                         http=502 execution_failed/invalid_credential: upstream credential invalid  (4983 ms)
-UPSTREAM chat gw_llamacoder / deepseek-v4-flash                    http=502 execution_failed/non_retryable_error: upstream call failed  (1706 ms)
-UPSTREAM chat gw_llamacoder / deepseek-v4-pro                      http=502 execution_failed/non_retryable_error: upstream call failed  (5481 ms)
-UPSTREAM chat gw_llamacoder / deepseek-v4.1                        http=502 execution_failed/non_retryable_error: upstream call failed  (8398 ms)
-UPSTREAM chat gw_llamacoder / glm-5.2                              http=502 execution_failed/non_retryable_error: upstream call failed  (6487 ms)
-UPSTREAM chat gw_llamacoder / glm-5.3                              http=502 execution_failed/non_retryable_error: upstream call failed  (5782 ms)
-BREAKER  chat gw_llamacoder / glm-5.3-flash                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29956ms: Admission denied for this request.  (42 ms)
-BREAKER  chat gw_llamacoder / gpt-oss-120b                         http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29943ms: Admission denied for this request.  (12 ms)
-BREAKER  chat gw_llamacoder / kimi-k3                              http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29936ms: Admission denied for this request.  (7 ms)
-BREAKER  chat gw_llamacoder / llama-3.3-70b                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29928ms: Admission denied for this request.  (7 ms)
-BREAKER  chat gw_llamacoder / minimax-m3                           http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29921ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_llamacoder / qwen-2.5-coder                       http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29915ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_llamacoder / qwen-3.5-9b                          http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29908ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_llamacoder / qwen-3.6-plus                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29902ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_llamacoder / qwen-3.7-max                         http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29896ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_llamacoder / qwen-3.7-plus                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29888ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_llamacoder / qwen-3.8-flash                       http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29882ms: Admission denied for this request.  (6 ms)
-UPSTREAM chat gw_notegpt / deepseek-v4-flash                       http=502 execution_failed/auth_expired: upstream authentication expired  (6340 ms)
-UPSTREAM chat gw_notegpt / kimi-k3                                 http=502 execution_failed/auth_expired: upstream authentication expired  (9421 ms)
-UPSTREAM chat gw_notegpt / text-to-speech                          http=502 execution_failed/auth_expired: upstream authentication expired  (11254 ms)
-OK       chat gw_overchat / claude-4.5-haiku                       gw_overchat/claude-4.5-haiku -> 'OK'  (4593 ms)
-OK       chat gw_overchat / deepseek-v3.2                          gw_overchat/deepseek-v3.2 -> 'OK'  (4969 ms)
-OK       chat gw_overchat / gemini-3.8-flash                       gw_overchat/gemini-3.8-flash -> 'OK'  (4652 ms)
-OK       chat gw_overchat / gpt-4.1-nano                           gw_overchat/gpt-4.1-nano -> 'OK'  (5785 ms)
-OK       chat gw_overchat / gpt-5-mini                             gw_overchat/gpt-5-mini -> 'OK'  (5364 ms)
-OK       chat gw_overchat / gpt-5-nano                             gw_overchat/gpt-5-nano -> 'OK'  (5431 ms)
-UPSTREAM chat gw_overchat / gpt-5.6-luna                           http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_overchat / gpt-6-luna                             http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-OK       chat gw_parallel / default                                gw_parallel/default -> 'Cambridge Dictionary Online English–Chin'  (13877 ms)
-OK       chat gw_parallel / parallel-chat                          gw_parallel/parallel-chat -> 'Cambridge Dictionary Online English–Chin'  (6491 ms)
-OK       chat gw_parallel / parallel-extract                       gw_parallel/parallel-extract -> '### 📄 محتوى الصفحات والمستندات المستخرجة'  (5781 ms)
-UPSTREAM chat gw_parallel / parallel-research                      http=502 execution_failed/timeout: gateway request timed out  (60067 ms)
-UPSTREAM chat gw_parallel / parallel-search                        http=502 execution_failed/timeout: gateway request timed out  (60039 ms)
-UPSTREAM chat gw_runpod_console / default                          http=502 execution_failed/invalid_credential: No active RunPod session credentials configured  (8883 ms)
-UPSTREAM chat gw_runpod_console / runpod-console-gpt4              http=502 execution_failed/invalid_credential: No active RunPod session credentials configured  (5771 ms)
-UPSTREAM chat gw_runpod_console / runpod-console-vision            http=502 execution_failed/invalid_credential: No active RunPod session credentials configured  (1077 ms)
-UPSTREAM chat gw_syntx / claude-haiku-4-5-20251001                 http=502 execution_failed/timeout: gateway request timed out  (60051 ms)
-UPSTREAM chat gw_syntx / claude-opus-4-6                           http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_syntx / claude-opus-4-7                           http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_syntx / claude-opus-4-8                           http=502 execution_failed/timeout: gateway request timed out  (60024 ms)
-UPSTREAM chat gw_syntx / claude-sonnet-4-6                         http=502 execution_failed/timeout: gateway request timed out  (60023 ms)
-BREAKER  chat gw_syntx / claude-sonnet-5                           http=429 admission_denied/provider:gw_syntx/rpm retry_after=29991ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_syntx / deepseek-r1                               http=429 admission_denied/provider:gw_syntx/rpm retry_after=29985ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_syntx / deepseek-v3                               http=429 admission_denied/provider:gw_syntx/rpm retry_after=29979ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / gemini-3.1-pro-preview                    http=429 admission_denied/provider:gw_syntx/rpm retry_after=29973ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / gemini-3.5-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29968ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / gemini-3.5-flash-lite                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29963ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / gemini-3.6-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29957ms: Admission denied for this request.  (4 ms)
-BREAKER  chat gw_syntx / gemini-3.7-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29953ms: Admission denied for this request.  (4 ms)
-BREAKER  chat gw_syntx / gemini-3.8-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29948ms: Admission denied for this request.  (4 ms)
-BREAKER  chat gw_syntx / glm-5.2                                   http=429 admission_denied/provider:gw_syntx/rpm retry_after=29944ms: Admission denied for this request.  (4 ms)
-BREAKER  chat gw_syntx / gpt-5-mini-2025-08-07                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29942ms: Admission denied for this request.  (2 ms)
-BREAKER  chat gw_syntx / gpt-5-nano-2025-08-07                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29938ms: Admission denied for this request.  (3 ms)
-BREAKER  chat gw_syntx / gpt-5.4                                   http=429 admission_denied/provider:gw_syntx/rpm retry_after=29935ms: Admission denied for this request.  (3 ms)
-BREAKER  chat gw_syntx / gpt-5.6-luna                              http=429 admission_denied/provider:gw_syntx/rpm retry_after=29930ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / gpt-5.6-terra                             http=429 admission_denied/provider:gw_syntx/rpm retry_after=29925ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / grok-4                                    http=429 admission_denied/provider:gw_syntx/rpm retry_after=29919ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / grok-4.3                                  http=429 admission_denied/provider:gw_syntx/rpm retry_after=29913ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / grok-4.5                                  http=429 admission_denied/provider:gw_syntx/rpm retry_after=29908ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / grok-4.6                                  http=429 admission_denied/provider:gw_syntx/rpm retry_after=29902ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / qwen3-max-2026-01-23                      http=429 admission_denied/provider:gw_syntx/rpm retry_after=29897ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / qwen3.7-max                               http=429 admission_denied/provider:gw_syntx/rpm retry_after=29891ms: Admission denied for this request.  (5 ms)
-BREAKER  chat gw_syntx / qwen3.7-plus                              http=429 admission_denied/provider:gw_syntx/rpm retry_after=29885ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_syntx / sonar                                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29879ms: Admission denied for this request.  (5 ms)
-UPSTREAM chat gw_tinyfish / browser-agent                          http=502 execution_failed/timeout: gateway request timed out  (60083 ms)
-UPSTREAM chat gw_tinyfish / eva                                    http=502 execution_failed/timeout: gateway request timed out  (60039 ms)
-UPSTREAM chat gw_tinyfish / mako                                   http=502 execution_failed/timeout: gateway request timed out  (60064 ms)
-UPSTREAM chat gw_tinyfish / stealth-agent                          http=502 execution_failed/timeout: gateway request timed out  (60037 ms)
-UPSTREAM chat gw_tinyfish / tetra-engine                           http=502 execution_failed/timeout: gateway request timed out  (60036 ms)
-BREAKER  chat gw_tinyfish / web-fetch                              http=429 admission_denied/provider:gw_tinyfish/rpm retry_after=29988ms: Admission denied for this request.  (10 ms)
-BREAKER  chat gw_tinyfish / web-monitor                            http=429 admission_denied/provider:gw_tinyfish/rpm retry_after=29982ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_tinyfish / web-search                             http=429 admission_denied/provider:gw_tinyfish/rpm retry_after=29976ms: Admission denied for this request.  (6 ms)
-UPSTREAM chat gw_upstage / auto                                    http=502 execution_failed/timeout: gateway request timed out  (60047 ms)
-UPSTREAM chat gw_upstage / gpt-5.4-openai                          http=502 execution_failed/timeout: gateway request timed out  (60023 ms)
-UPSTREAM chat gw_upstage / solar-docvision                         http=502 execution_failed/timeout: gateway request timed out  (60026 ms)
-UPSTREAM chat gw_upstage / solar-pro4                              http=502 execution_failed/timeout: gateway request timed out  (60023 ms)
-UPSTREAM chat gw_youmind / auto                                    http=502 execution_failed/timeout: gateway request timed out  (60065 ms)
-UPSTREAM chat gw_youmind / claude-fable-5-1                        http=502 execution_failed/timeout: gateway request timed out  (60036 ms)
-UPSTREAM chat gw_youmind / deepseek-flash                          http=502 execution_failed/timeout: gateway request timed out  (60036 ms)
-UPSTREAM chat gw_youmind / gemini-3.8-flash                        http=502 execution_failed/quota_exceeded: upstream quota exceeded  (28364 ms)
-UPSTREAM chat gw_youmind / gpt-5-6-luna                            http=502 execution_failed/quota_exceeded: upstream quota exceeded  (23 ms)
-BREAKER  chat gw_youmind / gpt-6-astra                             http=429 admission_denied/provider:gw_youmind/rpm retry_after=29991ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_youmind / grok-4.6                                http=429 admission_denied/provider:gw_youmind/rpm retry_after=29985ms: Admission denied for this request.  (6 ms)
-BREAKER  chat gw_youmind / kimi-k3                                 http=429 admission_denied/provider:gw_youmind/rpm retry_after=29979ms: Admission denied for this request.  (6 ms)
+UPSTREAM chat genspark_llm / claude-opus-4-5                       http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (249 ms)
+UPSTREAM chat genspark_llm / claude-sonnet-4-5                     http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (199 ms)
+UPSTREAM chat genspark_llm / deep-seek-v4-flash                    http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (211 ms)
+UPSTREAM chat genspark_llm / gpt-5-mini                            http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (189 ms)
+UPSTREAM chat genspark_llm / gpt-5-nano                            http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (227 ms)
+BREAKER  chat genspark_llm / gpt-5.2                               http=429 admission_denied/provider:genspark_llm/rpm retry_after=29992ms: Admission denied for this request.  (6 ms)
+BREAKER  chat genspark_llm / grok-4.6                              http=429 admission_denied/provider:genspark_llm/rpm retry_after=29986ms: Admission denied for this request.  (6 ms)
+BREAKER  chat genspark_llm / kimi-k3                               http=429 admission_denied/provider:genspark_llm/rpm retry_after=29980ms: Admission denied for this request.  (5 ms)
+OK       chat gw_deepai / deepseek-v3.2                            gw_deepai/deepseek-v3.2 -> 'OK'  (986 ms)
+OK       chat gw_deepai / deepseek-v4-flash                        gw_deepai/deepseek-v4-flash -> 'OK'  (751 ms)
+OK       chat gw_deepai / gemini-2.5-flash-lite                    gw_deepai/gemini-2.5-flash-lite -> 'OK'  (5295 ms)
+OK       chat gw_deepai / gemma-4                                  gw_deepai/gemma-4 -> 'OK'  (5157 ms)
+OK       chat gw_deepai / glm-5.3-flash                            gw_deepai/glm-5.3-flash -> 'OK'  (5017 ms)
+OK       chat gw_deepai / gpt-4o-mini                              gw_deepai/gpt-4o-mini -> 'OK'  (11521 ms)
+OK       chat gw_deepai / gpt-5.6-luna                             gw_deepai/gpt-5.6-luna -> 'OK'  (21188 ms)
+OK       chat gw_deepai / gpt-6-luna                               gw_deepai/gpt-6-luna -> 'OK'  (25266 ms)
+OK       chat gw_deepai / gpt-oss-120b                             gw_deepai/gpt-oss-120b -> 'OK'  (23398 ms)
+OK       chat gw_deepai / llama-3.1-8b-instant                     gw_deepai/llama-3.1-8b-instant -> 'OK'  (13784 ms)
+OK       chat gw_deepai / llama-3.3-70b-instruct                   gw_deepai/llama-3.3-70b-instruct -> 'OK'  (25133 ms)
+OK       chat gw_deepai / qwen3.8-flash                            gw_deepai/qwen3.8-flash -> 'OK'  (2156 ms)
+OK       chat gw_deepai / standard                                 gw_deepai/standard -> 'OK'  (5560 ms)
+OK       chat gw_deepai / tencent-hy3                              gw_deepai/tencent-hy3 -> 'OK'  (941 ms)
+UPSTREAM chat gw_freebuff / glm-5.3-flash                          http=502 execution_failed/invalid_credential: upstream credential invalid  (991 ms)
+UPSTREAM chat gw_groq / allam-2-7b                                 http=502 execution_failed/invalid_credential: provider credential is not configured at the gateway  (50 ms)
+UPSTREAM chat gw_groq / llama-3.1-8b-instant                       http=502 execution_failed/invalid_credential: provider credential is not configured at the gateway  (952 ms)
+UPSTREAM chat gw_ivycraft / gpt-5.6-terra                          http=502 execution_failed/invalid_credential: upstream credential invalid  (58 ms)
+UPSTREAM chat gw_ivycraft / gpt-image-2.5-sunburst                 http=502 execution_failed/invalid_credential: upstream credential invalid  (954 ms)
+BREAKER  chat gw_ivycraft / text-to-speech                         http=429 admission_denied/provider:gw_ivycraft/rpm retry_after=29984ms: Admission denied for this request.  (15 ms)
+UPSTREAM chat gw_llamacoder / deepseek-v4-flash                    http=502 execution_failed/non_retryable_error: upstream call failed  (998 ms)
+UPSTREAM chat gw_llamacoder / deepseek-v4-pro                      http=502 execution_failed/non_retryable_error: upstream call failed  (5165 ms)
+UPSTREAM chat gw_llamacoder / deepseek-v4.1                        http=502 execution_failed/non_retryable_error: upstream call failed  (6034 ms)
+UPSTREAM chat gw_llamacoder / glm-5.2                              http=502 execution_failed/non_retryable_error: upstream call failed  (8425 ms)
+UPSTREAM chat gw_llamacoder / glm-5.3                              http=502 execution_failed/non_retryable_error: upstream call failed  (13606 ms)
+BREAKER  chat gw_llamacoder / glm-5.3-flash                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29990ms: Admission denied for this request.  (8 ms)
+BREAKER  chat gw_llamacoder / gpt-oss-120b                         http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29983ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_llamacoder / kimi-k3                              http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29976ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_llamacoder / llama-3.3-70b                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29970ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_llamacoder / minimax-m3                           http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29956ms: Admission denied for this request.  (14 ms)
+BREAKER  chat gw_llamacoder / qwen-2.5-coder                       http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29950ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_llamacoder / qwen-3.5-9b                          http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29943ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_llamacoder / qwen-3.6-plus                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29938ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_llamacoder / qwen-3.7-max                         http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29933ms: Admission denied for this request.  (4 ms)
+BREAKER  chat gw_llamacoder / qwen-3.7-plus                        http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29928ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_llamacoder / qwen-3.8-flash                       http=429 admission_denied/provider:gw_llamacoder/rpm retry_after=29923ms: Admission denied for this request.  (5 ms)
+UPSTREAM chat gw_notegpt / deepseek-v4-flash                       http=502 execution_failed/auth_expired: upstream authentication expired  (6428 ms)
+UPSTREAM chat gw_notegpt / kimi-k3                                 http=502 execution_failed/auth_expired: upstream authentication expired  (11734 ms)
+BREAKER  chat gw_notegpt / text-to-speech                          http=429 admission_denied/provider:gw_notegpt/rpm retry_after=29991ms: Admission denied for this request.  (8 ms)
+OK       chat gw_overchat / claude-4.5-haiku                       gw_overchat/claude-4.5-haiku -> 'OK'  (5152 ms)
+OK       chat gw_overchat / deepseek-v3.2                          gw_overchat/deepseek-v3.2 -> 'OK'  (5215 ms)
+OK       chat gw_overchat / gemini-3.8-flash                       gw_overchat/gemini-3.8-flash -> 'OK'  (5091 ms)
+OK       chat gw_overchat / gpt-4.1-nano                           gw_overchat/gpt-4.1-nano -> 'OK'  (11563 ms)
+OK       chat gw_overchat / gpt-5-mini                             gw_overchat/gpt-5-mini -> 'OK'  (6191 ms)
+OK       chat gw_overchat / gpt-5-nano                             gw_overchat/gpt-5-nano -> 'OK'  (27157 ms)
+OK       chat gw_overchat / gpt-5.6-luna                           gw_overchat/gpt-5.6-luna -> 'OK'  (23371 ms)
+OK       chat gw_overchat / gpt-6-luna                             gw_overchat/gpt-6-luna -> 'OK'  (18576 ms)
+OK       chat gw_parallel / default                                gw_parallel/default -> 'Cambridge Dictionary Online English–Chin'  (6402 ms)
+OK       chat gw_parallel / parallel-chat                          gw_parallel/parallel-chat -> 'Cambridge Dictionary Online English–Chin'  (9036 ms)
+OK       chat gw_parallel / parallel-extract                       gw_parallel/parallel-extract -> '### 📄 محتوى الصفحات والمستندات المستخرجة'  (12263 ms)
+OK       chat gw_parallel / parallel-research                      gw_parallel/parallel-research -> 'OK'  (27908 ms)
+UPSTREAM chat gw_parallel / parallel-search                        http=502 execution_failed/timeout: gateway request timed out  (60027 ms)
+UPSTREAM chat gw_runpod_console / default                          http=502 execution_failed/invalid_credential: No active RunPod session credentials configured  (5073 ms)
+UPSTREAM chat gw_runpod_console / runpod-console-gpt4              http=502 execution_failed/invalid_credential: No active RunPod session credentials configured  (5219 ms)
+BREAKER  chat gw_runpod_console / runpod-console-vision            http=429 admission_denied/provider:gw_runpod_console/rpm retry_after=29992ms: Admission denied for this request.  (6 ms)
+UPSTREAM chat gw_syntx / claude-haiku-4-5-20251001                 http=502 execution_failed/provider_unavailable: upstream provider unavailable  (9221 ms)
+UPSTREAM chat gw_syntx / claude-opus-4-6                           http=502 execution_failed/provider_unavailable: upstream provider unavailable  (9273 ms)
+UPSTREAM chat gw_syntx / claude-opus-4-7                           http=502 execution_failed/provider_unavailable: upstream provider unavailable  (26751 ms)
+UPSTREAM chat gw_syntx / claude-opus-4-8                           http=502 execution_failed/provider_unavailable: upstream provider unavailable  (24938 ms)
+UPSTREAM chat gw_syntx / claude-sonnet-4-6                         http=502 execution_failed/provider_unavailable: upstream provider unavailable  (17884 ms)
+BREAKER  chat gw_syntx / claude-sonnet-5                           http=429 admission_denied/provider:gw_syntx/rpm retry_after=29991ms: Admission denied for this request.  (7 ms)
+BREAKER  chat gw_syntx / deepseek-r1                               http=429 admission_denied/provider:gw_syntx/rpm retry_after=29984ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / deepseek-v3                               http=429 admission_denied/provider:gw_syntx/rpm retry_after=29977ms: Admission denied for this request.  (7 ms)
+BREAKER  chat gw_syntx / gemini-3.1-pro-preview                    http=429 admission_denied/provider:gw_syntx/rpm retry_after=29970ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / gemini-3.5-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29963ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / gemini-3.5-flash-lite                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29957ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / gemini-3.6-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29951ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / gemini-3.7-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29945ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / gemini-3.8-flash                          http=429 admission_denied/provider:gw_syntx/rpm retry_after=29939ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / glm-5.2                                   http=429 admission_denied/provider:gw_syntx/rpm retry_after=29932ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / gpt-5-mini-2025-08-07                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29927ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / gpt-5-nano-2025-08-07                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29921ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / gpt-5.4                                   http=429 admission_denied/provider:gw_syntx/rpm retry_after=29916ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / gpt-5.6-luna                              http=429 admission_denied/provider:gw_syntx/rpm retry_after=29910ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / gpt-5.6-terra                             http=429 admission_denied/provider:gw_syntx/rpm retry_after=29906ms: Admission denied for this request.  (4 ms)
+BREAKER  chat gw_syntx / grok-4                                    http=429 admission_denied/provider:gw_syntx/rpm retry_after=29900ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / grok-4.3                                  http=429 admission_denied/provider:gw_syntx/rpm retry_after=29896ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / grok-4.5                                  http=429 admission_denied/provider:gw_syntx/rpm retry_after=29890ms: Admission denied for this request.  (4 ms)
+BREAKER  chat gw_syntx / grok-4.6                                  http=429 admission_denied/provider:gw_syntx/rpm retry_after=29886ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_syntx / qwen3-max-2026-01-23                      http=429 admission_denied/provider:gw_syntx/rpm retry_after=29879ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / qwen3.7-max                               http=429 admission_denied/provider:gw_syntx/rpm retry_after=29873ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / qwen3.7-plus                              http=429 admission_denied/provider:gw_syntx/rpm retry_after=29868ms: Admission denied for this request.  (5 ms)
+BREAKER  chat gw_syntx / sonar                                     http=429 admission_denied/provider:gw_syntx/rpm retry_after=29863ms: Admission denied for this request.  (5 ms)
+UPSTREAM chat gw_tinyfish / browser-agent                          http=502 execution_failed/provider_unavailable: upstream provider unavailable  (29996 ms)
+UPSTREAM chat gw_tinyfish / eva                                    http=502 execution_failed/provider_unavailable: upstream provider unavailable  (25189 ms)
+UPSTREAM chat gw_tinyfish / mako                                   http=502 execution_failed/provider_unavailable: upstream provider unavailable  (22746 ms)
+UPSTREAM chat gw_tinyfish / stealth-agent                          http=502 execution_failed/provider_unavailable: upstream provider unavailable  (14404 ms)
+UPSTREAM chat gw_tinyfish / tetra-engine                           http=502 execution_failed/provider_unavailable: upstream provider unavailable  (25232 ms)
+BREAKER  chat gw_tinyfish / web-fetch                              http=429 admission_denied/provider:gw_tinyfish/rpm retry_after=29990ms: Admission denied for this request.  (8 ms)
+BREAKER  chat gw_tinyfish / web-monitor                            http=429 admission_denied/provider:gw_tinyfish/rpm retry_after=29982ms: Admission denied for this request.  (7 ms)
+BREAKER  chat gw_tinyfish / web-search                             http=429 admission_denied/provider:gw_tinyfish/rpm retry_after=29974ms: Admission denied for this request.  (7 ms)
+UPSTREAM chat gw_upstage / auto                                    http=502 execution_failed/timeout: gateway request timed out  (60021 ms)
+UPSTREAM chat gw_upstage / gpt-5.4-openai                          http=502 execution_failed/provider_unavailable: upstream provider unavailable  (18761 ms)
+UPSTREAM chat gw_upstage / solar-docvision                         http=502 execution_failed/provider_unavailable: upstream provider unavailable  (25831 ms)
+UPSTREAM chat gw_upstage / solar-pro4                              http=502 execution_failed/provider_unavailable: upstream provider unavailable  (2184 ms)
+UPSTREAM chat gw_youmind / auto                                    http=502 execution_failed/quota_exceeded: upstream quota exceeded  (40073 ms)
+UPSTREAM chat gw_youmind / claude-fable-5-1                        http=502 execution_failed/quota_exceeded: upstream quota exceeded  (5561 ms)
+UPSTREAM chat gw_youmind / deepseek-flash                          http=502 execution_failed/quota_exceeded: upstream quota exceeded  (934 ms)
+UPSTREAM chat gw_youmind / gemini-3.8-flash                        http=502 execution_failed/quota_exceeded: upstream quota exceeded  (18 ms)
+BREAKER  chat gw_youmind / gpt-5-6-luna                            http=429 admission_denied/provider:gw_youmind/rpm retry_after=29992ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_youmind / gpt-6-astra                             http=429 admission_denied/provider:gw_youmind/rpm retry_after=29986ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_youmind / grok-4.6                                http=429 admission_denied/provider:gw_youmind/rpm retry_after=29980ms: Admission denied for this request.  (6 ms)
+BREAKER  chat gw_youmind / kimi-k3                                 http=429 admission_denied/provider:gw_youmind/rpm retry_after=29974ms: Admission denied for this request.  (6 ms)
 OK       chat local_echo / local-echo-1                            local_echo/local-echo-1 -> '{"echo": "Reply with exactly: OK", "note'  (8 ms)
 
 providers answering: ['gw_deepai', 'gw_overchat', 'gw_parallel', 'local_echo']
@@ -149,10 +149,12 @@ OK       POST /v1/conversations                                    201
 OK       GET /v1/conversations/{id}                                
 OK       PATCH /v1/conversations/{id}                              
 OK       PATCH /v1/projects/{id}                                   
-FAIL     chat turn 1 in conversation                               429
-FAIL     chat turn 2 (history carried)                             ''
-UPSTREAM memory recall (model quality)                             ''
-FAIL     GET /v1/conversations/{id}/turns (4 turns)                turns=2
+OK       chat turn 1 in conversation                               200
+OK       chat turn 2 (history carried)                             'Belal.'
+OK       memory recall (model quality)                             'Belal.'
+OK       GET /v1/conversations/{id}/turns (4 turns)                turns=4
+OK       GET /v1/executions/{id}                                   
+OK       GET /v1/executions/{id}/events                            
 OK       GET /v1/usage/records has rows                            
 
 == auto routing
@@ -167,7 +169,7 @@ OK       POST /v1/chat/stream/{id}:cancel (finished stream)        200
 OK       GET /v1/chat/stream/{id}                                  
 
 == openai compat
-OK       POST /v1/chat/completions (sync)                          "I've received the handoff. Wha" http=200
+OK       POST /v1/chat/completions (sync)                          "I'm ready to proceed." http=200
 OK       POST /v1/chat/completions (stream)                        chunks=3 http=200
 UPSTREAM POST /v1/execute (upstream body shape)                    http=403 entitlement_exceeded
 
@@ -185,7 +187,7 @@ OK       POST /v1/admin/skills                                     201
 OK       GET /v1/skills/{id}                                       
 OK       POST /v1/conversations/{id}/skills:assign                 200 
 OK       GET /v1/conversations/{id}/skills                         
-OK       turn records skills_used                                  ['live_check_741ce2'] http=200
+OK       turn records skills_used                                  ['live_check_d2d2ad'] http=200
 OK       POST .../skills/{id}:disable                              
 OK       POST .../skills/{id}:enable                               
 OK       DELETE .../skills/{id}                                    
@@ -205,7 +207,7 @@ OK       GET /v1/catalog/models/{canonical_id}                     allam-2-7b
 OK       GET /v1/admin/providers/{key} (managed->200, bound->404)  gw_deepai managed=False
 OK       GET /v1/admin/providers/{key}/revisions                   
 OK       POST /v1/admin/providers/{key}:validate                   404
-OK       POST /v1/admin/capabilities/{key}/chat:probe              200 {'probe_id': 'cec79af9-87f7-436e-993d-e167a4139872', 'provider_key': 'gw_deepai'
+OK       POST /v1/admin/capabilities/{key}/chat:probe              200 {'probe_id': '76a0acb5-7aee-4b0b-8be7-f21807e28976', 'provider_key': 'gw_deepai'
 OK       POST /v1/admin/providers/{key} (draft)                    201 
 OK       draft :validate unreachable -> non-500                    200
 OK       draft :archive                                            
@@ -222,8 +224,5 @@ OK       GET unknown conversation -> 404
 OK       DELETE /v1/conversations/{id}                             
 OK       DELETE /v1/projects/{id}                                  
 
-SUMMARY ok=104 upstream_refusals=96 fail=3
-  FAIL chat turn 1 in conversation: 429
-  FAIL chat turn 2 (history carried): ''
-  FAIL GET /v1/conversations/{id}/turns (4 turns): turns=2
-EXIT 1
+SUMMARY ok=119 upstream_refusals=86 fail=0
+EXIT 0
