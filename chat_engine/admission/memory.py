@@ -29,6 +29,14 @@ from chat_engine.util.time import utc_now
 BREAKER_FAILS = 5  # failures in the last BREAKER_SAMPLE attempts
 BREAKER_SAMPLE = 10
 BREAKER_OPEN = timedelta(seconds=30)
+BREAKER_EXEMPT_PREFIXES = ("tenant", "project")  # quotas, not health signals
+
+
+def _breaker_applies(scope: str) -> bool:
+    """The relative breaker is a PROVIDER health signal (ADR-CE-0001 D5); tenant and
+    project scopes only carry quotas."""
+    head = scope.split(":", 1)[0]
+    return head not in BREAKER_EXEMPT_PREFIXES
 
 
 class InMemoryAdmission:
@@ -163,6 +171,10 @@ class InMemoryAdmission:
                     # replace the estimate with the truth on the most recent row
                     at, _ = self._windows[scope][-1]
                     self._windows[scope][-1] = (at, tokens_actual)
+                if not _breaker_applies(scope):
+                    # tenant/project scopes are quotas, not health: five upstream refusals
+                    # from DIFFERENT providers must never lock the whole tenant out.
+                    continue
                 snap.recent_failures = ([*snap.recent_failures, not success])[-BREAKER_SAMPLE:]
                 if sum(snap.recent_failures) >= BREAKER_FAILS:
                     snap.breaker_open_until = self._clock() + BREAKER_OPEN

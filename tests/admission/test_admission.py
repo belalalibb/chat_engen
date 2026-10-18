@@ -95,6 +95,28 @@ async def test_relative_breaker_opens_after_repeated_failures() -> None:
     assert isinstance(await adm.reserve(["p"]), Reservation)
 
 
+async def test_breaker_never_opens_on_tenant_scope() -> None:
+    """Regression (CE-20 live matrix): upstream refusals from five different providers
+    tripped the TENANT breaker and 429'd every provider, healthy ones included."""
+    clock = Clock()
+    adm = InMemoryAdmission(clock=clock)
+    adm.set_limits("tenant:t1", Limits(rpm=1000, concurrency=1000, source="test"))
+    for i in range(6):
+        r = await adm.reserve(["tenant:t1", f"provider:p{i}"])
+        assert isinstance(r, Reservation)
+        await adm.settle(r, success=False)
+    ok = await adm.reserve(["tenant:t1", "provider:healthy"])
+    assert isinstance(ok, Reservation), ok
+    # the provider that failed 5 times on its own still trips its OWN breaker
+    for _ in range(5):
+        r = await adm.reserve(["tenant:t1", "provider:bad"])
+        assert isinstance(r, Reservation)
+        await adm.settle(r, success=False)
+    d = await adm.reserve(["tenant:t1", "provider:bad"])
+    assert isinstance(d, Denied) and d.scope == "provider:bad" and "breaker" in d.reason
+    assert isinstance(await adm.reserve(["tenant:t1", "provider:healthy"]), Reservation)
+
+
 async def test_retry_storm_never_exceeds_concurrency() -> None:
     adm = InMemoryAdmission()
     adm.set_limits("p", Limits(rpm=100000, concurrency=8, source="test"))

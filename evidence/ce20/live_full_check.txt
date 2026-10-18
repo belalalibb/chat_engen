@@ -1,0 +1,179 @@
+OK       GET /healthz                                              v0.1.2 providers=15
+OK       gateway bound (>=1)                                       bound=13 skipped={'gw_voyage': 'gateway route does not declare generate_text'}
+OK       GET / (UI)                                                
+OK       GET /openapi.json                                         
+OK       GET /v1/models                                            88 models
+OK       GET /v1/openai/models (UI picker)                         88 ids
+OK       GET /v1/openai/models/{id}                                allam-2-7b
+OK       GET /v1/catalog/models                                    total=88
+OK       GET /v1/catalog/aliases                                   
+OK       GET /v1/skills                                            
+OK       GET /v1/usage                                             
+OK       GET /v1/usage/records                                     
+OK       GET /v1/executions                                        
+OK       GET /v1/admin/providers                                   
+OK       GET /v1/admin/providers/managed                           
+OK       GET /v1/admin/models                                      
+OK       GET /v1/admin/pricing                                     
+OK       GET /v1/admin/admission                                   
+OK       GET /v1/admin/routing/weights                             
+OK       GET /v1/admin/capabilities/ledger                         
+OK       GET /v1/admin/capabilities/catalog                        
+OK       GET /v1/admin/capabilities/probes                         
+OK       GET /v1/credentials                                       
+OK       GET /v1/agent-profiles                                    
+OK       GET /v1/projects                                          
+OK       GET /v1/conversations                                     
+OK       GET /v1/apps                                              
+
+== provider x model matrix: 112 pairs
+UPSTREAM chat genspark_llm / claude-opus-4-5                       http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (283 ms)
+UPSTREAM chat genspark_llm / claude-sonnet-4-5                     http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (316 ms)
+UPSTREAM chat genspark_llm / deep-seek-v4-flash                    http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (222 ms)
+UPSTREAM chat genspark_llm / gpt-5-mini                            http=502 execution_failed/quota_exceeded: provider plan refused inference; no tokens were consumed  (226 ms)
+FAIL     chat genspark_llm / gpt-5-nano                            http=429 admission_denied/None: Admission denied for this request.  (19 ms)
+FAIL     chat genspark_llm / gpt-5.2                               http=429 admission_denied/None: Admission denied for this request.  (21 ms)
+FAIL     chat genspark_llm / grok-4.6                              http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat genspark_llm / kimi-k3                               http=429 admission_denied/None: Admission denied for this request.  (4 ms)
+FAIL     chat gw_deepai / deepseek-v3.2                            turn status=complete http=200  (736 ms)
+FAIL     chat gw_deepai / deepseek-v4-flash                        turn status=complete http=200  (1478 ms)
+FAIL     chat gw_deepai / gemini-2.5-flash-lite                    turn status=complete http=200  (2015 ms)
+FAIL     chat gw_deepai / gemma-4                                  turn status=complete http=200  (2810 ms)
+FAIL     chat gw_deepai / glm-5.3-flash                            http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_deepai / gpt-4o-mini                              http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_deepai / gpt-5.6-luna                             http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_deepai / gpt-6-luna                               http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_deepai / gpt-oss-120b                             http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_deepai / llama-3.1-8b-instant                     http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_deepai / llama-3.3-70b-instruct                   http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_deepai / qwen3.8-flash                            http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_deepai / standard                                 http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_deepai / tencent-hy3                              http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+UPSTREAM chat gw_freebuff / glm-5.3-flash                          http=502 execution_failed/invalid_credential: upstream credential invalid  (2735 ms)
+UPSTREAM chat gw_groq / allam-2-7b                                 http=502 execution_failed/invalid_credential: provider credential is not configured at the gateway  (2716 ms)
+UPSTREAM chat gw_groq / llama-3.1-8b-instant                       http=502 execution_failed/invalid_credential: provider credential is not configured at the gateway  (2288 ms)
+UPSTREAM chat gw_ivycraft / gpt-5.6-terra                          http=502 execution_failed/invalid_credential: upstream credential invalid  (1552 ms)
+UPSTREAM chat gw_ivycraft / gpt-image-2.5-sunburst                 http=502 execution_failed/invalid_credential: upstream credential invalid  (828 ms)
+UPSTREAM chat gw_ivycraft / text-to-speech                         http=502 execution_failed/invalid_credential: upstream credential invalid  (94 ms)
+FAIL     chat gw_llamacoder / deepseek-v4-flash                    http=429 admission_denied/None: Admission denied for this request.  (20 ms)
+FAIL     chat gw_llamacoder / deepseek-v4-pro                      http=429 admission_denied/None: Admission denied for this request.  (22 ms)
+FAIL     chat gw_llamacoder / deepseek-v4.1                        http=429 admission_denied/None: Admission denied for this request.  (19 ms)
+FAIL     chat gw_llamacoder / glm-5.2                              http=429 admission_denied/None: Admission denied for this request.  (21 ms)
+FAIL     chat gw_llamacoder / glm-5.3                              http=429 admission_denied/None: Admission denied for this request.  (21 ms)
+FAIL     chat gw_llamacoder / glm-5.3-flash                        http=429 admission_denied/None: Admission denied for this request.  (20 ms)
+FAIL     chat gw_llamacoder / gpt-oss-120b                         http=429 admission_denied/None: Admission denied for this request.  (20 ms)
+FAIL     chat gw_llamacoder / kimi-k3                              http=429 admission_denied/None: Admission denied for this request.  (18 ms)
+FAIL     chat gw_llamacoder / llama-3.3-70b                        http=429 admission_denied/None: Admission denied for this request.  (17 ms)
+FAIL     chat gw_llamacoder / minimax-m3                           http=429 admission_denied/None: Admission denied for this request.  (18 ms)
+FAIL     chat gw_llamacoder / qwen-2.5-coder                       http=429 admission_denied/None: Admission denied for this request.  (18 ms)
+FAIL     chat gw_llamacoder / qwen-3.5-9b                          http=429 admission_denied/None: Admission denied for this request.  (16 ms)
+FAIL     chat gw_llamacoder / qwen-3.6-plus                        http=429 admission_denied/None: Admission denied for this request.  (17 ms)
+FAIL     chat gw_llamacoder / qwen-3.7-max                         http=429 admission_denied/None: Admission denied for this request.  (20 ms)
+FAIL     chat gw_llamacoder / qwen-3.7-plus                        http=429 admission_denied/None: Admission denied for this request.  (18 ms)
+FAIL     chat gw_llamacoder / qwen-3.8-flash                       http=429 admission_denied/None: Admission denied for this request.  (15 ms)
+FAIL     chat gw_notegpt / deepseek-v4-flash                       http=429 admission_denied/None: Admission denied for this request.  (14 ms)
+FAIL     chat gw_notegpt / kimi-k3                                 http=429 admission_denied/None: Admission denied for this request.  (12 ms)
+FAIL     chat gw_notegpt / text-to-speech                          http=429 admission_denied/None: Admission denied for this request.  (23 ms)
+FAIL     chat gw_overchat / claude-4.5-haiku                       http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_overchat / deepseek-v3.2                          http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_overchat / gemini-3.8-flash                       http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_overchat / gpt-4.1-nano                           http=429 admission_denied/None: Admission denied for this request.  (15 ms)
+FAIL     chat gw_overchat / gpt-5-mini                             http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_overchat / gpt-5-nano                             http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_overchat / gpt-5.6-luna                           http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_overchat / gpt-6-luna                             http=429 admission_denied/None: Admission denied for this request.  (11 ms)
+FAIL     chat gw_parallel / default                                http=429 admission_denied/None: Admission denied for this request.  (11 ms)
+FAIL     chat gw_parallel / parallel-chat                          http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_parallel / parallel-extract                       http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_parallel / parallel-research                      http=429 admission_denied/None: Admission denied for this request.  (11 ms)
+FAIL     chat gw_parallel / parallel-search                        http=429 admission_denied/None: Admission denied for this request.  (11 ms)
+FAIL     chat gw_runpod_console / default                          http=429 admission_denied/None: Admission denied for this request.  (19 ms)
+FAIL     chat gw_runpod_console / runpod-console-gpt4              http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_runpod_console / runpod-console-vision            http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_syntx / claude-haiku-4-5-20251001                 http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_syntx / claude-opus-4-6                           http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_syntx / claude-opus-4-7                           http=429 admission_denied/None: Admission denied for this request.  (14 ms)
+FAIL     chat gw_syntx / claude-opus-4-8                           http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_syntx / claude-sonnet-4-6                         http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / claude-sonnet-5                           http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / deepseek-r1                               http=429 admission_denied/None: Admission denied for this request.  (14 ms)
+FAIL     chat gw_syntx / deepseek-v3                               http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_syntx / gemini-3.1-pro-preview                    http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_syntx / gemini-3.5-flash                          http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / gemini-3.5-flash-lite                     http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_syntx / gemini-3.6-flash                          http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_syntx / gemini-3.7-flash                          http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / gemini-3.8-flash                          http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / glm-5.2                                   http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / gpt-5-mini-2025-08-07                     http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / gpt-5-nano-2025-08-07                     http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_syntx / gpt-5.4                                   http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_syntx / gpt-5.6-luna                              http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_syntx / gpt-5.6-terra                             http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_syntx / grok-4                                    http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_syntx / grok-4.3                                  http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_syntx / grok-4.5                                  http=429 admission_denied/None: Admission denied for this request.  (7 ms)
+FAIL     chat gw_syntx / grok-4.6                                  http=429 admission_denied/None: Admission denied for this request.  (11 ms)
+FAIL     chat gw_syntx / qwen3-max-2026-01-23                      http=429 admission_denied/None: Admission denied for this request.  (21 ms)
+FAIL     chat gw_syntx / qwen3.7-max                               http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_syntx / qwen3.7-plus                              http=429 admission_denied/None: Admission denied for this request.  (5 ms)
+FAIL     chat gw_syntx / sonar                                     http=429 admission_denied/None: Admission denied for this request.  (12 ms)
+FAIL     chat gw_tinyfish / browser-agent                          http=429 admission_denied/None: Admission denied for this request.  (8 ms)
+FAIL     chat gw_tinyfish / eva                                    http=429 admission_denied/None: Admission denied for this request.  (10 ms)
+FAIL     chat gw_tinyfish / mako                                   http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_tinyfish / stealth-agent                          http=429 admission_denied/None: Admission denied for this request.  (19 ms)
+FAIL     chat gw_tinyfish / tetra-engine                           http=429 admission_denied/None: Admission denied for this request.  (24 ms)
+FAIL     chat gw_tinyfish / web-fetch                              http=429 admission_denied/None: Admission denied for this request.  (24 ms)
+FAIL     chat gw_tinyfish / web-monitor                            http=429 admission_denied/None: Admission denied for this request.  (19 ms)
+FAIL     chat gw_tinyfish / web-search                             http=429 admission_denied/None: Admission denied for this request.  (18 ms)
+FAIL     chat gw_upstage / auto                                    http=429 admission_denied/None: Admission denied for this request.  (16 ms)
+FAIL     chat gw_upstage / gpt-5.4-openai                          http=429 admission_denied/None: Admission denied for this request.  (9 ms)
+FAIL     chat gw_upstage / solar-docvision                         http=429 admission_denied/None: Admission denied for this request.  (17 ms)
+FAIL     chat gw_upstage / solar-pro4                              http=429 admission_denied/None: Admission denied for this request.  (15 ms)
+FAIL     chat gw_youmind / auto                                    http=429 admission_denied/None: Admission denied for this request.  (21 ms)
+FAIL     chat gw_youmind / claude-fable-5-1                        http=429 admission_denied/None: Admission denied for this request.  (5 ms)
+FAIL     chat gw_youmind / deepseek-flash                          http=429 admission_denied/None: Admission denied for this request.  (11 ms)
+FAIL     chat gw_youmind / gemini-3.8-flash                        http=429 admission_denied/None: Admission denied for this request.  (6 ms)
+FAIL     chat gw_youmind / gpt-5-6-luna                            http=429 admission_denied/None: Admission denied for this request.  (13 ms)
+FAIL     chat gw_youmind / gpt-6-astra                             http=429 admission_denied/None: Admission denied for this request.  (15 ms)
+FAIL     chat gw_youmind / grok-4.6                                http=429 admission_denied/None: Admission denied for this request.  (13 ms)
+FAIL     chat gw_youmind / kimi-k3                                 http=429 admission_denied/None: Admission denied for this request.  (13 ms)
+FAIL     chat local_echo / local-echo-1                            http=429 admission_denied/None: Admission denied for this request.  (13 ms)
+
+providers answering: []
+FAIL     at least one gateway provider answers                     []
+
+== conversations & projects
+OK       POST /v1/projects                                         201
+OK       POST /v1/conversations                                    201
+OK       GET /v1/conversations/{id}                                
+OK       PATCH /v1/conversations/{id}                              
+OK       PATCH /v1/projects/{id}                                   
+
+== auto routing
+FAIL     POST /v1/chat AUTO (no model) 200                         None/None http=429 admission_denied
+
+== streaming
+OK       stream AUTO buffer                                        ['started', 'message_delta', 'usage']...['usage', 'completed']
+OK       stream in conversation                                    ['started', 'message_delta', 'usage']...['usage', 'completed']
+OK       stream without fallback is honest (completed|failed)      ['failed'] unsupported_capability
+OK       POST /v1/chat/stream/{id}:cancel (finished stream)        200
+OK       GET /v1/chat/stream/{id}                                  
+
+== openai compat
+FAIL     POST /v1/chat/completions (sync)                          '' http=422
+FAIL     POST /v1/chat/completions (stream)                        chunks=0 http=422
+FAIL     POST /v1/execute (auto)                                   http=422 validation_error
+
+== orchestration
+OK       cost_tiered (derived tiers)                               gw_overchat/claude-4.5-haiku steps=3 sel=#3
+OK       cost_tiered (explicit tiers)                              gw_overchat/claude-4.5-haiku steps=1 sel=#1
+FAIL     sequential_handoff                                        http=422 conflict: sequential_handoff needs strategy_options.stages with >= 2 models
+FAIL     judge_select (heuristic)                                  http=422 conflict: judge_select needs strategy_options.candidates with >= 2 models
+OK       cost_tiered + stream_fallback knob (UI body)              gw_overchat/claude-4.5-haiku steps=1 sel=#1
+Traceback (most recent call last):
+  File "/home/user/webapp/scripts/live_full_check.py", line 258, in <module>
+    r = C.post("/v1/chat", json={"message": "x", "strategy": "sequential_handoff", "strategy_options": {"stages": [two[0]]}})
+                                                                                                                   ~~~^^^
+IndexError: list index out of range
+EXIT 1
