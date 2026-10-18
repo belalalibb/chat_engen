@@ -123,19 +123,35 @@ def probe(pair: tuple[str, str]) -> tuple[str, str, str, str, int]:
         if "turn" in d:
             return pk, model, "FAIL", f"turn status={d['turn'].get('status')} http={r.status_code}", int((time.time() - t) * 1000)
         e = d.get("error", {})
-        cat = (e.get("details") or {}).get("provider_error_category")
+        det = e.get("details") or {}
+        cat = det.get("provider_error_category")
         status = "UPSTREAM" if (cat in UPSTREAM_CATS or e.get("code") in {"execution_failed", "not_found"}) else "FAIL"
+        if e.get("code") == "admission_denied" and str(det.get("scope", "")).startswith("provider:"):
+            # the provider's own breaker opened after repeated upstream failures (30 s)
+            status, cat = "BREAKER", f"{det.get('scope')}/{det.get('dimension')} retry_after={det.get('retry_after_ms')}ms"
         return pk, model, status, f"http={r.status_code} {e.get('code')}/{cat}: {str(e.get('message'))[:60]}", int((time.time() - t) * 1000)
     except Exception as ex:  # transport-level
         return pk, model, "FAIL", f"{type(ex).__name__}: {str(ex)[:60]}", int((time.time() - t) * 1000)
 
 
+by_provider: dict[str, list[tuple[str, str]]] = {}
+for pk, model in pairs:
+    by_provider.setdefault(pk, []).append((pk, model))
+
+
+def probe_provider(items: list[tuple[str, str]]) -> list[tuple[str, str, str, str, int]]:
+    # one request in flight per provider: the per-provider admission ceiling (concurrency 4,
+    # conservative default) and the provider breaker are features we must not trip by design
+    return [probe(it) for it in items]
+
+
 answering: dict[str, str] = {}
 with cf.ThreadPoolExecutor(6) as ex:
-    for pk, model, status, detail, ms in sorted(ex.map(probe, pairs)):
-        row(status, f"chat {pk} / {model[:40]}", f"{detail}  ({ms} ms)")
-        if status == "OK" and pk not in answering:
-            answering[pk] = model
+    results = [r for group in ex.map(probe_provider, by_provider.values()) for r in group]
+for pk, model, status, detail, ms in sorted(results):
+    row(status, f"chat {pk} / {model[:40]}", f"{detail}  ({ms} ms)")
+    if status == "OK" and pk not in answering:
+        answering[pk] = model
 print(f"\nproviders answering: {sorted(answering)}", flush=True)
 ok("at least one gateway provider answers", any(k.startswith("gw_") for k in answering), str(sorted(answering)))
 
@@ -267,7 +283,7 @@ ok("unknown strategy -> 422", r.status_code == 422, str(r.status_code))
 # --- 9 skills / agent profiles ---------------------------------------------------------------
 print("\n== skills & profiles", flush=True)
 sk_id = f"live_check_{uuid.uuid4().hex[:6]}"
-rs = C.post("/v1/admin/skills", json={"id": sk_id, "name": "Live Check", "version": "1.0.0", "description": "test", "instructions": "Always end your answer with the word DONE."})
+rs = C.post("/v1/admin/skills", json={"id": sk_id, "name": "Live Check", "version": "1.0.0", "instructions": "Always end your answer with the word DONE."})
 ok("POST /v1/admin/skills", rs.status_code == 201, f"{rs.status_code} {j(rs).get('error', {}).get('message', '')[:60]}")
 ok("GET /v1/skills/{id}", C.get(f"/v1/skills/{sk_id}").status_code == 200)
 ra = C.post(f"/v1/conversations/{conv_id}/skills:assign", json={"skill_id": sk_id})
@@ -306,7 +322,10 @@ if models:
     cid = models[0].get("canonical_id") or models[0]["name"]
     ok("GET /v1/catalog/models/{canonical_id}", C.get(f"/v1/catalog/models/{cid}").status_code in {200, 404}, cid)
 if live_pk:
-    ok("GET /v1/admin/providers/{key}", C.get(f"/v1/admin/providers/{live_pk}").status_code == 200, live_pk)
+    # gateway-bound / env providers are NOT managed by the lifecycle (by design): 404 is the honest answer
+    managed = {p["provider_key"] for p in j(C.get("/v1/admin/providers")).get("providers", []) if p.get("managed")}
+    exp = 200 if live_pk in managed else 404
+    ok("GET /v1/admin/providers/{key} (managed->200, bound->404)", C.get(f"/v1/admin/providers/{live_pk}").status_code == exp, f"{live_pk} managed={live_pk in managed}")
     ok("GET /v1/admin/providers/{key}/revisions", C.get(f"/v1/admin/providers/{live_pk}/revisions").status_code in {200, 404})
     rv = C.post(f"/v1/admin/providers/{live_pk}:validate")
     ok("POST /v1/admin/providers/{key}:validate", rv.status_code in {200, 409, 404}, f"{rv.status_code}")
@@ -342,7 +361,7 @@ ok("DELETE /v1/projects/{id}", C.delete(f"/v1/projects/{project_id}").status_cod
 
 # --- summary ---------------------------------------------------------------------------------
 n_ok = sum(1 for s, _, _ in ROWS if s == "OK")
-n_up = sum(1 for s, _, _ in ROWS if s == "UPSTREAM")
+n_up = sum(1 for s, _, _ in ROWS if s in {"UPSTREAM", "BREAKER"})
 fails = [(n, d) for s, n, d in ROWS if s == "FAIL"]
 print(f"\nSUMMARY ok={n_ok} upstream_refusals={n_up} fail={len(fails)}")
 for n, d in fails:
