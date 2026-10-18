@@ -177,6 +177,8 @@ class StreamService:
                     ):
                         if e.type is StreamEventType.COMPLETED:
                             buffered_ok = True
+                        if e.type is StreamEventType.CANCELLED:
+                            buffered_ok = True  # terminal: do not fail over after a cancel
                         if e.type is StreamEventType.FAILED and not e.data.get("final"):
                             continue  # provider failover: try the next candidate
                         yield e
@@ -490,8 +492,35 @@ class StreamService:
             payload=st.payload,
             timeout_ms=timeout_ms,
         )
-        resp = await adapter.generate(req)
         pk = self._rt.extensions["catalog_index"].provider_key(cand.provider_id)
+        # case 5 also applies to the buffered path: a client cancel must not wait for the
+        # (sync-only) provider to finish — race the generate against the cancel event.
+        gen_task = asyncio.ensure_future(adapter.generate(req))
+        cancel_task = asyncio.ensure_future(st.cancel.wait())
+        try:
+            done, _ = await asyncio.wait(
+                {gen_task, cancel_task}, return_when=asyncio.FIRST_COMPLETED
+            )
+        finally:
+            cancel_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await cancel_task
+        if gen_task not in done:
+            gen_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await gen_task
+            yield ev(
+                StreamEventType.CANCELLED,
+                {
+                    "provider_key": pk,
+                    "delivered_until_seq": st.summary.delivered_seq,
+                    "partial_text_length": 0,
+                    "synthesized": True,
+                    "final": True,
+                },
+            )
+            return
+        resp = gen_task.result()
         if not resp.succeeded:
             err = resp.error
             yield ev(

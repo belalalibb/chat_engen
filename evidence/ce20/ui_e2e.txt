@@ -1,0 +1,23 @@
+PASS model picker lists catalog models n=89
+PASS explicit model chat completes (stream buffer) deepseek-v3.2 text='المساعد\ngw_deepai / deepseek-v3.2\nOK'
+PASS second turn appended (history kept)
+FAIL cancel control shown + bubble settles status=streaming
+PASS conversation listed rows=1
+PASS reopen restores transcript msgs=6
+PASS project created + listed
+PASS chat inside project completes
+PASS sequential_handoff trace with 2 steps trace rows=2
+PASS provider draft created via UI
+PASS validate unreachable base_url is honest state=failed
+PASS skill registered via UI
+PASS theme toggle switches dark -> light
+PASS sidebar collapses 280 -> 68
+PASS language toggle
+PASS catalog search filters rows=23
+FAIL admission shows gateway provider scopes
+PASS capabilities screen has rows
+PASS no page errors
+PASS no 5xx from UI flows
+
+18/20 passed
+EXIT 1

@@ -120,9 +120,9 @@ export class ChatEngine {
     return new ChatEngineAPIError(res.status, body, text);
   }
 
-  private async *stream(path: string, body: unknown): AsyncGenerator<StreamEvent> {
+  private async *stream(path: string, body: unknown, signal?: AbortSignal): AsyncGenerator<StreamEvent> {
     const res = await this.fetchImpl(this.baseUrl + path, {
-      method: "POST", headers: { ...this.headers, accept: "text/event-stream" }, body: JSON.stringify(body),
+      method: "POST", headers: { ...this.headers, accept: "text/event-stream" }, body: JSON.stringify(body), signal,
     });
     if (!res.ok || !res.body) throw await this.toError(res);
     const reader = res.body.getReader();
@@ -174,11 +174,11 @@ export class ChatEngine {
   chat(body: { message: string; conversation_id?: string; project_id?: string; model?: string } & Json) {
     return this.request<ChatResponse>("POST", "/v1/chat", body);
   }
-  chatStream(body: ({ message: string; conversation_id?: string } | { messages: Array<{ role: string; content: string }> }) & Json) {
-    return this.stream("/v1/chat/stream", body);
+  chatStream(body: ({ message: string; conversation_id?: string } | { messages: Array<{ role: string; content: string }> }) & Json, signal?: AbortSignal) {
+    return this.stream("/v1/chat/stream", body, signal);
   }
   cancelStream(streamId: string) { return this.request<Json>("POST", `/v1/chat/stream/${streamId}:cancel`); }
-  resumeStream(streamId: string, deliveredUntilSeq: number) { return this.stream(`/v1/chat/stream/${streamId}:resume`, { delivered_until_seq: deliveredUntilSeq }); }
+  resumeStream(streamId: string, deliveredUntilSeq: number, signal?: AbortSignal) { return this.stream(`/v1/chat/stream/${streamId}:resume`, { delivered_until_seq: deliveredUntilSeq }, signal); }
 
   completions(body: { model: string; messages: Array<{ role: string; content: string }> } & Json) {
     return this.request<Json>("POST", "/v1/chat/completions", body);

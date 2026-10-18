@@ -336,3 +336,45 @@ def test_case2c_buffered_fallback_fails_over_to_next_provider(client, runtime: R
     assert evs[-1]["data"]["provider_key"] == "buf_ok"
     assert evs[-1]["data"]["synthesized"] is True
     assert not [e for e in evs if e["type"] == "failed"]
+
+
+async def test_case5b_cancel_during_buffered_fallback_does_not_wait_for_provider(
+    runtime: Runtime,
+) -> None:
+    """CE-20 live finding: gateway providers are sync-only; a user cancel during the
+    buffered burst used to block until the provider answered (tens of seconds) and the
+    UI bubble stayed `streaming`. The cancel must win the race and be terminal."""
+    import asyncio
+
+    from chat_engine.catalog import CatalogService
+    from core.contracts.provider import ProviderOperation
+    from core.contracts.routing import RoutingRequest
+
+    class SlowEcho(StreamingEchoAdapter):
+        async def generate(self, request):  # type: ignore[override]
+            await asyncio.sleep(30)
+            return await super().generate(request)
+
+    # two slow sync-only providers share the model: whichever the router selects first,
+    # the cancel must win within seconds and must NOT fail over to the second one
+    for key in ("buf_slow", "buf_next"):
+        a = add_streaming_provider(runtime, key, model="buf-slow-m", verified=False)
+        runtime.adapters[runtime.providers.get(key).provider.id] = SlowEcho(a.get_manifest())
+    svc = runtime.extensions["streaming"]
+    cat: CatalogService = runtime.extensions["catalog"]
+    decision = runtime.router.route(
+        RoutingRequest(
+            operation=ProviderOperation.GENERATE_TEXT, model_policy=cat.resolve_policy("buf-slow-m")
+        )
+    )
+    payload = {"ask": "hi", "messages": [{"role": "user", "content": "hi"}]}
+    got: list = []
+    t0 = asyncio.get_running_loop().time()
+    async for ev in svc.run(decision=decision, payload=payload, stream_fallback="buffer"):
+        got.append(ev)
+        if ev.type.value == "started":
+            assert svc.cancel(ev.stream_id)
+    elapsed = asyncio.get_running_loop().time() - t0
+    assert elapsed < 5, elapsed
+    assert got[-1].type.value == "cancelled", [e.type for e in got]
+    assert not [e for e in got if e.type.value == "completed"]  # no failover after cancel

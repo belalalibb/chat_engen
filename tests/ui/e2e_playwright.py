@@ -44,16 +44,16 @@ def main() -> int:  # noqa: C901 - linear scenario
         send = chat.locator("[data-testid=send]")
 
         def settled(n: int) -> None:
-            with contextlib.suppress(Exception):
-                page.wait_for_function(
-                    "n => document.querySelectorAll('ce-chat .msg[data-role=assistant]:not([data-status=streaming])').length >= n",
-                    arg=n,
-                    timeout=WAIT,
-                )
+            # locators pierce Lit shadow roots; document.querySelector does not
+            deadline = time.time() + WAIT / 1000
+            while time.time() < deadline:
+                if chat.locator(".msg[data-role=assistant]:not([data-status=streaming])").count() >= n:
+                    return
+                page.wait_for_timeout(500)
 
         # 1. model picker from /v1/openai/models; explicit gateway model via stream(buffer)
-        page.wait_for_function("document.querySelector('ce-chat select').options.length > 5")
         picker = chat.locator("select").first
+        picker.locator("option").nth(5).wait_for(state="attached", timeout=30_000)
         options = picker.evaluate("s => [...s.options].map(o => o.value)")
         check("model picker lists catalog models", len(options) > 5, f"n={len(options)}")
         target = "deepseek-v3.2" if "deepseek-v3.2" in options else next(o for o in options if o)
@@ -156,10 +156,10 @@ def main() -> int:  # noqa: C901 - linear scenario
         nav_buttons.nth(1).click()
         page.wait_for_timeout(200)
         check("theme toggle switches", page.get_attribute("html", "data-theme") != before, f"{before} -> {page.get_attribute('html', 'data-theme')}")
-        w0 = page.evaluate("document.querySelector('nav').getBoundingClientRect().width")
+        w0 = page.locator("nav").first.bounding_box()["width"]
         nav_buttons.nth(2).click()
         page.wait_for_timeout(400)
-        w1 = page.evaluate("document.querySelector('nav').getBoundingClientRect().width")
+        w1 = page.locator("nav").first.bounding_box()["width"]
         check("sidebar collapses", w1 < w0, f"{w0:.0f} -> {w1:.0f}")
         nav_buttons.nth(0).click()
         page.wait_for_timeout(200)
@@ -174,7 +174,8 @@ def main() -> int:  # noqa: C901 - linear scenario
         check("catalog search filters", 0 < n < 60, f"rows={n}")
         page.click("[data-nav=admission]")
         page.wait_for_timeout(800)
-        check("admission shows gateway provider scopes", "gw_" in page.locator("ce-admission").inner_text())
+        gw_rows = page.locator("ce-admission td.mono", has_text="gw_").count()
+        check("admission shows gateway provider scopes", gw_rows >= 1, f"gw scopes={gw_rows}")
         page.click("[data-nav=capabilities]")
         page.wait_for_timeout(800)
         check("capabilities screen has rows", page.locator("ce-capabilities tr").count() > 1)

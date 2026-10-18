@@ -214,7 +214,8 @@ export class CeChat extends CeElement {
     patch({ status: "streaming", resumable: false });
     this.abort = new AbortController();
     try {
-      const it = resume ? api.resumeStream(resume.stream_id, resume.seq) : api.chatStream(body as any);
+      const signal = this.abort.signal;
+      const it = resume ? api.resumeStream(resume.stream_id, resume.seq, signal) : api.chatStream(body as any, signal);
       for await (const ev of it as AsyncGenerator<StreamEvent>) {
         if (this.abort.signal.aborted) break;
         if (ev.type === "message_delta") patch({ text: live.text + String(ev.data.delta ?? ""), stream_id: ev.stream_id });
@@ -229,14 +230,21 @@ export class CeChat extends CeElement {
         const first = convs.conversations[0];
         if (first) this.setConversation(String(first.id));
       }
-    } catch (e) { this.error = String(e); patch({ status: live.text ? "partial" : "failed" }); }
-    finally { this.streaming = false; }
+    } catch (e) {
+      if (this.abort?.signal.aborted) patch({ status: "partial", detail: t("cancel") });  // user cancel, not an error
+      else { this.error = String(e); patch({ status: live.text ? "partial" : "failed" }); }
+    } finally {
+      if (live.status === "streaming") patch({ status: live.text ? "partial" : "failed" });  // never leave a bubble spinning
+      this.streaming = false;
+    }
   }
 
   private async cancel() {
     const live = [...this.msgs].reverse().find((m) => m.status === "streaming");
+    // server first (releases the provider/admission slot), then drop the connection
     if (live?.stream_id) { try { await api.cancelStream(live.stream_id); } catch { /* ignore */ } }
     this.abort?.abort();
+    if (live && live.status === "streaming") { live.status = live.text ? "partial" : "failed"; live.detail = t("cancel"); this.msgs = [...this.msgs]; }
     this.streaming = false;
   }
 
