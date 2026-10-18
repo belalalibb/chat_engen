@@ -335,6 +335,22 @@ PHASE 6  SHIP         CE-16 (packaging/CI/Windows) → CE-17 (scale 10k) → CE-
 
 **نتيجة الفحص الحي (2026-10-17، على sandbox):** 13 مسار مربوط (voyage مُتخطّى: embeddings فقط). يجيب فعلاً: `overchat`, `deepai`, `llamacoder`, `parallel`. يرفض upstream (ليس خطأ chat_engine): `groq` (مفتاح غير مهيأ في البوابة), `freebuff`/`ivycraft`/`runpod_console` (`invalid_credential`), `notegpt` (`auth_expired`), `youmind` (`quota_exceeded`), `syntx`/`tinyfish`/`upstage` (`provider_unavailable`). الحالة تتغيّر مع حسابات/كوكيز المالك — تُقرأ من `/healthz` و`/v1/models` وقت التشغيل.
 
+## CE-21 — فحص حي شامل لكل الوظائف والمزوّدين (طلب المالك 2026-10-18)
+
+**الطلب:** "اختبر كل الوظائف والمزودين علشان في خلل أثناء التجارب".
+
+**الأداة:** `scripts/live_full_check.py` ضد stack حيّ (كل مسارات API + مصفوفة 112 زوج مزوّد×موديل، تسلسلي لكل مزوّد حتى لا نُفعّل سقف التزامن 4 عمداً) + `tests/ui/e2e_playwright.py` (20 تدفق مستخدم حقيقي: اختيار موديل، ذاكرة المحادثة، إلغاء، إعادة فتح، مشروع، استراتيجية، مسودة مزوّد، Skill، ثيم/طي/لغة، بحث الكتالوج، admission، capabilities).
+
+**التصنيف الصادق:** `OK` / `UPSTREAM` (المزوّد خلف البوابة رفض: بيانات اعتماد/حصة/انقطاع/مهلة — ليس خطأ chat_engine) / `BREAKER` (قاطع المزوّد نفسه فتح 30 ثانية بعد 5 إخفاقات متتالية — سلوك مقصود) / `FAIL` (عيب يجب إصلاحه).
+
+**العيوب المكتشفة والمُصلَحة:**
+1. قاطع الدائرة كان يُفعَّل على نطاق **المستأجر** بعد 5 رفضات upstream من مزوّدين مختلفين ⇒ 429 لكل المزوّدين 30 ثانية (هذا هو "الخلل أثناء التجارب"). الآن القاطع إشارة صحة للمزوّد فقط.
+2. الإلغاء أثناء buffered fallback (مزوّدات البوابة sync-only) كان ينتظر رد المزوّد وتبقى الفقاعة `streaming`. الآن سباق generate/cancel على الخادم + abort للاتصال في الواجهة.
+3. `POST /v1/chat` المتزامن كان يرفض `stream_fallback` بـ 422 ⇒ كل الاستراتيجيات من الواجهة تفشل.
+4. `sandbox_run.sh` كان يُقلع chat_engine قبل جاهزية البوابة ⇒ 0 مسارات مربوطة بصمت.
+
+**الحالة الحية للمزوّدين (تتغيّر مع حسابات المالك):** يجيب: `gw_deepai`, `gw_llamacoder`, `gw_overchat`, `gw_parallel`. يرفض upstream: `gw_groq` (مفتاح غير مهيأ بالبوابة)، `gw_freebuff`/`gw_ivycraft`/`gw_runpod_console` (`invalid_credential`)، `gw_notegpt` (`auth_expired`)، `gw_syntx`/`gw_tinyfish` (`provider_unavailable`/مهلة)، `gw_upstage`/`gw_youmind` (مهلة 60 ثانية)، `genspark_llm` (`quota_exceeded`). التفاصيل الحرفية في `evidence/ce20/live_full_check.txt`.
+
 ## القواعد العابرة لكل المهام (Definition of Done)
 
 1. **Release gate (D8):** `ruff` + `mypy chat_engine/` + `lint-imports` + `pytest` (hermetic، بلا مفاتيح) + `tests/compat` + `scripts/secret_scan.py` — كلها خضراء.

@@ -1,5 +1,15 @@
 # CHANGELOG — chat_engine
 
+## v0.1.3 — 2026-10-18 (CE-21 Live full-function audit against the gateway)
+
+Owner-requested sweep of every function and every provider on the live stack; defects found and fixed:
+
+- **Admission breaker scope** (`chat_engine/admission/memory.py`): the relative circuit breaker tripped on the *tenant* scope after five upstream refusals from *different* providers and 429'd every provider for 30 s — healthy ones included. The breaker is a provider-health signal: `tenant*`/`project*` scopes are exempt (`test_breaker_never_opens_on_tenant_scope`).
+- **Cancel during buffered fallback** (`chat_engine/streaming/service.py`, UI): gateway providers are sync-only; a user cancel used to block until the provider answered and the bubble stayed `streaming`. The server now races `generate` against the cancel event (terminal `cancelled`, no failover), the UI aborts the fetch and settles the bubble (`test_case5b_…`).
+- **Sync `/v1/chat` body parity**: accepts the stream-only `stream_fallback` knob (was 422 for every strategy request from the UI).
+- Harnesses: `scripts/live_full_check.py` (every API surface + provider × model matrix, `OK / UPSTREAM / BREAKER / FAIL`), `tests/ui/e2e_playwright.py` (20 real user flows). Evidence under `evidence/ce20/`.
+- `scripts/sandbox_run.sh`: gateway launched with `setsid`, hard failure when it does not come up (was silently starting chat_engine with 0 bound routes).
+
 ## v0.1.2 — 2026-10-17 (CE-20 Remote Gateway Providers)
 
 - `chat_engine/providers/gateway.py`: bind providers behind the owner's Remote Provider Gateway (ADR-0008) from `CE_GATEWAY_*` using upstream `RemoteGatewayAdapter`; `/v1/describe`-driven discovery; `/healthz.gateway` bound/skipped report.

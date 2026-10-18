@@ -24,7 +24,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
     print(f"{'PASS' if ok else 'FAIL'} {name} {detail}".rstrip(), flush=True)
 
 
-def main() -> int:  # noqa: C901 - linear scenario
+def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1280, "height": 900})
@@ -33,9 +33,11 @@ def main() -> int:  # noqa: C901 - linear scenario
         http5xx: list[str] = []
         page.on(
             "response",
-            lambda r: http5xx.append(f"{r.status} {r.request.method} {r.url.replace(BASE, '')}")
-            if r.status >= 500
-            else None,
+            lambda r: (
+                http5xx.append(f"{r.status} {r.request.method} {r.url.replace(BASE, '')}")
+                if r.status >= 500
+                else None
+            ),
         )
 
         page.goto(f"{BASE}/#chat", wait_until="networkidle")
@@ -47,7 +49,10 @@ def main() -> int:  # noqa: C901 - linear scenario
             # locators pierce Lit shadow roots; document.querySelector does not
             deadline = time.time() + WAIT / 1000
             while time.time() < deadline:
-                if chat.locator(".msg[data-role=assistant]:not([data-status=streaming])").count() >= n:
+                if (
+                    chat.locator(".msg[data-role=assistant]:not([data-status=streaming])").count()
+                    >= n
+                ):
                     return
                 page.wait_for_timeout(500)
 
@@ -62,13 +67,20 @@ def main() -> int:  # noqa: C901 - linear scenario
         send.click()
         settled(1)
         first = chat.locator(".msg[data-role=assistant]").first
-        check("explicit model chat completes (stream buffer)", first.get_attribute("data-status") == "complete", f"{target} text={first.inner_text()[:40]!r}")
+        check(
+            "explicit model chat completes (stream buffer)",
+            first.get_attribute("data-status") == "complete",
+            f"{target} text={first.inner_text()[:40]!r}",
+        )
 
         # 2. history kept on second turn
         composer.fill("What did I ask you to reply with? One word.")
         send.click()
         settled(2)
-        check("second turn appended (history kept)", chat.locator(".msg[data-role=assistant]").count() >= 2)
+        check(
+            "second turn appended (history kept)",
+            chat.locator(".msg[data-role=assistant]").count() >= 2,
+        )
 
         # 3. cancel control + honest settle
         composer.fill("Write 300 words about the ocean.")
@@ -80,7 +92,11 @@ def main() -> int:  # noqa: C901 - linear scenario
             chat.locator("[data-testid=cancel]").click()
         settled(3)
         last_status = chat.locator(".msg[data-role=assistant]").last.get_attribute("data-status")
-        check("cancel control shown + bubble settles", cancel_seen and last_status in {"partial", "complete", "failed"}, f"status={last_status}")
+        check(
+            "cancel control shown + bubble settles",
+            cancel_seen and last_status in {"partial", "complete", "failed"},
+            f"status={last_status}",
+        )
 
         # 4. conversations screen lists it; reopen restores transcript
         page.click("[data-nav=conversations]")
@@ -91,7 +107,11 @@ def main() -> int:  # noqa: C901 - linear scenario
         rows.first.click()
         page.wait_for_selector("ce-chat .msg")
         page.wait_for_timeout(800)
-        check("reopen restores transcript", page.locator("ce-chat .msg").count() >= 4, f"msgs={page.locator('ce-chat .msg').count()}")
+        check(
+            "reopen restores transcript",
+            page.locator("ce-chat .msg").count() >= 4,
+            f"msgs={page.locator('ce-chat .msg').count()}",
+        )
 
         # 5. project -> new chat in project -> completes
         page.click("[data-nav=conversations]")
@@ -107,11 +127,17 @@ def main() -> int:  # noqa: C901 - linear scenario
         composer.fill("Say OK")
         send.click()
         settled(1)
-        check("chat inside project completes", chat.locator(".msg[data-role=assistant]").first.get_attribute("data-status") == "complete")
+        check(
+            "chat inside project completes",
+            chat.locator(".msg[data-role=assistant]").first.get_attribute("data-status")
+            == "complete",
+        )
 
         # 6. sequential_handoff with explicit stages typed in the UI
         chat.locator("select").nth(1).select_option("sequential_handoff")
-        chat.locator("input[placeholder='model-a, model-b']").fill("deepseek-v3.2, deepseek-v4-flash")
+        chat.locator("input[placeholder='model-a, model-b']").fill(
+            "deepseek-v3.2, deepseek-v4-flash"
+        )
         composer.fill("One sentence about tea.")
         send.click()
         with contextlib.suppress(Exception):
@@ -133,12 +159,20 @@ def main() -> int:  # noqa: C901 - linear scenario
         page.click("ce-providers button.primary")
         page.wait_for_timeout(1500)
         prow = page.locator(f"ce-providers tr[data-provider={key}]")
-        perr = page.locator("ce-providers .err").inner_text() if page.locator("ce-providers .err").count() else ""
+        perr = (
+            page.locator("ce-providers .err").inner_text()
+            if page.locator("ce-providers .err").count()
+            else ""
+        )
         check("provider draft created via UI", prow.count() == 1, perr[:100])
         if prow.count():
             prow.locator("button").first.click()  # validate
             page.wait_for_timeout(3000)
-            check("validate unreachable base_url is honest", bool(prow.locator(".pill").inner_text()), f"state={prow.locator('.pill').inner_text()}")
+            check(
+                "validate unreachable base_url is honest",
+                bool(prow.locator(".pill").inner_text()),
+                f"state={prow.locator('.pill').inner_text()}",
+            )
             prow.locator("button.danger").click()  # archive
             page.wait_for_timeout(800)
 
@@ -148,14 +182,21 @@ def main() -> int:  # noqa: C901 - linear scenario
         page.fill("ce-skills [data-testid=skill-id]", "pw_e2e_skill")
         page.click("ce-skills [data-testid=register-skill]")
         page.wait_for_timeout(800)
-        check("skill registered via UI", page.locator("ce-skills tr[data-skill=pw_e2e_skill]").count() == 1)
+        check(
+            "skill registered via UI",
+            page.locator("ce-skills tr[data-skill=pw_e2e_skill]").count() == 1,
+        )
 
         # 9. theme / collapse / language controls
         nav_buttons = page.locator("nav button")
         before = page.get_attribute("html", "data-theme")
         nav_buttons.nth(1).click()
         page.wait_for_timeout(200)
-        check("theme toggle switches", page.get_attribute("html", "data-theme") != before, f"{before} -> {page.get_attribute('html', 'data-theme')}")
+        check(
+            "theme toggle switches",
+            page.get_attribute("html", "data-theme") != before,
+            f"{before} -> {page.get_attribute('html', 'data-theme')}",
+        )
         w0 = page.locator("nav").first.bounding_box()["width"]
         nav_buttons.nth(2).click()
         page.wait_for_timeout(400)
