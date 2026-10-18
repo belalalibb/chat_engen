@@ -190,12 +190,37 @@ def probe_provider(items: list[tuple[str, str]]) -> list[tuple[str, str, str, st
 
 
 answering: dict[str, str] = {}
+tripped: set[str] = set()  # providers whose own breaker opened during the matrix
 with cf.ThreadPoolExecutor(6) as ex:
     results = [r for group in ex.map(probe_provider, by_provider.values()) for r in group]
 for pk, model, status, detail, ms in sorted(results):
     row(status, f"chat {pk} / {model[:40]}", f"{detail}  ({ms} ms)")
     if status == "OK" and pk not in answering:
         answering[pk] = model
+    if status == "BREAKER":
+        tripped.add(pk)
+# prefer a provider that answered AND did not trip its breaker during the matrix
+answering = dict(sorted(answering.items(), key=lambda kv: (kv[0] in tripped, kv[0])))
+
+
+_post = C.post
+
+
+def post_chat(path: str, **kw):  # one honest wait when the chosen provider's breaker is open
+    r = _post(path, **kw)
+    d = j(r)
+    det = d.get("error", {}).get("details") or {}
+    if r.status_code == 429 and str(det.get("scope", "")).startswith("provider:"):
+        wait = min(31, (det.get("retry_after_ms") or 30000) / 1000 + 0.5)
+        print(
+            f"         (provider breaker open on {det.get('scope')}: waiting {wait:.0f}s, by design)",
+            flush=True,
+        )
+        time.sleep(wait)
+        r = _post(path, **kw)
+    return r
+
+
 print(f"\nproviders answering: {sorted(answering)}", flush=True)
 ok(
     "at least one gateway provider answers",
@@ -203,7 +228,7 @@ ok(
     str(sorted(answering)),
 )
 
-live_pk, live_model = next(iter(sorted(answering.items())), (None, None))
+live_pk, live_model = next(iter(answering.items()), (None, None))
 
 # --- 3 conversations / projects / turns ------------------------------------------------------
 print("\n== conversations & projects", flush=True)
@@ -226,12 +251,12 @@ ok(
 )
 
 if live_model:
-    r1 = C.post(
+    r1 = post_chat(
         "/v1/chat", json={"conversation_id": conv_id, "message": "My name is Belal. Reply: noted."}
     )
     d1 = j(r1)
     ok("chat turn 1 in conversation", r1.status_code == 200 and "turn" in d1, str(r1.status_code))
-    r2 = C.post(
+    r2 = post_chat(
         "/v1/chat", json={"conversation_id": conv_id, "message": "What is my name? One word."}
     )
     d2 = j(r2)
@@ -258,7 +283,7 @@ if live_model:
 
 # --- 4 chat AUTO (no model) + failover -------------------------------------------------------
 print("\n== auto routing", flush=True)
-ra = C.post("/v1/chat", json={"message": "Say OK"})
+ra = post_chat("/v1/chat", json={"message": "Say OK"})
 da = j(ra)
 ok(
     "POST /v1/chat AUTO (no model) 200",
@@ -419,7 +444,7 @@ for label, body in (
         {"message": "Say OK", "strategy": "cost_tiered", "stream_fallback": "buffer"},
     ),
 ):
-    r = C.post("/v1/chat", json=body)
+    r = post_chat("/v1/chat", json=body)
     d = j(r)
     if r.status_code == 200 and d.get("trace"):
         ok(
@@ -440,7 +465,7 @@ r = C.post(
     },
 )
 ok("sequential_handoff <2 stages -> 422", r.status_code == 422, str(r.status_code))
-r = C.post("/v1/chat", json={"message": "x", "strategy": "nope"})
+r = post_chat("/v1/chat", json={"message": "x", "strategy": "nope"})
 ok("unknown strategy -> 422", r.status_code == 422, str(r.status_code))
 
 # --- 9 skills / agent profiles ---------------------------------------------------------------
@@ -472,7 +497,7 @@ ok(
     C.get(f"/v1/conversations/{conv_id}/skills").status_code == 200,
 )
 if live_model:
-    r = C.post("/v1/chat", json={"conversation_id": conv_id, "message": "Say hello."})
+    r = post_chat("/v1/chat", json={"conversation_id": conv_id, "message": "Say hello."})
     d = j(r)
     used = [s.get("skill_id") for s in d.get("turn", {}).get("skills_used", [])]
     ok(
@@ -608,14 +633,17 @@ if rcred.status_code == 201:
 print("\n== error contracts", flush=True)
 ok(
     "unknown model -> 4xx not 500",
-    C.post("/v1/chat", json={"message": "x", "model": "no-such-model-xyz"}).status_code
+    post_chat("/v1/chat", json={"message": "x", "model": "no-such-model-xyz"}).status_code
     in {404, 422, 503},
 )
-ok("empty message -> 422", C.post("/v1/chat", json={"message": ""}).status_code == 422)
-ok("extra field -> 422", C.post("/v1/chat", json={"message": "x", "bogus": 1}).status_code == 422)
+ok("empty message -> 422", post_chat("/v1/chat", json={"message": ""}).status_code == 422)
+ok(
+    "extra field -> 422",
+    post_chat("/v1/chat", json={"message": "x", "bogus": 1}).status_code == 422,
+)
 ok(
     "missing conversation -> 404",
-    C.post("/v1/chat", json={"message": "x", "conversation_id": str(uuid.uuid4())}).status_code
+    post_chat("/v1/chat", json={"message": "x", "conversation_id": str(uuid.uuid4())}).status_code
     == 404,
 )
 ok("GET unknown conversation -> 404", C.get(f"/v1/conversations/{uuid.uuid4()}").status_code == 404)
