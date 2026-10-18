@@ -12,8 +12,10 @@ kill_port() { for p in $(ss -ltnp 2>/dev/null | grep ":$1 " | grep -o 'pid=[0-9]
 kill_port 8800; kill_port 8080; sleep 1
 
 if [ -f "$GATEWAY_DIR/app.py" ]; then
-  ( cd "$GATEWAY_DIR" && set -a && . "$RUN_DIR/gw.env" && set +a && nohup "$PY" app.py > "$RUN_DIR/gw.log" 2>&1 & )
-  for _ in $(seq 1 30); do curl -sf http://127.0.0.1:8800/healthz >/dev/null 2>&1 && break; sleep 1; done
+  # setsid + </dev/null: the gateway must outlive this shell (nohup alone is not enough)
+  ( cd "$GATEWAY_DIR" && set -a && . "$RUN_DIR/gw.env" && set +a && setsid nohup "$PY" app.py > "$RUN_DIR/gw.log" 2>&1 < /dev/null & )
+  for _ in $(seq 1 40); do curl -sf http://127.0.0.1:8800/healthz >/dev/null 2>&1 && break; sleep 1; done
+  curl -sf http://127.0.0.1:8800/healthz >/dev/null 2>&1 || { echo "GATEWAY_DOWN (see $RUN_DIR/gw.log)"; tail -20 "$RUN_DIR/gw.log"; exit 1; }
   echo "GATEWAY $(curl -s http://127.0.0.1:8800/healthz)"
   CE_ENV="$RUN_DIR/ce.env"
 else
@@ -21,6 +23,6 @@ else
   CE_ENV=/dev/null
 fi
 
-( set -a && . "$CE_ENV" && set +a && PORT=8080 nohup "$PY" -m chat_engine serve > "$RUN_DIR/ce.log" 2>&1 & )
+( set -a && . "$CE_ENV" && set +a && PORT=8080 setsid nohup "$PY" -m chat_engine serve > "$RUN_DIR/ce.log" 2>&1 < /dev/null & )
 for _ in $(seq 1 60); do curl -sf http://localhost:8080/healthz >/dev/null 2>&1 && break; sleep 1; done
 curl -s http://localhost:8080/healthz | python3 -c 'import json,sys; h=json.load(sys.stdin); print("CHAT_ENGINE providers:", h["providers"]); print("gateway:", h.get("gateway"))'

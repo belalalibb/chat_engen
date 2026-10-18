@@ -19,6 +19,7 @@ kill_port 8800; kill_port 8080; sleep 1
 if [ -f "$GATEWAY_DIR/app.py" ]; then
   ( cd "$GATEWAY_DIR" && set -a && . "$RUN_DIR/gw.env" && set +a && setsid nohup "$PY" app.py > "$RUN_DIR/gw.log" 2>&1 < /dev/null & )
   for _ in $(seq 1 40); do curl -sf http://127.0.0.1:8800/healthz >/dev/null 2>&1 && break; sleep 1; done
+  curl -sf http://127.0.0.1:8800/healthz >/dev/null 2>&1 || { echo "GATEWAY_DOWN (see $RUN_DIR/gw.log)"; tail -20 "$RUN_DIR/gw.log"; exit 1; }
   echo "GATEWAY_UP"
   CE_ENV="$RUN_DIR/ce.env"
 else
