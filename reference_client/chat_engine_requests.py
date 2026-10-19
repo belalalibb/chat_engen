@@ -68,7 +68,9 @@ class Config:
             data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         base = cli_base_url or os.environ.get("CHAT_ENGINE_URL") or data.get("base_url")
         if not base:
-            raise SystemExit(f"no base_url: pass --base-url, set CHAT_ENGINE_URL, or edit {CONFIG_PATH}")
+            raise SystemExit(
+                f"no base_url: pass --base-url, set CHAT_ENGINE_URL, or edit {CONFIG_PATH}"
+            )
         return cls(
             base_url=str(base).rstrip("/"),
             timeout_s=float(data.get("timeout_s", 180)),
@@ -85,10 +87,15 @@ class Client:
         self.cfg = cfg
 
     def _headers(self, extra: dict[str, str] | None = None, *, sse: bool = False) -> dict[str, str]:
-        h = {"content-type": "application/json", "accept": "text/event-stream" if sse else "application/json"}
+        h = {
+            "content-type": "application/json",
+            "accept": "text/event-stream" if sse else "application/json",
+        }
         h.update(self.cfg.headers)
         if self.cfg.api_key:
-            h["authorization"] = f"Bearer {self.cfg.api_key}"  # Phase 1: ignored by the server; future-proof
+            h["authorization"] = (
+                f"Bearer {self.cfg.api_key}"  # Phase 1: ignored by the server; future-proof
+            )
         if extra:
             h.update(extra)
         return h
@@ -123,7 +130,10 @@ class Client:
     def stream(self, path: str, body: JSON, *, timeout: float | None = None) -> Iterator[JSON]:
         """Yield one dict per SSE ``data:`` line. Stops after the stream closes."""
         req = request.Request(
-            self.cfg.base_url + path, data=json.dumps(body).encode(), method="POST", headers=self._headers(sse=True)
+            self.cfg.base_url + path,
+            data=json.dumps(body).encode(),
+            method="POST",
+            headers=self._headers(sse=True),
         )
         try:
             resp = request.urlopen(req, timeout=timeout or self.cfg.timeout_s)
@@ -282,7 +292,9 @@ def chat_auto(c: Client, message: str, **kw: Any) -> JSON:
     return chat(c, message, **kw)
 
 
-def chat_explicit(c: Client, message: str, model: str, provider: str | None = None, **kw: Any) -> JSON:
+def chat_explicit(
+    c: Client, message: str, model: str, provider: str | None = None, **kw: Any
+) -> JSON:
     """Pin a model (and optionally the provider). Live-verified pairs (2026-10-18):
     ("deepseek-v3.2","gw_deepai"), ("claude-4.5-haiku","gw_overchat"), ("gpt-oss-120b","gw_llamacoder")."""
     return chat(c, message, model=model, provider=provider, **kw)
@@ -290,11 +302,18 @@ def chat_explicit(c: Client, message: str, model: str, provider: str | None = No
 
 def chat_json(c: Client, message: str, **kw: Any) -> JSON:
     """Force a JSON object answer: generation.response_format={"type":"json_object"}, temperature 0."""
-    return chat(c, message, generation={"response_format": {"type": "json_object"}, "temperature": 0}, **kw)
+    return chat(
+        c, message, generation={"response_format": {"type": "json_object"}, "temperature": 0}, **kw
+    )
 
 
 def chat_cost_tiered(
-    c: Client, message: str, *, tiers: list[str] | None = None, output_spec: JSON | None = None, **kw: Any
+    c: Client,
+    message: str,
+    *,
+    tiers: list[str] | None = None,
+    output_spec: JSON | None = None,
+    **kw: Any,
 ) -> JSON:
     """strategy=cost_tiered — cheapest first; one upgrade if output_spec fails; failover on refusal.
     strategy_options {tiers:[cheap, better] (derived when empty), output_spec:{min_chars,max_chars,
@@ -426,7 +445,9 @@ def stream_summary(c: Client, stream_id: str) -> JSON:
 def stream_resume(c: Client, stream_id: str, delivered_until_seq: int) -> Iterator[JSON]:
     """POST /v1/chat/stream/{id}:resume  body {delivered_until_seq}
     Continues a failed{resumable:true} stream; already-delivered text is never re-sent."""
-    return c.stream(f"/v1/chat/stream/{stream_id}:resume", {"delivered_until_seq": delivered_until_seq})
+    return c.stream(
+        f"/v1/chat/stream/{stream_id}:resume", {"delivered_until_seq": delivered_until_seq}
+    )
 
 
 def collect_stream(events: Iterator[JSON]) -> tuple[str, JSON | None, str | None]:
@@ -482,7 +503,12 @@ def create_conversation(c: Client, **fields: Any) -> JSON:
 
 
 def list_conversations(
-    c: Client, *, project_id: str | None = None, include_archived: bool = False, limit: int = 50, offset: int = 0
+    c: Client,
+    *,
+    project_id: str | None = None,
+    include_archived: bool = False,
+    limit: int = 50,
+    offset: int = 0,
 ) -> JSON:
     """GET /v1/conversations?project_id&include_archived&limit&offset → {conversations[], total}"""
     return c.call(
@@ -512,11 +538,15 @@ def delete_conversation(c: Client, conversation_id: str) -> JSON:
     return c.call("DELETE", f"/v1/conversations/{conversation_id}")
 
 
-def turns(c: Client, conversation_id: str, *, after_seq: int | None = None, limit: int = 200) -> JSON:
+def turns(
+    c: Client, conversation_id: str, *, after_seq: int | None = None, limit: int = 200
+) -> JSON:
     """GET /v1/conversations/{id}/turns?after_seq&limit → {turns[], total, conversation_id}
     Turn.seq starts at 1; kind ∈ message|summary|system|tool; status ∈ complete|partial|failed."""
     return c.call(
-        "GET", f"/v1/conversations/{conversation_id}/turns", query={"after_seq": after_seq, "limit": limit}
+        "GET",
+        f"/v1/conversations/{conversation_id}/turns",
+        query={"after_seq": after_seq, "limit": limit},
     )
 
 
@@ -886,7 +916,7 @@ def _p(title: str, obj: Any, limit: int = 320) -> None:
     print(f"\n## {title}\n{s[:limit]}{' …' if len(s) > limit else ''}", flush=True)
 
 
-def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 — linear scenario
+def tour(c: Client, only: str | None = None) -> int:
     def want(section: str) -> bool:
         return only is None or only == section
 
@@ -905,7 +935,10 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
         try:
             r = chat_auto(c, "ما عاصمة مصر؟ كلمة واحدة.")
             conv_id = r["conversation_id"]
-            _p("chat AUTO", {"answered_by": f"{r['provider_key']}/{r['model_key']}", "text": text_of(r)})
+            _p(
+                "chat AUTO",
+                {"answered_by": f"{r['provider_key']}/{r['model_key']}", "text": text_of(r)},
+            )
             r = chat(c, "وما عدد سكانها تقريبًا؟ رقم فقط.", conversation_id=conv_id)
             _p("chat follow-up (memory)", text_of(r))
             r = chat_json(c, 'أعطني {"city": ..., "country": ...} لمدينة باريس')
@@ -933,7 +966,9 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
             (
                 "cost_tiered",
                 lambda: chat_cost_tiered(
-                    c, "عرّف API في ≤ 200 حرف بالعربية", output_spec={"max_chars": 200, "language_hint": "ar"}
+                    c,
+                    "عرّف API في ≤ 200 حرف بالعربية",
+                    output_spec={"max_chars": 200, "language_hint": "ar"},
                 ),
             ),
             (
@@ -947,7 +982,9 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
             ),
             (
                 "sequential_handoff",
-                lambda: chat_sequential_handoff(c, "جملة واحدة عن الشاي.", ["deepseek-v3.2", "deepseek-v4-flash"]),
+                lambda: chat_sequential_handoff(
+                    c, "جملة واحدة عن الشاي.", ["deepseek-v3.2", "deepseek-v4-flash"]
+                ),
             ),
         ):
             try:
@@ -969,7 +1006,10 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
     if want("memory"):
         try:
             p = create_project(
-                c, "reference-client demo", system_instructions="أجب بالعربية بإيجاز شديد.", default_model="deepseek-v3.2"
+                c,
+                "reference-client demo",
+                system_instructions="أجب بالعربية بإيجاز شديد.",
+                default_model="deepseek-v3.2",
             )
             proj_id = p["id"]
             r = chat(c, "من أنت؟", project_id=proj_id)
@@ -978,7 +1018,10 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
                 {"project": proj_id, "conversation": r["conversation_id"], "text": text_of(r)[:80]},
             )
             t = turns(c, r["conversation_id"])
-            _p("turns", [{"seq": x["seq"], "role": x["role"], "status": x["status"]} for x in t["turns"]])
+            _p(
+                "turns",
+                [{"seq": x["seq"], "role": x["role"], "status": x["status"]} for x in t["turns"]],
+            )
             _p("list_conversations(project)", list_conversations(c, project_id=proj_id)["total"])
         except ChatEngineError as e:
             failures += 1
@@ -991,7 +1034,10 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
             if proj_id:
                 assign_skill(c, "projects", proj_id, sid_)
                 r = chat(c, "قل مرحبا.", project_id=proj_id)
-                _p("skill applied (skills_used)", {"skills_used": r["turn"]["skills_used"], "text": text_of(r)[:60]})
+                _p(
+                    "skill applied (skills_used)",
+                    {"skills_used": r["turn"]["skills_used"], "text": text_of(r)[:60]},
+                )
             prof = create_agent_profile(
                 c, "reference-profile", system_instructions="Be terse.", skills=[{"skill_id": sid_}]
             )
@@ -1007,9 +1053,16 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
             assert isinstance(r, dict)
             _p(
                 "chat_completions sync",
-                {"content": r["choices"][0]["message"]["content"], "chat_engine": r.get("chat_engine")},
+                {
+                    "content": r["choices"][0]["message"]["content"],
+                    "chat_engine": r.get("chat_engine"),
+                },
             )
-            chunks = list(chat_completions(c, "deepseek-v3.2", [{"role": "user", "content": "Say OK"}], stream=True))  # type: ignore[arg-type]
+            chunks = list(
+                chat_completions(
+                    c, "deepseek-v3.2", [{"role": "user", "content": "Say OK"}], stream=True
+                )
+            )  # type: ignore[arg-type]
             last = chunks[-1]["choices"][0].get("finish_reason") if chunks else None
             _p(
                 "chat_completions stream (gw_* is sync-only ⇒ finish_reason 'error' is the honest answer here)",
@@ -1029,15 +1082,22 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
 
     if want("admin"):
         try:
-            _p("admin_providers (keys)", [p["provider_key"] for p in admin_providers(c)["providers"]][:16])
+            _p(
+                "admin_providers (keys)",
+                [p["provider_key"] for p in admin_providers(c)["providers"]][:16],
+            )
             key = f"ref_draft_{uuid.uuid4().hex[:5]}"
-            admin_provider_draft(c, key, "Reference draft", "http://127.0.0.1:9/v1", static_models=["m1"])
+            admin_provider_draft(
+                c, key, "Reference draft", "http://127.0.0.1:9/v1", static_models=["m1"]
+            )
             _p(
                 "admin_provider_draft → :validate (unreachable base_url, honest)",
                 admin_provider_transition(c, key, "validate"),
             )
             admin_provider_transition(c, key, "archive")
-            cred = create_credential(c, "reference-cred", "sk-reference-000000", provider_hint="gw_deepai")
+            cred = create_credential(
+                c, "reference-cred", "sk-reference-000000", provider_hint="gw_deepai"
+            )
             _p(
                 "create_credential (no secret echoed)",
                 {k: cred.get(k) for k in ("id", "credential_ref", "fingerprint", "last4")},
@@ -1052,7 +1112,10 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
         for label, fn in (
             ("422 extra field", lambda: c.call("POST", "/v1/chat", {"message": "x", "bogus": 1})),
             ("404 unknown conversation", lambda: chat(c, "x", conversation_id=str(uuid.uuid4()))),
-            ("422 sequential_handoff <2 stages", lambda: chat_sequential_handoff(c, "x", ["deepseek-v3.2"])),
+            (
+                "422 sequential_handoff <2 stages",
+                lambda: chat_sequential_handoff(c, "x", ["deepseek-v3.2"]),
+            ),
         ):
             try:
                 fn()
@@ -1072,12 +1135,27 @@ def tour(c: Client, only: str | None = None) -> int:  # noqa: PLR0912, PLR0915 �
     return 1 if failures else 0
 
 
-SECTIONS = ("discovery", "chat", "stream", "strategies", "memory", "skills", "openai", "execute", "admin", "errors")
+SECTIONS = (
+    "discovery",
+    "chat",
+    "stream",
+    "strategies",
+    "memory",
+    "skills",
+    "openai",
+    "execute",
+    "admin",
+    "errors",
+)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--base-url", help="override endpoint (else CHAT_ENGINE_URL, else config/endpoint.json)")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--base-url", help="override endpoint (else CHAT_ENGINE_URL, else config/endpoint.json)"
+    )
     ap.add_argument("--list", action="store_true", help="list every reference request and exit")
     ap.add_argument("--only", choices=SECTIONS, help="run one tour section")
     a = ap.parse_args()

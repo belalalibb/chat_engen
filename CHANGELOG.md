@@ -2,6 +2,7 @@
 
 ## v0.1.3 — 2026-10-18 (CE-21 Live full-function audit against the gateway)
 
+- `reference_client/`: single-file Python reference (one function per request, 72 endpoints, stdlib only) with the endpoint URL externalized to `reference_client/config/endpoint.json`; live tour evidence `evidence/ce20/reference_client_tour.txt`.
 - Docs: `docs/INTEGRATION_GUIDE.md` — complete integration reference for engineers and coding agents (every request/response shape, SSE protocol, memory, strategies, skills, error playbook, gateway facts, SDKs, app recipe); all examples executed live.
 
 Owner-requested sweep of every function and every provider on the live stack; defects found and fixed:

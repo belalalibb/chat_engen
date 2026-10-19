@@ -10,7 +10,7 @@ UPSTREAM_REF:  general_ai_core @ 0a13556305bcf40cbf1b750d7ef1d81f7850cabf
 
 ## للمطوّرين والوكلاء البرمجيين: كيف تستدعي المحرك وتبني عليه
 
-**ابدأ من `docs/INTEGRATION_GUIDE.md`** — دليل مرجعي كامل (شكل كل request/response حرفيًا، SSE، الذاكرة، الاستراتيجيات، Skills، الأخطاء وكيف تتصرف، حقائق مزوّدات البوابة، SDKs، وصفة بناء تطبيق). كل أمثلته نُفِّذت فعلًا ضد خادم حي. المرجع الحاكم للعقد: `GET /openapi.json` ثم `docs/API.md`.
+**ابدأ من `docs/INTEGRATION_GUIDE.md`** ثم **`reference_client/`** (سكربت بايثون مرجعي بدالة لكل طلب + رابط الـ endpoint في `reference_client/config/endpoint.json`) — دليل مرجعي كامل (شكل كل request/response حرفيًا، SSE، الذاكرة، الاستراتيجيات، Skills، الأخطاء وكيف تتصرف، حقائق مزوّدات البوابة، SDKs، وصفة بناء تطبيق). كل أمثلته نُفِّذت فعلًا ضد خادم حي. المرجع الحاكم للعقد: `GET /openapi.json` ثم `docs/API.md`.
 
 ## وثائق المرحلة 0 (اقرأها بهذا الترتيب)
 

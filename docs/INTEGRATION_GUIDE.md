@@ -369,6 +369,11 @@ except 502 execution_failed and body.provider: body.provider=None; retry once (A
 
 ---
 
+## 11b. السكربت المرجعي التنفيذي: `reference_client/chat_engine_requests.py`
+
+دالة لكل طلب في هذا الدليل (72 دالة) بتوثيق الجسم والرد داخل docstring، مكتبة قياسية فقط. رابط الـ endpoint خارجي في `reference_client/config/endpoint.json` (أولوية: `--base-url` ← `CHAT_ENGINE_URL` ← الملف).
+`--list` يعرض كل الطلبات، التشغيل بلا وسائط ينفّذ جولة حيّة (`evidence/ce20/reference_client_tour.txt`). راجع `reference_client/README.md`.
+
 ## 12. الـ SDKs الرسمية (اختصار لكل ما سبق)
 
 **Python** (`pip install -e sdk/python`, تبعية واحدة `httpx`):

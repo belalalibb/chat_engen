@@ -1,6 +1,6 @@
 # reference_client — المرجع التنفيذي لكل طلبات chat_engine
 
-ملف بايثون واحد (`chat_engine_requests.py`) فيه **دالة لكل request** في المحرك (75 طلبًا) مع توثيق شكل الجسم/الاستعلام/الهيدرز وشكل الرد داخل docstring كل دالة — مكتبة قياسية فقط (`urllib`)، بلا تثبيت.
+ملف بايثون واحد (`chat_engine_requests.py`) فيه **دالة لكل request** في المحرك (72 طلبًا) مع توثيق شكل الجسم/الاستعلام/الهيدرز وشكل الرد داخل docstring كل دالة — مكتبة قياسية فقط (`urllib`)، بلا تثبيت.
 التوأم النصّي له: `docs/INTEGRATION_GUIDE.md`.
 
 ## رابط الـ endpoint (خارجي، في مجلد منفصل)
@@ -23,14 +23,28 @@ CHAT_ENGINE_URL=http://localhost:8080 python reference_client/chat_engine_reques
 ## كمكتبة داخل تطبيقك
 
 ```python
-import sys; sys.path.insert(0, "reference_client")
-from chat_engine_requests import Client, Config, chat_auto, chat_stream, collect_stream, text_of, chat_robust
+import sys
 
-c = Client(Config.load())                       # يقرأ config/endpoint.json
-r = chat_auto(c, "مرحبا")                       # AUTO + failover
+sys.path.insert(0, "reference_client")
+from chat_engine_requests import (
+    Client,
+    Config,
+    chat_auto,
+    chat_stream,
+    collect_stream,
+    text_of,
+    chat_robust,
+)
+
+c = Client(Config.load())  # يقرأ config/endpoint.json
+r = chat_auto(c, "مرحبا")  # AUTO + failover
 print(r["provider_key"], r["model_key"], text_of(r))
-text, terminal, stream_id = collect_stream(chat_stream(c, message="تابع", conversation_id=r["conversation_id"]))
-r = chat_robust(c, "سؤال مهم", model="deepseek-v3.2", provider="gw_deepai")   # يسقط التثبيت ويعيد المحاولة عند 429/502
+text, terminal, stream_id = collect_stream(
+    chat_stream(c, message="تابع", conversation_id=r["conversation_id"])
+)
+r = chat_robust(
+    c, "سؤال مهم", model="deepseek-v3.2", provider="gw_deepai"
+)  # يسقط التثبيت ويعيد المحاولة عند 429/502
 ```
 
 ## الأقسام
