@@ -2,6 +2,8 @@
 
 ## v0.1.3 — 2026-10-18 (CE-21 Live full-function audit against the gateway)
 
+- Docs: `docs/INTEGRATION_GUIDE.md` — complete integration reference for engineers and coding agents (every request/response shape, SSE protocol, memory, strategies, skills, error playbook, gateway facts, SDKs, app recipe); all examples executed live.
+
 Owner-requested sweep of every function and every provider on the live stack; defects found and fixed:
 
 - **Admission breaker scope** (`chat_engine/admission/memory.py`): the relative circuit breaker tripped on the *tenant* scope after five upstream refusals from *different* providers and 429'd every provider for 30 s — healthy ones included. The breaker is a provider-health signal: `tenant*`/`project*` scopes are exempt (`test_breaker_never_opens_on_tenant_scope`).

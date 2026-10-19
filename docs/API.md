@@ -1,6 +1,7 @@
 # chat_engine — API Reference (v0.1)
 
 > Base URL: `http://<host>:8080`. OpenAPI: `GET /openapi.json` (كل مسار يحمل `x-ce-stability: stable | experimental | admin`). Swagger UI: `/docs`.
+> **دليل الاستخدام العملي (أمثلة كاملة + playbook الأخطاء):** `docs/INTEGRATION_GUIDE.md`.
 > المصادقة: Phase 1 بلا auth (tenant/user demo ثابتان) — انظر `README.md` قبل أي نشر عام.
 
 ## 0. ثلاث طبقات
