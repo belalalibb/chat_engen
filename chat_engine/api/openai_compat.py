@@ -25,11 +25,11 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import Field
 
 from chat_engine.admission.port import failure_category
-from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.api.errors import ChatEngineErrorCode
 from chat_engine.composition.runtime import Runtime
 from chat_engine.conversations.service import ChatError
 from chat_engine.handoff import CanonicalMessage, HandoffBudget, HandoffCompiler, HandoffPacket
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.streaming.contracts import StreamEventType
 
 # --- request / response shapes (OpenAI subset) --------------------------------------------

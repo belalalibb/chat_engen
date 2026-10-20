@@ -19,7 +19,6 @@ from core.routing.errors import FallbackNotConfigured, NoEligibleCandidates
 from core.routing.router import UnsupportedPolicyType
 
 from chat_engine.admission.port import failure_category
-from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.catalog import AliasUnconfirmed, CatalogService
 from chat_engine.conversations.contracts import (
     ChatRequest,
@@ -44,6 +43,7 @@ from chat_engine.handoff import (
     HandoffPacket,
     TextPart,
 )
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.util.time import utc_now
 
 if TYPE_CHECKING:

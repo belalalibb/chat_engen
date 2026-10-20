@@ -9,14 +9,6 @@ from __future__ import annotations
 from uuid import uuid4
 
 import httpx
-from core.contracts.domain import AuthType, Provider, ProviderStatus
-from core.contracts.provider import (
-    ProviderError,
-    ProviderErrorCategory,
-    ProviderGenerateRequest,
-    ProviderGenerateResponse,
-)
-
 from chat_engine.admission import BreakerPolicy, InMemoryAdmission, Reservation
 from chat_engine.composition.runtime import Runtime, echo_manifest
 from chat_engine.providers.error_details import (
@@ -30,6 +22,14 @@ from chat_engine.providers.error_details import (
 )
 from chat_engine.providers.openai_compatible import OpenAICompatibleAdapter
 from chat_engine.streaming.contracts import StreamChunk
+from core.contracts.domain import AuthType, Provider, ProviderStatus
+from core.contracts.provider import (
+    ProviderError,
+    ProviderErrorCategory,
+    ProviderGenerateRequest,
+    ProviderGenerateResponse,
+)
+
 from tests.orchestration.test_strategies import ScriptedAdapter, add_scripted
 from tests.streaming.test_five_cases import add_streaming_provider, events_of
 
@@ -46,8 +46,7 @@ def _ctx_error() -> ProviderError:
         retryable=False,
         provider_code=CONTEXT_WINDOW_CODE,
         safe_message=(
-            "prompt exceeds the model's context window; maximum 8000 tokens; "
-            "requested 9000 tokens"
+            "prompt exceeds the model's context window; maximum 8000 tokens; requested 9000 tokens"
         ),
     )
 

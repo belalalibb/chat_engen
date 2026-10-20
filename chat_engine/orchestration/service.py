@@ -15,7 +15,6 @@ from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderOperation
 
 from chat_engine.admission.port import failure_category
-from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.conversations.service import ChatError
 from chat_engine.orchestration.contracts import (
     OrchestrationTrace,
@@ -26,6 +25,7 @@ from chat_engine.orchestration.contracts import (
     StrategyOptions,
     TraceBuilder,
 )
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 
 if TYPE_CHECKING:
     from chat_engine.composition.runtime import Runtime
