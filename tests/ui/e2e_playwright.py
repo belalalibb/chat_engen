@@ -3,7 +3,7 @@ user actually clicks, not just screen rendering. Complements ``smoke_playwright.
 
     python tests/ui/e2e_playwright.py http://localhost:8080
 
-Prints PASS/FAIL per flow, exit 1 on any FAIL. Writes evidence/ce20/ui_e2e_final.png.
+Prints PASS/FAIL per flow, exit 1 on any FAIL. Writes evidence/ce24/ui_e2e_final.png.
 """
 
 from __future__ import annotations
@@ -221,9 +221,27 @@ def main() -> int:
         page.wait_for_timeout(800)
         check("capabilities screen has rows", page.locator("ce-capabilities tr").count() > 1)
 
+        # 11. CE-24/D keys screen: shows the live CE_AUTH_MODE pill; "off" ⇒ honest hint, no table
+        page.click("[data-nav=keys]")
+        page.wait_for_selector("ce-keys .pill")
+        page.wait_for_timeout(500)
+        pill = page.locator("ce-keys .pill").first.inner_text()
+        check("keys screen shows CE_AUTH_MODE pill", pill.startswith("CE_AUTH_MODE:"), pill)
+        if pill.endswith("off"):
+            check(
+                "keys screen off-mode hint (no master input)",
+                page.locator("ce-keys p.dim").count() >= 1
+                and page.locator("ce-keys [data-role=master]").count() == 0,
+            )
+        else:
+            check(
+                "keys screen master input present",
+                page.locator("ce-keys [data-role=master]").count() == 1,
+            )
+
         check("no page errors", not errors, " | ".join(errors)[:300])
         check("no 5xx from UI flows", not http5xx, " | ".join(http5xx)[:300])
-        page.screenshot(path="evidence/ce20/ui_e2e_final.png")
+        page.screenshot(path="evidence/ce24/ui_e2e_final.png")
         browser.close()
     failed = sum(1 for _, ok, _ in results if not ok)
     print(f"\n{len(results) - failed}/{len(results)} passed")
