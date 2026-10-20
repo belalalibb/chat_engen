@@ -212,7 +212,7 @@ async def test_rpd_and_tpd_rolling_day() -> None:
 
 
 def test_key_with_rpd_sets_admission_limits() -> None:
-    rt, c = _app("optional")
+    _rt, c = _app("optional")
     r = c.post("/v1/admin/keys", json={"name": "daily", "rpd": 1}, headers=_h(MASTER))
     key = r.json()["key"]
     assert (
