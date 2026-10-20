@@ -15,6 +15,7 @@ from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderOperation
 
 from chat_engine.admission.port import failure_category
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.conversations.service import ChatError
 from chat_engine.orchestration.contracts import (
     OrchestrationTrace,
@@ -199,17 +200,18 @@ class Orchestrator:
                 else str(node_err.get("safe_message") or "Execution failed.")
             )
             self._note_failure(pk, str(category) if category else None)
-            raise ChatError(
-                "execution_failed",
-                message,
-                http_status=502,
-                details={
-                    "execution_id": str(report.execution.id),
-                    "step_model": model,
-                    "provider_error_category": category,
-                    "provider_code": node_err.get("provider_code"),
-                },
-            )
+            details: JsonObject = {
+                "execution_id": str(report.execution.id),
+                "step_model": model,
+                "provider_error_category": category,
+                "provider_code": (err.provider_code if err else None)
+                or node_err.get("provider_code"),
+            }
+            enrich_details(details, err)
+            if is_context_window_error(err):
+                # CE-24/G: request too large → surfaces as 422; strategies do NOT escalate
+                raise ChatError("validation_error", message, http_status=422, details=details)
+            raise ChatError("execution_failed", message, http_status=502, details=details)
         # the provider/model that actually answered (router fallback may differ from selected)
         winning = next((a for a in reversed(node.attempts) if a.succeeded), None) if node else None
         if winning is not None:
@@ -501,6 +503,8 @@ class Orchestrator:
                 trace.steps.append(
                     self._step(n, "tier", model, None, reason=f"{exc.code}: {exc.message}")
                 )
+                if exc.details.get("reason") == "context_window_exceeded":
+                    raise  # CE-24/G: the request itself is too large — no tier escalation
                 continue
             score, fails = score_against_spec(r.text, opts.output_spec)
             self._accumulate(trace, r)

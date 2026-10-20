@@ -28,6 +28,7 @@ from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderGenerateRequest, ProviderOperation
 from core.contracts.routing import CandidateScore, RoutingDecision
 
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.streaming.contracts import (
     StreamChunk,
     StreamEvent,
@@ -304,6 +305,25 @@ class StreamService:
                         "detail": outcome.get("detail"),
                         "resume_url": f"/v1/chat/stream/{stream_id}:resume",
                     },
+                )
+                return
+            # CE-24/G: a context-window overflow indicts the REQUEST — do not fail over
+            err_obj = outcome.get("error")
+            if err_obj is not None and is_context_window_error(err_obj):
+                yield ev(
+                    StreamEventType.FAILED,
+                    enrich_details(
+                        {
+                            "reason": StreamFailureReason.VALIDATION.value,
+                            "resumable": False,
+                            "final": True,
+                            "provider_key": pk,
+                            "model_key": model.model_key,
+                            "detail": err_obj.safe_message,
+                            "failovers": failovers,
+                        },
+                        err_obj,
+                    ),
                 )
                 return
             # case 3: before first delta → failover

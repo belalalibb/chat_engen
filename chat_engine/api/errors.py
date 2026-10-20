@@ -12,6 +12,8 @@ from core.contracts.errors import ErrorCode, ErrorDetail, ErrorEnvelope
 from core.contracts.provider import ProviderError, ProviderErrorCategory
 from fastapi.responses import JSONResponse
 
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
+
 #: HTTP status per upstream code (identical to apps/api/errors.py — a contract
 #: fact re-stated, not imported, because apps.* is forbidden by D0).
 HTTP_STATUS_BY_CODE: dict[ErrorCode, int] = {
@@ -129,12 +131,15 @@ def execution_failure_detail(
             details=details,
         )
     code = _CODE_BY_PROVIDER_CATEGORY.get(provider_error.category, ErrorCode.EXECUTION_FAILED)
+    if is_context_window_error(provider_error):
+        code = ErrorCode.VALIDATION_ERROR  # CE-24/G: request too large → 422, not 502
     mapped: JsonObject = {
         "execution_id": execution_id,
         "provider_error_category": provider_error.category.value,
     }
     if stage is not None:
         mapped["stage"] = stage
+    enrich_details(mapped, provider_error)
     return ErrorDetail(
         code=code,
         message=provider_error.safe_message,

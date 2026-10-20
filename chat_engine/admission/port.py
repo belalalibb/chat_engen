@@ -120,9 +120,15 @@ def failure_category(report: object) -> str | None:
     resp = getattr(node, "response", None)
     err = getattr(resp, "error", None)
     if err is not None:
+        code = getattr(err, "provider_code", None)
+        if isinstance(code, str) and "context_window_exceeded" in code:
+            return "context_window"  # CE-24/G: request-indicting, own breaker key
         return str(getattr(getattr(err, "category", None), "value", None) or "") or None
     node_err = getattr(getattr(node, "node", None), "error", None)
     if isinstance(node_err, dict):
+        code = node_err.get("provider_code")
+        if isinstance(code, str) and "context_window_exceeded" in code:
+            return "context_window"
         cat = node_err.get("category")
         return str(cat) if cat else None
     return None

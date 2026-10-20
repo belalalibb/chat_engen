@@ -41,6 +41,11 @@ from core.contracts.provider import (
     ProviderOperation,
 )
 
+from chat_engine.providers.error_details import (
+    CONTEXT_WINDOW_CODE,
+    context_window_facts,
+    is_context_window_message,
+)
 from chat_engine.streaming.contracts import StreamChunk
 
 DEFAULT_MAX_TOKENS = 2048
@@ -195,6 +200,22 @@ def _safe_code(response: httpx.Response) -> str | None:
         code = err.get("code") or err.get("type")
         return str(code)[:64] if isinstance(code, str | int) else None
     return None
+
+
+def _error_message(response: httpx.Response) -> str | None:
+    """Raw provider message — used ONLY for classification (never echoed verbatim)."""
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    err = body.get("error") if isinstance(body, dict) else None
+    if isinstance(err, dict):
+        msg = err.get("message")
+        return str(msg)[:512] if isinstance(msg, str) else None
+    if isinstance(err, str):
+        return err[:512]
+    msg = body.get("message") if isinstance(body, dict) else None
+    return str(msg)[:512] if isinstance(msg, str) else None
 
 
 class OpenAICompatibleAdapter:
@@ -493,6 +514,23 @@ class OpenAICompatibleAdapter:
                 safe_message="requested model is not available at the provider",
             )
         if status in (400, 413, 422):
+            raw_msg = _error_message(r)
+            if is_context_window_message(raw_msg, code):
+                # CE-24/G: the REQUEST is too large for this model — request-indicting,
+                # never retried or failed over; facts travel in the safe message so the
+                # API layer can surface details.max_input_tokens / requested_tokens.
+                facts = context_window_facts(raw_msg)
+                parts = ["prompt exceeds the model's context window"]
+                if "max_input_tokens" in facts:
+                    parts.append(f"maximum {facts['max_input_tokens']} tokens")
+                if "requested_tokens" in facts:
+                    parts.append(f"requested {facts['requested_tokens']} tokens")
+                return ProviderError(
+                    category=ProviderErrorCategory.BAD_REQUEST,
+                    retryable=False,
+                    provider_code=CONTEXT_WINDOW_CODE,
+                    safe_message="; ".join(parts),
+                )
             if code and ("content" in code or "safety" in code or "moderation" in code):
                 return ProviderError(
                     category=ProviderErrorCategory.CONTENT_REJECTED,

@@ -29,6 +29,9 @@ BREAKER_SAMPLE = 10
 BREAKER_OPEN_S = 30.0
 #: failures of one category are counted within this many seconds
 CATEGORY_WINDOW_S = 60.0
+#: categories that indict the REQUEST, never the provider — ignored by the breaker even
+#: with no policy configured (CE-24/G). A policy may still override them explicitly.
+REQUEST_FAULT_CATEGORIES = frozenset({"context_window"})
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,9 @@ class CategoryRule:
     @property
     def counts(self) -> bool:
         return self.fails > 0
+
+
+_NEVER_COUNTS = CategoryRule(fails=0)
 
 
 @dataclass(frozen=True)
@@ -107,7 +113,10 @@ class BreakerPolicy:
     def rule_for(self, category: str | None) -> CategoryRule | None:
         if category is None:
             return None
-        return self.rules.get(category)
+        rule = self.rules.get(category)
+        if rule is None and category in REQUEST_FAULT_CATEGORIES:
+            return _NEVER_COUNTS  # CE-24/G: the request, not the provider, was wrong
+        return rule
 
     def describe(self) -> dict[str, object]:
         return {
@@ -127,6 +136,7 @@ __all__ = [
     "BREAKER_OPEN_S",
     "BREAKER_SAMPLE",
     "CATEGORY_WINDOW_S",
+    "REQUEST_FAULT_CATEGORIES",
     "BreakerPolicy",
     "CategoryRule",
 ]

@@ -19,6 +19,7 @@ from core.routing.errors import FallbackNotConfigured, NoEligibleCandidates
 from core.routing.router import UnsupportedPolicyType
 
 from chat_engine.admission.port import failure_category
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.catalog import AliasUnconfirmed, CatalogService
 from chat_engine.conversations.contracts import (
     ChatRequest,
@@ -539,20 +540,30 @@ class ChatService:
                     status="failed",
                 )
             node_err = dict(node.node.error) if node and isinstance(node.node.error, dict) else {}
+            details: JsonObject = {
+                "execution_id": str(report.execution.id),
+                "turn_id": str(failed.id),
+                "provider_error_category": err.category.value if err else node_err.get("category"),
+                "provider_code": (err.provider_code if err else None)
+                or node_err.get("provider_code"),
+            }
+            enrich_details(details, err)
+            if is_context_window_error(err):
+                # CE-24/G: the prompt is too large for the model — a request problem (422),
+                # not a provider failure; no retry / failover happened upstream either
+                raise ChatError(
+                    "validation_error",
+                    err.safe_message if err else "Prompt exceeds the model's context window.",
+                    http_status=422,
+                    details=details,
+                )
             raise ChatError(
                 "execution_failed",
                 err.safe_message
                 if err
                 else str(node_err.get("safe_message") or "Execution failed."),
                 http_status=502,
-                details={
-                    "execution_id": str(report.execution.id),
-                    "turn_id": str(failed.id),
-                    "provider_error_category": err.category.value
-                    if err
-                    else node_err.get("category"),
-                    "provider_code": node_err.get("provider_code"),
-                },
+                details=details,
             )
         content = resp.output.get("content")
         if not isinstance(content, str):

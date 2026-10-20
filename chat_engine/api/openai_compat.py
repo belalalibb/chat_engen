@@ -25,6 +25,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import Field
 
 from chat_engine.admission.port import failure_category
+from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.api.errors import ChatEngineErrorCode
 from chat_engine.composition.runtime import Runtime
 from chat_engine.conversations.service import ChatError
@@ -405,7 +406,9 @@ def build_router(rt: Runtime) -> APIRouter:
             code = "execution_failed"
             if err is not None:
                 cat = err.category.value
-                if cat == "rate_limited":
+                if is_context_window_error(err):
+                    status, code = 400, "context_length_exceeded"  # OpenAI's own code
+                elif cat == "rate_limited":
                     status, code = 429, "rate_limited"
                 elif cat in ("auth_failed", "invalid_credentials"):
                     status, code = 401, "unauthenticated"
@@ -415,10 +418,13 @@ def build_router(rt: Runtime) -> APIRouter:
                 status,
                 err.safe_message if err else "Execution failed.",
                 code=code,
-                details={
-                    "execution_id": str(report.execution.id),
-                    "provider_error_category": err.category.value if err else None,
-                },
+                details=enrich_details(
+                    {
+                        "execution_id": str(report.execution.id),
+                        "provider_error_category": err.category.value if err else None,
+                    },
+                    err,
+                ),
             )
         content = resp.output.get("content")
         tool_calls = resp.output.get("tool_calls")

@@ -58,6 +58,7 @@ class StreamFailureReason(StrEnum):
     DEADLINE_EXCEEDED = "deadline_exceeded"
     UNSUPPORTED = "unsupported_capability"
     ADMISSION_DENIED = "admission_denied"
+    VALIDATION = "validation_error"  # CE-24/G: request-indicting (context window)
 
 
 @runtime_checkable
