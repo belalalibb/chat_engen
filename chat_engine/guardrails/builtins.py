@@ -50,9 +50,7 @@ class KeywordBlock:
             return GuardrailResult(
                 Verdict.REDACT, out, reason="keyword", details={"keywords": hits}
             )
-        return GuardrailResult(
-            Verdict.BLOCK, text, reason="keyword", details={"keywords": hits}
-        )
+        return GuardrailResult(Verdict.BLOCK, text, reason="keyword", details={"keywords": hits})
 
     def pre_request(self, text: str) -> GuardrailResult:
         return self._scan(text)
@@ -78,7 +76,9 @@ class PiiRedact:
             pat = _PII_PATTERNS[kind]
 
             def repl(m: re.Match[str], kind: str = kind) -> str:
-                if kind in ("phone", "card") and _digits(m.group(0)) < (9 if kind == "phone" else 13):
+                if kind in ("phone", "card") and _digits(m.group(0)) < (
+                    9 if kind == "phone" else 13
+                ):
                     return m.group(0)
                 counts[kind] = int(counts.get(kind, 0)) + 1
                 return f"[{kind}]"

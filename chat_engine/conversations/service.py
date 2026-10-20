@@ -97,7 +97,19 @@ class ChatService:
 
     # -- projects ------------------------------------------------------------------------
 
+    @staticmethod
+    def _validate_guardrails(specs: list[JsonObject] | None) -> None:
+        if not specs:
+            return
+        from chat_engine.guardrails import build_guardrails
+
+        try:
+            build_guardrails(specs)
+        except ValueError as exc:
+            raise ChatError("validation_error", str(exc), details={"field": "guardrails"}) from None
+
     def create_project(self, req: ProjectCreate) -> Project:
+        self._validate_guardrails(req.guardrails)
         now = utc_now()
         return self._store.put_project(
             Project(
@@ -110,6 +122,7 @@ class ChatService:
         )
 
     def update_project(self, project_id: UUID, req: ProjectUpdate) -> Project:
+        self._validate_guardrails(req.guardrails)
         p = self._store.get_project(self._rt.tenant_id, project_id)
         return self._store.put_project(
             p.model_copy(update={**req.model_dump(exclude_none=True), "updated_at": utc_now()})
@@ -305,6 +318,29 @@ class ChatService:
             )
         )
 
+    def _guard(self, stage: str, text: str, project: Project | None) -> Any:
+        """CE-24/E: run process-default + project guardrails; BLOCK raises 403."""
+        engine = self._rt.extensions.get("guardrails")
+        specs = list(project.guardrails) if project is not None else []
+        if engine is None or (not specs and not engine.default_specs_count):
+            from chat_engine.guardrails import GuardrailVerdict, Verdict
+
+            return GuardrailVerdict(Verdict.ALLOW, text)
+        verdict = engine.run(stage, text, specs)
+        if verdict.verdict.value == "block":
+            raise ChatError(
+                "capability_denied",
+                f"Request blocked by guardrail '{verdict.blocked_by}' ({verdict.reason}).",
+                http_status=403,
+                details={
+                    "guardrail": verdict.blocked_by,
+                    "stage": stage,
+                    "reason": verdict.reason,
+                    **verdict.details,
+                },
+            )
+        return verdict
+
     @staticmethod
     def _enforce_key(model: str | None, project_id: UUID | None) -> None:
         """CE-24/D: a virtual key's ``models_allowed`` / ``project_ids`` (no-op anonymous)."""
@@ -376,6 +412,11 @@ class ChatService:
             project = self._store.get_project(self._rt.tenant_id, conversation.project_id)
         model = req.model or conversation.model or (project.default_model if project else None)
         self._enforce_key(model, conversation.project_id)
+        # CE-24/E pre-request guardrails: block → 403; redact → the redacted text is what
+        # gets stored, compiled and sent upstream
+        guard_pre = self._guard("pre", req.message, project)
+        if guard_pre.applied:
+            req = req.model_copy(update={"message": guard_pre.text})
         skills_used = self._effective_skills(conversation, project, req.skills)
         decision = self.route(model, req.provider, req.required_capabilities)
         model_row = self._rt.models.get_by_id(decision.selected.model_id)
@@ -403,7 +444,10 @@ class ChatService:
             parts=[TextPart(text=req.message)],
             created_at=utc_now(),
             skills_used=skills_used,
-            metadata={"attachments": req.attachments} if req.attachments else {},
+            metadata={
+                **({"attachments": req.attachments} if req.attachments else {}),
+                **({"guardrails": guard_pre.applied} if guard_pre.applied else {}),
+            },
         )
         packet, compiled = self.build_packet(
             conversation,
@@ -589,6 +633,28 @@ class ChatService:
         content = resp.output.get("content")
         if not isinstance(content, str):
             content = json.dumps(resp.output, sort_keys=True)
+        # CE-24/E post-response guardrails (block → FAILED turn + 403; redact → rewritten)
+        try:
+            guard_post = self._guard("post", content, prep.project)
+        except ChatError as exc:
+            blocked = Turn(
+                id=uuid4(),
+                conversation_id=prep.conversation.id,
+                seq=self._store.next_seq(prep.conversation.id),
+                role=CanonicalRole.ASSISTANT,
+                parts=[],
+                status=TurnStatus.FAILED,
+                provider_key=provider_key,
+                model_key=model_key,
+                execution_id=str(report.execution.id),
+                handoff_packet_id=prep.packet.packet_id,
+                created_at=utc_now(),
+                metadata={"error": {"category": "guardrail_blocked", **exc.details}},
+            )
+            self._store.append_turn(blocked)
+            exc.details["turn_id"] = str(blocked.id)
+            raise
+        content = guard_post.text
         parts: list[Any] = [TextPart(text=content)]
         tool_calls = resp.output.get("tool_calls")
         if isinstance(tool_calls, list):
@@ -623,6 +689,7 @@ class ChatService:
             execution_id=str(report.execution.id),
             skills_used=prep.skills_used,
             created_at=utc_now(),
+            metadata={"guardrails": guard_post.applied} if guard_post.applied else {},
         )
         self._store.append_turn(turn)
         self._store.put_conversation(

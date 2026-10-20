@@ -43,6 +43,8 @@ class Project(ContractModel):
     #: Skills ASSIGNED to this project (CE-19). Entries: {skill_id, version, enabled}
     skills: list[JsonObject] = Field(default_factory=list)
     agent_profile_id: BoundedStr | None = None
+    #: CE-24/E built-in guardrail specs ({type: keyword_block|pii_redact, stage, ...})
+    guardrails: list[JsonObject] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     metadata: JsonObject = Field(default_factory=dict)
@@ -106,6 +108,8 @@ class ProjectCreate(ContractModel):
     context_window_hint: int | None = Field(default=None, ge=1)
     skills: list[JsonObject] = Field(default_factory=list)
     agent_profile_id: BoundedStr | None = None
+    #: CE-24/E built-in guardrail specs ({type: keyword_block|pii_redact, stage, ...})
+    guardrails: list[JsonObject] = Field(default_factory=list)
     metadata: JsonObject = Field(default_factory=dict)
 
 
@@ -118,6 +122,7 @@ class ProjectUpdate(ContractModel):
     context_window_hint: int | None = Field(default=None, ge=1)
     skills: list[JsonObject] | None = None
     agent_profile_id: BoundedStr | None = None
+    guardrails: list[JsonObject] | None = None  # CE-24/E
     metadata: JsonObject | None = None
 
 

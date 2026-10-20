@@ -486,6 +486,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         pricing, enabled=env.get("CE_FEATURE_USAGE", "1") != "0"
     )
     rt.extensions["usage_recorder"].keys = rt.extensions.get("keys")  # CE-24/D spend
+    # CE-24/E: built-in guardrails (process defaults; projects add their own specs)
+    from chat_engine.guardrails import GuardrailEngine
+
+    rt.extensions["guardrails"] = GuardrailEngine.from_env(env.get("CE_GUARDRAILS_JSON"))
     rt.extensions["tracer"] = build_tracer(env)
     # CE-14: App Factory (artifacts only; approval gate)
     from pathlib import Path as _Path
