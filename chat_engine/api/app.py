@@ -18,6 +18,7 @@ from chat_engine.api import (
     catalog,
     chat_stream,
     conversations,
+    embeddings,
     events,
     execute,
     models,
@@ -109,6 +110,9 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
     keys = runtime.extensions.get("keys")
     if keys is not None and keys.mode.value != "off":
         app.include_router(auth.build_router(runtime))
+    # CE-24/H: embeddings over gateway create_embeddings routes (always mounted; answers
+    # unsupported_capability when no embedding route is bound)
+    app.include_router(embeddings.build_router(runtime))
     install_openapi(app, upstream_sha=UPSTREAM_SHA)
     mount_ui(app, environ)
     return app

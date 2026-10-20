@@ -536,5 +536,9 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.providers.gateway import bind_gateway_providers_from_env
 
     gw = bind_gateway_providers_from_env(rt, env)
-    rt.extensions["gateway_report"] = {"bound": list(gw.bound), "skipped": dict(gw.skipped)}
+    rt.extensions["gateway_report"] = {
+        "bound": list(gw.bound),
+        "skipped": dict(gw.skipped),
+        "embed_only": list(gw.embed_only),  # CE-24/H
+    }
     return rt

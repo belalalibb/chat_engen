@@ -69,6 +69,7 @@ class GatewayBinding:
 class GatewayBindReport:
     bound: list[str] = field(default_factory=list)
     skipped: dict[str, str] = field(default_factory=dict)  # provider_key -> reason
+    embed_only: list[str] = field(default_factory=list)  # CE-24/H: served via /v1/embeddings
 
 
 def gateway_binding_from_env(env: Mapping[str, str]) -> GatewayBinding | None:
@@ -214,7 +215,11 @@ def bind_gateway_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> Gate
             report.skipped[provider_key] = "describe unreachable/denied (check secret, token, URL)"
             continue
         operations = _operations_from_describe(described.get("operations"))
-        if ProviderOperation.GENERATE_TEXT not in operations:
+        embed_only = (
+            ProviderOperation.GENERATE_TEXT not in operations
+            and ProviderOperation.CREATE_EMBEDDINGS in operations
+        )
+        if ProviderOperation.GENERATE_TEXT not in operations and not embed_only:
             report.skipped[provider_key] = "gateway route does not declare generate_text"
             continue
         models = _models_from_describe(described.get("models"))
@@ -267,5 +272,12 @@ def bind_gateway_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> Gate
             pool = rt.extensions.get("credential_pool")
             if pool is not None:
                 pool.register(provider_id, provider_key, token_refs)
+        if embed_only:
+            # CE-24/H: the upstream router only routes a provider for operations its
+            # manifest declares, so an embed-only route is invisible to generate_text and
+            # reachable through POST /v1/embeddings (operation=create_embeddings).
+            embeds = rt.extensions.setdefault("embedding_routes", {})
+            embeds[provider_key] = {"provider_id": str(provider_id), "models": list(models)}
+            report.embed_only.append(provider_key)
         report.bound.append(provider_key)
     return report
