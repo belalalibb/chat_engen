@@ -132,6 +132,7 @@ class UsageRecorder:
             kid,
             tokens_in=row.tokens.input,
             tokens_out=row.tokens.output,
+            tokens_total=row.tokens.total,
             cost_usd=row.cost.amount if row.cost.known else 0.0,
         )
 

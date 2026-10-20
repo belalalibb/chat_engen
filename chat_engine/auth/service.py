@@ -229,7 +229,13 @@ class KeyService:
             raise KeyRejected("project_not_allowed", "project is not allowed for this key")
 
     def record_spend(
-        self, key_id: UUID | None, *, tokens_in: int, tokens_out: int, cost_usd: float
+        self,
+        key_id: UUID | None,
+        *,
+        tokens_in: int,
+        tokens_out: int,
+        cost_usd: float,
+        tokens_total: int | None = None,
     ) -> None:
         if key_id is None:
             return
@@ -244,6 +250,10 @@ class KeyService:
                         requests=sp.requests + 1,
                         tokens_in=sp.tokens_in + max(0, tokens_in),
                         tokens_out=sp.tokens_out + max(0, tokens_out),
+                        tokens_total=sp.tokens_total
+                        + max(
+                            0, tokens_total if tokens_total is not None else tokens_in + tokens_out
+                        ),
                         cost_usd=round(sp.cost_usd + max(0.0, cost_usd), 8),
                         last_used_at=datetime.now(UTC),
                     )

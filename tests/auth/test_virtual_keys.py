@@ -13,12 +13,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from fastapi.testclient import TestClient
-
 from chat_engine.admission import Denied, InMemoryAdmission, Limits, Reservation
 from chat_engine.api.app import create_app
 from chat_engine.auth import AuthMode, KeyCreate, KeyService
 from chat_engine.composition.runtime import build_runtime
+from fastapi.testclient import TestClient
+
 from tests.admission.test_admission import Clock
 from tests.conftest import HERMETIC_ENV
 from tests.orchestration.test_strategies import add_scripted
@@ -107,9 +107,7 @@ def test_master_manages_keys_and_secret_shown_once() -> None:
     assert c.get("/v1/admin/keys", headers=_h(key)).status_code == 403
     assert c.get(f"/v1/admin/keys/{svc.master_key_id}", headers=_h(key)).status_code == 403
     # patch + disable
-    p = c.patch(
-        f"/v1/admin/keys/{rec['key_id']}", json={"disabled": True}, headers=_h(MASTER)
-    )
+    p = c.patch(f"/v1/admin/keys/{rec['key_id']}", json={"disabled": True}, headers=_h(MASTER))
     assert p.status_code == 200 and p.json()["disabled"] is True
     r2 = c.post("/v1/chat", json={"message": "hi", "model": "m-a"}, headers=_h(key))
     assert r2.status_code == 403 and r2.json()["error"]["details"]["reason"] == "key_disabled"
@@ -145,7 +143,7 @@ def test_model_allowlist_rpm_and_spend() -> None:
     # spend accrued on the key (2 successful requests)
     rec = c.get(f"/v1/admin/keys/{kid}", headers=_h(MASTER)).json()
     assert rec["spend"]["requests"] == 2 and rec["spend"]["last_used_at"]
-    assert rec["spend"]["tokens_in"] + rec["spend"]["tokens_out"] > 0
+    assert rec["spend"]["tokens_total"] > 0  # scripted usage reports total_tokens only
     records = c.get("/v1/usage/records", params={"limit": 100}).json()["records"]
     assert sum(1 for x in records if x["metadata"].get("key_id") == kid) == 2
     # admission snapshot shows the key scope
@@ -171,9 +169,11 @@ def test_budget_and_expiry() -> None:
 
 
 def test_master_key_generated_when_unset() -> None:
-    svc = KeyService(tenant_id=HERMETIC_ENV and __import__("uuid").uuid4(), mode=AuthMode.OPTIONAL)
+    from uuid import uuid4
+
+    svc = KeyService(tenant_id=uuid4(), mode=AuthMode.OPTIONAL)
     assert svc.master_generated and svc.master_key_id is not None
-    off = KeyService(tenant_id=__import__("uuid").uuid4(), mode=AuthMode.OFF)
+    off = KeyService(tenant_id=uuid4(), mode=AuthMode.OFF)
     assert not off.master_generated and off.list() == []
     created = svc.create(KeyCreate(name="x"))
     assert svc.resolve(created.key).key_id == created.record.key_id
@@ -215,6 +215,9 @@ def test_key_with_rpd_sets_admission_limits() -> None:
     rt, c = _app("optional")
     r = c.post("/v1/admin/keys", json={"name": "daily", "rpd": 1}, headers=_h(MASTER))
     key = r.json()["key"]
-    assert c.post("/v1/chat", json={"message": "hi", "model": "m-a"}, headers=_h(key)).status_code == 200
+    assert (
+        c.post("/v1/chat", json={"message": "hi", "model": "m-a"}, headers=_h(key)).status_code
+        == 200
+    )
     d = c.post("/v1/chat", json={"message": "hi", "model": "m-a"}, headers=_h(key))
     assert d.status_code == 429 and d.json()["error"]["details"]["dimension"] == "rpd"
