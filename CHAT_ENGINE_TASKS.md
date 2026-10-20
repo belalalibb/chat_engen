@@ -351,6 +351,16 @@ PHASE 6  SHIP         CE-16 (packaging/CI/Windows) → CE-17 (scale 10k) → CE-
 
 **الحالة الحية للمزوّدين (تتغيّر مع حسابات المالك):** يجيب: `gw_deepai`, `gw_llamacoder`, `gw_overchat`, `gw_parallel`. يرفض upstream: `gw_groq` (مفتاح غير مهيأ بالبوابة)، `gw_freebuff`/`gw_ivycraft`/`gw_runpod_console` (`invalid_credential`)، `gw_notegpt` (`auth_expired`)، `gw_syntx`/`gw_tinyfish` (`provider_unavailable`/مهلة)، `gw_upstage`/`gw_youmind` (مهلة 60 ثانية)، `genspark_llm` (`quota_exceeded`). التفاصيل الحرفية في `evidence/ce20/live_full_check.txt`.
 
+## CE-24 — تبنّي أفكار منظومة LiteLLM بلا تبنّي الحزمة (طلب المالك 2026-10-20) ✅
+
+**الطلب:** "طبق كل المقترحات علي الترتيب وبعد تطبيقهم اختبر كل جزء وكل وظيفه… حدث الوثائق… واعطني الرابط النهائي".
+
+**المنفَّذ (بالترتيب P1→P4):** A أسعار LiteLLM كمصدر ثانٍ · B قاطع حسب الفئة + rpd/tpd + نطاق `key:` · G أخطاء نافذة السياق بلا failover · D/L مفاتيح افتراضية (+شاشة Keys) · E guardrails مدمجة فقط · C إشارات توجيه حيّة مقاسة · K credential pool لكل مزوّد · M تقييم الدور · H `/v1/embeddings` (voyage embed-only) · F ذاكرة تطابق تام · I لهجة Anthropic `/v1/messages`. إضافة: `stream_fallback` على اللهجتين.
+
+**الاختبار:** 11 ملف اختبار hermetic جديد (gate GREEN 116 + 111/3)، `scripts/live_full_check.py` §11b (fail=0)، Playwright e2e 22/22 + smoke 12/12، `reference_client` tour failures=0. **صدق:** `/v1/embeddings` الحي يرفضه upstream (مفتاح voyage غير مهيأ في البوابة) — ليس عيب chat_engine.
+
+**الوثائق:** `docs/INTEGRATION_GUIDE.md §16`, `docs/API.md §4b`, `docs/OPERATIONS.md`, `reference_client/README.md`, `CHANGELOG.md v0.2.0`, الخطة → IMPLEMENTED.
+
 ## القواعد العابرة لكل المهام (Definition of Done)
 
 1. **Release gate (D8):** `ruff` + `mypy chat_engine/` + `lint-imports` + `pytest` (hermetic، بلا مفاتيح) + `tests/compat` + `scripts/secret_scan.py` — كلها خضراء.

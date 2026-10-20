@@ -1,5 +1,24 @@
 # CHANGELOG — chat_engine
 
+## v0.2.0 — 2026-10-20 (CE-24 LiteLLM-ecosystem adoption, additive-only — all 13 items A–M)
+
+Owner approved the full plan (`docs/PLAN_CE-24_litellm_ecosystem_adoption.md`) in order P1→P4. Zero new dependencies, no `litellm` package, no second gateway, no custom-code guardrails; every new field is optional and defaults preserve v0.1.3 behaviour.
+
+- **A** Pricing second source: `compat/catalogs/litellm_prices_snapshot.json` (3,371 models / 3,178 priced) via `scripts/import_litellm_catalog.py` (stdlib). Order: manual overrides > models.dev > LiteLLM. `GET /v1/admin/pricing` + `litellm_loaded/litellm_fetched_at`; catalog proposals `source: catalog:litellm`. `CE_PRICING_LITELLM=0` disables.
+- **B** Per-category circuit breaker (`chat_engine/admission/breaker_policy.py`, `CE_BREAKER_POLICY_JSON=recommended|{…}`), request-fault categories never open it; `rpd`/`tpd` 24h rolling dimensions; new scope `key:<id>`; `GET /v1/admin/admission → breaker_policy`.
+- **G** Context-window errors (`chat_engine/providers/error_details.py`): provider 400/413/422 → `400 bad_request` (`context_length_exceeded` on OpenAI dialect) with `details.provider_code/cause/context_window`; no failover, no breaker; stream `failed{reason:"validation_error"}`.
+- **D/L** Virtual keys (`chat_engine/auth/*`, `chat_engine/api/auth.py`): `CE_AUTH_MODE=off|optional|required` (default off ⇒ routes not mounted), `CE_MASTER_KEY`, sha256-hashed `ce_live_…` keys with `models_allowed/project_ids/rpm/tpm/rpd/tpd/concurrency/budget_usd/expires_at`; `/v1/auth/whoami`, `/v1/admin/keys*`; per-key spend in `/v1/usage`; UI **Keys** screen.
+- **E** Built-in guardrails only (`chat_engine/guardrails/*`): `keyword_block`, `pii_redact` (email/card/iban/phone) on `Project.guardrails` and `CE_GUARDRAILS_JSON`; pre/post stages; block ⇒ `403 capability_denied details.guardrail`; unknown type ⇒ 422.
+- **C** Live routing signals (`chat_engine/routing/live_signals.py`): EWMA latency + in-flight per provider, `GET /v1/admin/routing/signals`; reorder only with `CE_ROUTING_LIVE_SIGNALS=1` within a 0.15 score band and ≥20% gain (measured: `evidence/ce24/live_signals_before_after.json`).
+- **K** Credential pool per provider (`chat_engine/credentials/pool.py`): `gw_x=tok1|tok2` routes, auto-park on `invalid_credential/auth_expired/quota_exceeded/rate_limited`, `GET /v1/admin/providers/{key}/credentials`.
+- **M** Turn feedback: `POST /v1/conversations/{id}/turns/{turn_id}:feedback {score,-1..1, comment, tags}` → `turn.metadata.feedback`.
+- **H** Embeddings: `POST /v1/embeddings` (OpenAI shape), `GET /v1/embeddings/models`; gateway embed-only routes (`gw_voyage`) now bound as `healthz.gateway.embed_only` instead of skipped. Live today: upstream voyage key missing ⇒ honest `502 execution_failed / invalid_credential`.
+- **F** Exact-match response cache (`chat_engine/cache/exact.py`): `CE_CACHE=memory`, TTL/max; hits marked `usage.cached` + `metadata.cache_hit`, zero cost; `GET/DELETE /v1/admin/cache`.
+- **I** Anthropic Messages dialect `POST /v1/messages` (sync + SSE, tools, tool_result, system blocks, Anthropic error envelope incl. 422); `CE_FEATURE_ANTHROPIC_COMPAT=0` disables.
+- `stream_fallback:"buffer"` accepted on `/v1/chat/completions` and `/v1/messages` (sync-only gateway providers stream one synthesized burst; default unchanged).
+- Harnesses/evidence: `scripts/live_full_check.py` §11b (CE-24 rows) → `evidence/ce24/live_full_check.txt` (**fail=0**, 144 OK / 96 upstream refusals); `tests/ui/e2e_playwright.py` 22/22 (Keys screen); smoke 12/12; `reference_client` +19 functions, tour `failures=0`; gates `evidence/ce24/gate_p1..p4.txt`.
+- Docs: `docs/INTEGRATION_GUIDE.md §16`, `docs/API.md §4b`, `docs/OPERATIONS.md` env table, `reference_client/README.md`.
+
 ## v0.1.3 — 2026-10-18 (CE-21 Live full-function audit against the gateway)
 
 - `reference_client/`: single-file Python reference (one function per request, 72 endpoints, stdlib only) with the endpoint URL externalized to `reference_client/config/endpoint.json`; live tour evidence `evidence/ce20/reference_client_tour.txt`.

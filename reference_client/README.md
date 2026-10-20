@@ -59,6 +59,7 @@ r = chat_robust(
 | 7 | Upstream | `execute`, `list_executions`, `get_execution`, `execution_events` |
 | 8 | Usage | `usage`, `usage_records`, `usage_record` |
 | 9 | Admin | `admin_providers[_managed]`, `admin_provider`, `admin_provider_draft`, `admin_provider_transition`, `admin_provider_revisions`, `create/list/delete_credential`, `capabilities_ledger/catalog/probes`, `capability_probe/enable`, `admin_models`, `admin_pricing`, `admin_routing_weights` |
+| 9b | CE-24 (v0.2.0) | `admin_pricing_sources`, `admission_breaker_policy`, `whoami`, `create/list/get/update/delete_key`, `create_guarded_project`, `routing_signals`, `provider_credentials`, `turn_feedback`, `embeddings_models`, `embeddings`, `cache_stats`, `cache_clear`, `anthropic_messages`, `anthropic_messages_stream` |
 | 10 | Playbook | `chat_robust` — سياسة الاسترداد الموصى بها ككود |
 
-آخر جولة حيّة ضد البوابة: `evidence/ce20/reference_client_tour.txt` (`TOUR DONE failures=0`).
+آخر جولة حيّة ضد البوابة: `evidence/ce24/reference_client_tour.txt` (`TOUR DONE failures=0`، تشمل قسم `ce24`). قسم `--only ce24` يتصرّف بصدق مع `CE_AUTH_MODE=off` (مسارات المفاتيح غير مركّبة) ومع رفض upstream لـ embeddings.
