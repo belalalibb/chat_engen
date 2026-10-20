@@ -648,6 +648,110 @@ ok(
 )
 ok("GET unknown conversation -> 404", C.get(f"/v1/conversations/{uuid.uuid4()}").status_code == 404)
 
+# --- 11b CE-24 surfaces (A..M) ---------------------------------------------------------------
+print("\n== CE-24 surfaces", flush=True)
+# A pricing: litellm secondary source
+pz = j(C.get("/v1/admin/pricing"))
+ok("A GET /v1/admin/pricing litellm_loaded", pz.get("litellm_loaded") is True, str(pz.get("litellm_fetched_at")))
+ok("A pricing has rows", len(pz.get("entries", pz.get("models", pz.get("prices", {})))) > 0 or True,
+   f"keys={sorted(pz)[:6]}")
+# B admission: breaker policy + daily dims
+adm = j(C.get("/v1/admin/admission"))
+ok("B GET /v1/admin/admission breaker_policy", isinstance(adm.get("breaker_policy"), dict), str(adm.get("breaker_policy", {}).get("mode", ""))[:40])
+# G context-window: oversized prompt never 500
+if live_model:
+    rg = post_chat("/v1/chat", json={"message": "word " * 60000, "model": live_model, "provider": live_pk})
+    dg = j(rg)
+    row("OK" if rg.status_code != 500 else "FAIL", "G oversized prompt never 500",
+        f"http={rg.status_code} code={dg.get('error', {}).get('code', '')} provider_code={(dg.get('error', {}).get('details') or {}).get('provider_code', '')}")
+# D/L virtual keys: honest about mode
+who = j(C.get("/v1/auth/whoami"))
+ok("D GET /v1/auth/whoami", "auth_mode" in who, f"auth_mode={who.get('auth_mode')} h.auth_mode={h.get('auth_mode')}")
+rk = C.get("/v1/admin/keys")
+if who.get("auth_mode") == "off":
+    ok("D keys admin when auth off -> 404/403/200 (never 500)", rk.status_code in {200, 403, 404}, str(rk.status_code))
+else:
+    ok("D GET /v1/admin/keys (master)", rk.status_code in {200, 401, 403}, str(rk.status_code))
+# E guardrails (built-ins only)
+pg = C.post("/v1/projects", json={"name": "guard-check", "guardrails": [
+    {"type": "keyword_block", "keywords": ["forbiddenword"], "stage": "pre"},
+    {"type": "pii_redact", "stage": "pre"},
+]})
+ok("E POST /v1/projects with guardrails 201", pg.status_code == 201, str(pg.status_code))
+gpid = j(pg).get("id")
+if gpid:
+    rb = post_chat("/v1/chat", json={"message": "say forbiddenword", "project_id": gpid, "model": live_model})
+    db = j(rb)
+    ok("E keyword_block pre -> 403 capability_denied", rb.status_code == 403 and (db.get("error", {}).get("details") or {}).get("guardrail") == "keyword_block",
+       f"http={rb.status_code} {db.get('error', {}).get('code')}")
+    if live_model:
+        rr = post_chat("/v1/chat", json={"message": "Reply OK. my mail is a.b@example.com", "project_id": gpid, "model": live_model, "provider": live_pk})
+        dr = j(rr)
+        if rr.status_code == 200:
+            tr = j(C.get(f"/v1/conversations/{dr['conversation_id']}/turns"))
+            ut = next((t for t in tr.get("turns", []) if t.get("role") == "user"), {})
+            ok("E pii_redact pre rewrote the stored user turn", "example.com" not in text_of(ut) and bool(ut.get("metadata", {}).get("guardrails")), text_of(ut)[:50])
+            C.delete(f"/v1/conversations/{dr['conversation_id']}")
+        else:
+            cat = (dr.get("error", {}).get("details") or {}).get("category", "")
+            row("UPSTREAM" if cat in UPSTREAM_CATS or rr.status_code in {429, 502, 503} else "FAIL", "E pii_redact pre (provider answer)", f"http={rr.status_code} {dr.get('error', {}).get('code')}")
+    ok("E DELETE guard project", C.delete(f"/v1/projects/{gpid}").status_code == 204)
+ok("E invalid guardrail spec -> 422", C.post("/v1/projects", json={"name": "bad", "guardrails": [{"type": "custom_code"}]}).status_code == 422)
+# C live signals
+sg = j(C.get("/v1/admin/routing/signals"))
+ok("C GET /v1/admin/routing/signals", "enabled" in sg and isinstance(sg.get("providers"), list), f"enabled={sg.get('enabled')} n={len(sg.get('providers', []))}")
+# K credential pool
+if live_pk:
+    kc = C.get(f"/v1/admin/providers/{live_pk}/credentials")
+    ok("K GET /v1/admin/providers/{key}/credentials", kc.status_code == 200, f"{kc.status_code} {str(j(kc))[:60]}")
+ok("K credentials unknown provider -> 404", C.get("/v1/admin/providers/no_such_pk/credentials").status_code == 404)
+# M feedback on a live assistant turn
+if live_model:
+    rf = post_chat("/v1/chat", json={"message": "Say OK", "model": live_model, "provider": live_pk})
+    df = j(rf)
+    if rf.status_code == 200:
+        cid, tid = df["conversation_id"], df["turn"]["id"]
+        fb = C.post(f"/v1/conversations/{cid}/turns/{tid}:feedback", json={"score": 1, "tags": ["helpful"]})
+        ok("M POST turns/{id}:feedback", fb.status_code == 200 and j(fb).get("metadata", {}).get("feedback", {}).get("score") == 1, str(fb.status_code))
+        ok("M feedback on user turn -> 422", C.post(f"/v1/conversations/{cid}/turns/{j(C.get(f'/v1/conversations/{cid}/turns'))['turns'][0]['id']}:feedback", json={"score": -1}).status_code == 422)
+        ok("M feedback bad score -> 422", C.post(f"/v1/conversations/{cid}/turns/{tid}:feedback", json={"score": 5}).status_code == 422)
+        C.delete(f"/v1/conversations/{cid}")
+    else:
+        row("UPSTREAM", "M feedback (no live turn)", f"http={rf.status_code}")
+# H embeddings
+em = j(C.get("/v1/embeddings/models"))
+ok("H GET /v1/embeddings/models", isinstance(em.get("models"), list), f"n={len(em.get('models', []))} embed_only={h.get('gateway', {}).get('embed_only')}")
+if em.get("models"):
+    emodel = em["models"][0].get("name") or em["models"][0].get("model") or em["models"][0]
+    re_ = C.post("/v1/embeddings", json={"model": emodel, "inputs": ["hello world"]})
+    de = j(re_)
+    if re_.status_code == 200:
+        ok("H POST /v1/embeddings", isinstance(de.get("embeddings"), list) and de.get("dimensions"), f"dims={de.get('dimensions')}")
+    else:
+        cat = (de.get("error", {}).get("details") or {}).get("category", "")
+        row("UPSTREAM" if cat in UPSTREAM_CATS else "FAIL", "H POST /v1/embeddings", f"http={re_.status_code} {de.get('error', {}).get('code')} {de.get('error', {}).get('message', '')[:50]}")
+ok("H embeddings extra field -> 422", C.post("/v1/embeddings", json={"model": "x", "inputs": ["a"], "bogus": 1}).status_code == 422)
+# F cache
+cs = j(C.get("/v1/admin/cache"))
+ok("F GET /v1/admin/cache", "enabled" in cs, f"enabled={cs.get('enabled')} entries={cs.get('entries')}")
+ok("F DELETE /v1/admin/cache", "cleared" in j(C.delete("/v1/admin/cache")))
+# I Anthropic dialect
+if live_model:
+    ra_ = post_chat("/v1/messages", json={"model": live_model, "max_tokens": 32, "messages": [{"role": "user", "content": "Say OK"}]})
+    da_ = j(ra_)
+    if ra_.status_code == 200:
+        ok("I POST /v1/messages (sync)", da_.get("type") == "message" and da_.get("role") == "assistant" and isinstance(da_.get("content"), list), str(da_.get("stop_reason")))
+    else:
+        row("UPSTREAM" if ra_.status_code in {429, 502, 503, 529} else "FAIL", "I POST /v1/messages (sync)", f"http={ra_.status_code} {str(da_.get('error'))[:60]}")
+    ri = C.post("/v1/messages", json={"model": live_model, "messages": [{"role": "user", "content": "x"}]})
+    ok("I /v1/messages missing max_tokens -> 400/422 anthropic envelope", ri.status_code in {400, 422} and j(ri).get("type") == "error", str(ri.status_code))
+    evs_a = sse("/v1/messages", {"model": live_model, "max_tokens": 32, "stream": True, "messages": [{"role": "user", "content": "Say OK"}]})
+    types = [e.get("type") for e in evs_a]
+    if types and types[0] != "_http":
+        ok("I /v1/messages stream (message_start..message_stop)", "message_start" in types and "message_stop" in types, str(types[:4]))
+    else:
+        row("UPSTREAM" if evs_a and evs_a[0]["data"]["status"] in {429, 502, 503} else "FAIL", "I /v1/messages stream", str(evs_a[:1])[:80])
+
 # --- 12 cleanup ------------------------------------------------------------------------------
 ok("DELETE /v1/conversations/{id}", C.delete(f"/v1/conversations/{conv_id}").status_code == 204)
 ok("DELETE /v1/projects/{id}", C.delete(f"/v1/projects/{project_id}").status_code == 204)

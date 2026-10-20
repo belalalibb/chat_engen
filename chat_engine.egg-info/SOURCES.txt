@@ -17,6 +17,7 @@ chat_engine/admission/redis_backend.py
 chat_engine/api/__init__.py
 chat_engine/api/admin_capabilities.py
 chat_engine/api/admin_providers.py
+chat_engine/api/anthropic_compat.py
 chat_engine/api/app.py
 chat_engine/api/apps.py
 chat_engine/api/auth.py
@@ -40,6 +41,8 @@ chat_engine/auth/__init__.py
 chat_engine/auth/context.py
 chat_engine/auth/contracts.py
 chat_engine/auth/service.py
+chat_engine/cache/__init__.py
+chat_engine/cache/exact.py
 chat_engine/capabilities/__init__.py
 chat_engine/capabilities/ledger.py
 chat_engine/capabilities/probes.py
