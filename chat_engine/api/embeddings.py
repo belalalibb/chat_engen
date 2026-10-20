@@ -19,7 +19,7 @@ from core.contracts.errors import ErrorCode
 from core.contracts.model_policy import ExplicitModelPolicy, FallbackScope
 from core.contracts.provider import ProviderOperation
 from core.contracts.routing import RoutingRequest
-from core.routing.router import NoEligibleCandidates
+from core.routing.errors import NoEligibleCandidates
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import Field
@@ -31,6 +31,7 @@ from chat_engine.api.errors import (
     error_response,
     execution_failure_detail,
 )
+from chat_engine.api.execute import last_provider_error
 from chat_engine.auth.context import extra_scopes
 from chat_engine.composition.runtime import Runtime
 
@@ -199,7 +200,7 @@ def build_router(rt: Runtime) -> APIRouter:
                 metadata={"items": len(inputs)},
             )
         if not ok or resp is None:
-            err = resp.error if resp else None
+            err = resp.error if resp else last_provider_error(report)
             detail = execution_failure_detail(str(report.execution.id), err, stage=None)
             from chat_engine.api.errors import HTTP_STATUS_BY_CODE
 
