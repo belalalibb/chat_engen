@@ -13,6 +13,7 @@ from chat_engine import UPSTREAM_SHA, __version__
 from chat_engine.api import (
     admin_capabilities,
     admin_providers,
+    anthropic_compat,
     apps,
     auth,
     catalog,
@@ -97,7 +98,11 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
     if "chat" in runtime.extensions:
         app.include_router(conversations.build_router(runtime))
         if (environ or {}).get("CE_FEATURE_OPENAI_COMPAT", "1") != "0":
-            app.include_router(openai_compat.build_router(runtime))
+            oai_router = openai_compat.build_router(runtime)
+            app.include_router(oai_router)
+            # CE-24/I: Anthropic Messages dialect — a mapper over the same handler
+            if (environ or {}).get("CE_FEATURE_ANTHROPIC_COMPAT", "1") != "0":
+                app.include_router(anthropic_compat.build_router(runtime, oai_router))
     if "skills" in runtime.extensions and "chat" in runtime.extensions:
         app.include_router(skills.build_router(runtime))
     if (
