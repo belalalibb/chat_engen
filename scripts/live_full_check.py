@@ -775,7 +775,7 @@ if gpid:
             )
             C.delete(f"/v1/conversations/{dr['conversation_id']}")
         else:
-            cat = (dr.get("error", {}).get("details") or {}).get("category", "")
+            cat = (dr.get("error", {}).get("details") or {}).get("provider_error_category", "")
             row(
                 "UPSTREAM" if cat in UPSTREAM_CATS or rr.status_code in {429, 502, 503} else "FAIL",
                 "E pii_redact pre (provider answer)",
@@ -857,9 +857,12 @@ if em.get("data"):
             f"dims={de.get('dimensions')}",
         )
     else:
-        cat = (de.get("error", {}).get("details") or {}).get("category", "")
+        cat = (de.get("error", {}).get("details") or {}).get("provider_error_category", "")
         row(
-            "UPSTREAM" if cat in UPSTREAM_CATS else "FAIL",
+            "UPSTREAM"
+            if cat in UPSTREAM_CATS
+            or (re_.status_code == 502 and de.get("error", {}).get("code") == "execution_failed")
+            else "FAIL",
             "H POST /v1/embeddings",
             f"http={re_.status_code} {de.get('error', {}).get('code')} {de.get('error', {}).get('message', '')[:50]}",
         )
