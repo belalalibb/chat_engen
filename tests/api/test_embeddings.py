@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from chat_engine.composition.runtime import LocalEchoAdapter, Runtime, echo_manifest
 from core.contracts.domain import AuthType, Provider, ProviderStatus
 from core.contracts.provider import (
     ProviderError,
@@ -14,8 +15,6 @@ from core.contracts.provider import (
     ProviderGenerateResponse,
     ProviderOperation,
 )
-
-from chat_engine.composition.runtime import LocalEchoAdapter, Runtime, echo_manifest
 
 
 class EmbedAdapter(LocalEchoAdapter):
@@ -100,7 +99,9 @@ def test_embeddings_roundtrip_usage_and_isolation(client, runtime: Runtime) -> N
     assert body["provider_key"] == "emb" and body["usage"]["prompt_tokens"] == 14
     assert ad.payloads == [{"inputs": ["hello", "world"]}]  # gateway CONTRACT §5 shape
     # single string input
-    assert client.post("/v1/embeddings", json={"model": "voyage-3", "input": "one"}).status_code == 200
+    assert (
+        client.post("/v1/embeddings", json={"model": "voyage-3", "input": "one"}).status_code == 200
+    )
     # usage recorded on its own surface with litellm pricing for voyage-*
     recs = client.get("/v1/usage/records", params={"limit": 100}).json()["records"]
     emb = [x for x in recs if x["surface"] == "embeddings"]
@@ -111,7 +112,9 @@ def test_embeddings_roundtrip_usage_and_isolation(client, runtime: Runtime) -> N
     assert chat.status_code in (503, 422), chat.text
     # validation
     assert client.post("/v1/embeddings", json={"model": "voyage-3", "input": []}).status_code == 422
-    assert client.post("/v1/embeddings", json={"model": "voyage-3", "input": [""]}).status_code == 422
+    assert (
+        client.post("/v1/embeddings", json={"model": "voyage-3", "input": [""]}).status_code == 422
+    )
     bad_fmt = {"model": "voyage-3", "input": "x", "encoding_format": "base64"}
     assert client.post("/v1/embeddings", json=bad_fmt).status_code == 422
     nf = client.post("/v1/embeddings", json={"model": "nope-embed", "input": "x"})
