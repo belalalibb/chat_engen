@@ -51,6 +51,9 @@ class AnthropicRequest(ContractModel):
     provider: BoundedStr | None = None
     required_capabilities: list[BoundedStr] = Field(default_factory=list)
     skills: list[BoundedStr] | None = None
+    stream_fallback: BoundedStr | None = (
+        None  # "buffer" for sync-only providers (see openai_compat)
+    )
 
 
 _ERR_TYPE_BY_STATUS = {
@@ -171,6 +174,7 @@ def to_openai_request(body: AnthropicRequest) -> ChatCompletionRequest:
         provider=body.provider,
         required_capabilities=list(body.required_capabilities),
         skills=body.skills,
+        stream_fallback=body.stream_fallback,
         stream_options={"include_usage": True} if body.stream else None,
     )
 

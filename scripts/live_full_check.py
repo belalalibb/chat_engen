@@ -385,6 +385,36 @@ ok(
     r.status_code == 200 and chunks and chunks[-1].strip().endswith("[DONE]"),
     f"chunks={len(chunks)} http={r.status_code}",
 )
+with C.stream(
+    "POST",
+    "/v1/chat/completions",
+    json={
+        "model": live_model,
+        "messages": [{"role": "user", "content": "Say OK"}],
+        "stream": True,
+        "stream_fallback": "buffer",
+    },
+    timeout=150,
+) as r:
+    objs = []
+    for ln in r.iter_lines():
+        if ln.startswith("data:") and "[DONE]" not in ln:
+            with contextlib.suppress(Exception):
+                objs.append(json.loads(ln[5:]))
+fin = [o["choices"][0].get("finish_reason") for o in objs if o.get("choices")]
+row(
+    "OK"
+    if r.status_code == 200 and fin and fin[-1] == "stop"
+    else (
+        "UPSTREAM"
+        if fin
+        and fin[-1] == "error"
+        and (objs[-1].get("error") or {}).get("code") != "unsupported_capability"
+        else "FAIL"
+    ),
+    "POST /v1/chat/completions (stream, stream_fallback=buffer)",
+    f"finish={fin[-1] if fin else None} code={(objs[-1].get('error') or {}).get('code') if objs else None}",
+)
 
 # --- 7 /v1/execute (upstream-compatible) -----------------------------------------------------
 re_ = C.post(
@@ -818,7 +848,7 @@ ok(
 )
 if em.get("data"):
     emodel = em["data"][0]["id"]
-    re_ = C.post("/v1/embeddings", json={"model": emodel, "inputs": ["hello world"]})
+    re_ = C.post("/v1/embeddings", json={"model": emodel, "input": ["hello world"]})
     de = j(re_)
     if re_.status_code == 200:
         ok(
@@ -835,7 +865,7 @@ if em.get("data"):
         )
 ok(
     "H embeddings extra field -> 422",
-    C.post("/v1/embeddings", json={"model": "x", "inputs": ["a"], "bogus": 1}).status_code == 422,
+    C.post("/v1/embeddings", json={"model": "x", "input": ["a"], "bogus": 1}).status_code == 422,
 )
 # F cache
 cs = j(C.get("/v1/admin/cache"))
@@ -884,15 +914,19 @@ if live_model:
             "model": live_model,
             "max_tokens": 32,
             "stream": True,
+            "stream_fallback": "buffer",
             "messages": [{"role": "user", "content": "Say OK"}],
         },
     )
     types = [e.get("type") for e in evs_a]
     if types and types[0] != "_http":
         ok(
-            "I /v1/messages stream (message_start..message_stop)",
-            "message_start" in types and "message_stop" in types,
-            str(types[:4]),
+            "I /v1/messages stream buffer (start..text_delta..stop, no error)",
+            "message_start" in types
+            and "message_stop" in types
+            and "error" not in types
+            and "content_block_delta" in types,
+            str(types[:5]),
         )
     else:
         row(

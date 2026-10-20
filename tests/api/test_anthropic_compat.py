@@ -133,3 +133,25 @@ def test_messages_stream_events(client, runtime) -> None:
     assert any(
         d.get("type") == "message_delta" and d["delta"]["stop_reason"] == "end_turn" for d in deltas
     )
+
+
+def test_messages_stream_fallback_buffer_for_sync_only_provider(client, runtime) -> None:
+    """CE-24/I: ``stream_fallback:"buffer"`` reaches the streaming service through the dialect,
+    so gateway (sync-only) providers produce a real text_delta instead of an error event."""
+    add_scripted(runtime, "asp2", ["a-sync"], {"a-sync": "buffered via anthropic"})
+    r = client.post(
+        "/v1/messages",
+        json={
+            "model": "a-sync",
+            "max_tokens": 32,
+            "stream": True,
+            "stream_fallback": "buffer",
+            "messages": [{"role": "user", "content": "hi"}],
+        },
+    )
+    assert r.status_code == 200
+    events = [json.loads(ln[6:]) for ln in r.text.splitlines() if ln.startswith("data: ")]
+    types = [e["type"] for e in events]
+    assert "error" not in types and types[0] == "message_start" and types[-1] == "message_stop"
+    text = "".join(e["delta"]["text"] for e in events if e["type"] == "content_block_delta")
+    assert text == "buffered via anthropic"

@@ -73,6 +73,9 @@ class ChatCompletionRequest(ContractModel):
     required_capabilities: list[BoundedStr] = Field(default_factory=list)
     skills: list[BoundedStr] | None = None
     conversation_id: BoundedStr | None = None
+    # CE-24: "buffer" = one synthesized burst for sync-only (gateway) providers, same as
+    # /v1/chat/stream. Default None keeps the honest finish_reason:"error" behaviour.
+    stream_fallback: BoundedStr | None = None
 
 
 # --- OpenAI error envelope -----------------------------------------------------------------
@@ -269,7 +272,9 @@ def build_router(rt: Runtime) -> APIRouter:
             async def gen() -> AsyncIterator[str]:
                 yield chunk(completion_id, body.model, {"role": "assistant", "content": ""}, None)
                 usage: JsonObject = {}
-                async for ev in svc.run(decision=decision, payload=payload):
+                async for ev in svc.run(
+                    decision=decision, payload=payload, stream_fallback=body.stream_fallback
+                ):
                     t = ev.type
                     if t is StreamEventType.MESSAGE_DELTA:
                         yield chunk(completion_id, body.model, {"content": ev.data["delta"]}, None)

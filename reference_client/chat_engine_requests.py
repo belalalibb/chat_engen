@@ -958,8 +958,8 @@ def embeddings_models(c: Client) -> JSON:
 def embeddings(
     c: Client, inputs: list[str], *, model: str | None = None, provider: str | None = None
 ) -> JSON:
-    """POST /v1/embeddings {inputs:[...], model?, provider?} → {embeddings:[[...]], dimensions, usage}. Upstream key missing → 502 invalid_credential (honest)."""
-    body: JSON = {"inputs": inputs}
+    """POST /v1/embeddings {model, input:str|[...], provider?, dimensions?} (OpenAI shape) → {object:"list", data:[{embedding}], model, usage}. Upstream key missing → 502 invalid_credential (honest)."""
+    body: JSON = {"input": inputs}
     if model:
         body["model"] = model
     if provider:
@@ -1300,7 +1300,7 @@ def tour(c: Client, only: str | None = None) -> int:
             if em.get("data"):
                 try:
                     r = embeddings(c, ["hello"], model=em["data"][0]["id"])
-                    _p("embeddings (H)", {"dimensions": r.get("dimensions")})
+                    _p("embeddings (H)", {"n": len(r.get("data", [])), "model": r.get("model")})
                 except ChatEngineError as e:
                     _p(
                         "embeddings (H) upstream refusal (honest)",

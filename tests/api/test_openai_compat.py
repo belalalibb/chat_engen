@@ -205,3 +205,26 @@ def test_openapi_has_stability_tags(client) -> None:
     assert paths["/v1/admin/providers/managed"]["get"]["x-ce-stability"] == "admin"
     assert schema["info"]["x-ce-upstream-sha"].startswith("0a13556")
     assert all("x-ce-stability" in op for item in paths.values() for op in item.values())
+
+
+def test_stream_fallback_buffer_for_sync_only_provider(client, runtime: Runtime) -> None:
+    """CE-24: ``stream_fallback:"buffer"`` on /v1/chat/completions synthesizes one burst for a
+    sync-only provider (same contract as /v1/chat/stream); without it the honest answer stays
+    finish_reason:"error" / unsupported_capability."""
+    from tests.orchestration.test_strategies import add_scripted
+
+    add_scripted(runtime, "syncp", ["sync-m"], {"sync-m": "buffered answer"})
+    body = {
+        "model": "sync-m",
+        "messages": [{"role": "user", "content": "hi"}],
+        "stream": True,
+    }
+    honest = _chunks(client.post("/v1/chat/completions", json=body))
+    assert honest[-1]["choices"][0]["finish_reason"] == "error"
+    assert honest[-1]["error"]["code"] == "unsupported_capability"
+    chunks = _chunks(
+        client.post("/v1/chat/completions", json={**body, "stream_fallback": "buffer"})
+    )
+    text = "".join(c["choices"][0]["delta"].get("content") or "" for c in chunks)
+    assert text == "buffered answer"
+    assert chunks[-1]["choices"][0]["finish_reason"] == "stop"
