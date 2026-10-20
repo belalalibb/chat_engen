@@ -10,6 +10,7 @@ export const icons = {
   providers: wrap(svg`<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>`),
   capabilities: wrap(svg`<path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-2.7L7 19l1-6-4-4 5.5-.5z"/>`),
   admission: wrap(svg`<path d="M12 3l8 3v6c0 4.5-3.4 7.8-8 9-4.6-1.2-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>`),
+  keys: wrap(svg`<circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15 12v2"/>`),
   skills: wrap(svg`<path d="M9 3h6l1 4 3 1.5-1 4 1 4L16 18l-1 3H9l-1-3-3-1.5 1-4-1-4L8 7z"/>`),
   plus: wrap(svg`<path d="M12 5v14M5 12h14"/>`),
   send: wrap(svg`<path d="M4 12L20 4l-4 16-4-7z"/>`),

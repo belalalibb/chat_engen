@@ -9,12 +9,13 @@ import "./ce-catalog";
 import "./ce-providers";
 import "./ce-capabilities";
 import "./ce-admission";
+import "./ce-keys";
 import "./ce-skills";
 
-type Screen = "chat" | "conversations" | "catalog" | "providers" | "capabilities" | "admission" | "skills";
-const SCREENS: Screen[] = ["chat", "conversations", "catalog", "providers", "capabilities", "admission", "skills"];
+type Screen = "chat" | "conversations" | "catalog" | "providers" | "capabilities" | "admission" | "skills" | "keys";
+const SCREENS: Screen[] = ["chat", "conversations", "catalog", "providers", "capabilities", "admission", "skills", "keys"];
 const WORKSPACE: Screen[] = ["chat", "conversations"];
-const ADMIN: Screen[] = ["catalog", "providers", "capabilities", "admission", "skills"];
+const ADMIN: Screen[] = ["catalog", "providers", "capabilities", "admission", "skills", "keys"];
 
 @customElement("ce-app")
 export class CeApp extends CeElement {
@@ -157,6 +158,7 @@ export class CeApp extends CeElement {
         ${this.screen === "capabilities" ? html`<ce-capabilities></ce-capabilities>` : nothing}
         ${this.screen === "admission" ? html`<ce-admission></ce-admission>` : nothing}
         ${this.screen === "skills" ? html`<ce-skills></ce-skills>` : nothing}
+        ${this.screen === "keys" ? html`<ce-keys></ce-keys>` : nothing}
       </main>
     `;
   }

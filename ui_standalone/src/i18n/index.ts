@@ -4,7 +4,8 @@ const dict = {
   ar: {
     app_title: "chat_engine",
     nav_chat: "المحادثة", nav_conversations: "المحادثات والمشاريع", nav_catalog: "الكتالوج",
-    nav_providers: "المزوّدون", nav_capabilities: "القدرات", nav_admission: "القبول والصحة", nav_skills: "المهارات",
+    nav_providers: "المزوّدون", nav_capabilities: "القدرات", nav_admission: "القبول والصحة", nav_skills: "المهارات", nav_keys: "مفاتيح API",
+    keys: "المفاتيح", master_key: "المفتاح الرئيسي (Master key)", keys_off_hint: "المفاتيح الافتراضية معطّلة. شغّل الخادم مع CE_AUTH_MODE=optional أو required (و CE_MASTER_KEY اختياري) لإدارة المفاتيح.", keys_master_hint: "يُحفظ في sessionStorage لهذه الجلسة فقط ولا يُرسل إلا كـ Authorization: Bearer.", key_shown_once: "يُعرض مرة واحدة فقط — انسخه الآن", spend: "الإنفاق", enable: "تفعيل", disable: "تعطيل",
     send: "إرسال", cancel: "إلغاء", resume: "استئناف", new_chat: "محادثة جديدة", model: "النموذج", auto: "تلقائي",
     strategy: "الاستراتيجية", strategy_single: "نموذج واحد", strategy_handoff: "تسليم تسلسلي", strategy_judge: "حَكَم يختار", strategy_cost: "طبقات الكلفة",
     placeholder: "اكتب رسالتك…", streaming: "جارٍ البث…", partial: "جزئي", failed: "فشل", resumable: "قابل للاستئناف",
@@ -24,7 +25,8 @@ const dict = {
   en: {
     app_title: "chat_engine",
     nav_chat: "Chat", nav_conversations: "Conversations & Projects", nav_catalog: "Catalog",
-    nav_providers: "Providers", nav_capabilities: "Capabilities", nav_admission: "Admission & Health", nav_skills: "Skills",
+    nav_providers: "Providers", nav_capabilities: "Capabilities", nav_admission: "Admission & Health", nav_skills: "Skills", nav_keys: "API Keys",
+    keys: "Keys", master_key: "Master key", keys_off_hint: "Virtual keys are off. Start the server with CE_AUTH_MODE=optional or required (CE_MASTER_KEY optional) to manage keys.", keys_master_hint: "Kept in sessionStorage for this tab only; sent as Authorization: Bearer.", key_shown_once: "Shown once only — copy it now", spend: "Spend", enable: "Enable", disable: "Disable",
     send: "Send", cancel: "Cancel", resume: "Resume", new_chat: "New chat", model: "Model", auto: "Auto",
     strategy: "Strategy", strategy_single: "Single model", strategy_handoff: "Sequential handoff", strategy_judge: "Judge select", strategy_cost: "Cost tiered",
     placeholder: "Type your message…", streaming: "Streaming…", partial: "partial", failed: "failed", resumable: "resumable",
