@@ -60,7 +60,10 @@ def bind_real_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> list[st
         return str(rt.secrets.resolve(tenant, credential_ref))
 
     for provider_key, key, manifest, model_names, factory in _specs(env):
-        ref = rt.secrets.store(tenant, key)
+        # CE-24/K: comma-separated keys ⇒ rotation pool (first one active)
+        keys = [k.strip() for k in key.split(",") if k.strip()] or [key]
+        refs = [rt.secrets.store(tenant, k) for k in keys]
+        ref = refs[0]
         adapter = factory(manifest, secret_resolver=_resolver, health_credential_ref=ref)
         provider = Provider(
             id=uuid4(),
@@ -77,5 +80,7 @@ def bind_real_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> list[st
             credential_ref=ref,
             model_names=list(model_names),
         )
+        if len(refs) > 1 and (pool := rt.extensions.get("credential_pool")) is not None:
+            pool.register(provider.id, provider_key, refs)
         bound.append(provider_key)
     return bound

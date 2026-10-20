@@ -193,6 +193,24 @@ def build_router(rt: Runtime) -> APIRouter:
         except Exception as exc:
             return _lifecycle_error(exc)
 
+    @router.get("/v1/admin/providers/{provider_key}/credentials")
+    async def provider_credentials(provider_key: str) -> Response:
+        """CE-24/K: credential pool state (labels only — never the secrets)."""
+        pool = rt.extensions.get("credential_pool")
+        if provider_key not in rt.provider_keys:
+            return ce_error_response(
+                ChatEngineErrorCode.NOT_FOUND,
+                "Provider not found.",
+                details={"provider_key": provider_key},
+            )
+        if pool is not None:
+            pool.unpark_expired()
+        return JSONResponse(
+            content=pool.describe(provider_key)
+            if pool is not None
+            else {"provider_key": provider_key, "accounts": [], "active": None, "rotations": 0}
+        )
+
     @router.get("/v1/admin/providers/{provider_key}")
     async def get_managed(provider_key: str) -> Response:
         try:

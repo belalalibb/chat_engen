@@ -117,6 +117,31 @@ class AdmissionPort(Protocol):
     def snapshot(self) -> list[JsonObject]: ...
 
 
+def rotate_on_failure(rt: object, provider_key: str | None, report: object) -> str | None:
+    """CE-24/K: after a failed execution, ask the credential pool to rotate when the
+    category indicts the credential. Returns the (possibly remapped) breaker category:
+    ``credential_rotated`` when a healthy account took over (so the provider breaker does
+    not count a single bad key), otherwise the original ``failure_category``."""
+    cat = failure_category(report)
+    pool = getattr(rt, "extensions", {}).get("credential_pool") if rt is not None else None
+    if pool is None or cat is None:
+        return cat
+    nodes = getattr(report, "nodes", None) or []
+    node = nodes[-1] if nodes else None
+    if not provider_key:
+        # /v1/execute: resolve the provider that actually failed from the last attempt
+        attempts = getattr(node, "attempts", None) or []
+        index = getattr(rt, "extensions", {}).get("catalog_index")
+        if attempts and index is not None:
+            provider_key = index.provider_key(attempts[-1].candidate.provider_id)
+    if not provider_key:
+        return cat
+    err = getattr(getattr(node, "response", None), "error", None)
+    retry = getattr(err, "retry_after_ms", None) if err is not None else None
+    outcome = pool.on_failure(provider_key, cat, retry_after_ms=retry)
+    return "credential_rotated" if outcome == "credential_rotated" else cat
+
+
 def failure_category(report: object) -> str | None:
     """Provider error category of the last node of an ExecutionReport (None on success /
     unknown). Shared by every surface so the admission breaker sees the same signal."""

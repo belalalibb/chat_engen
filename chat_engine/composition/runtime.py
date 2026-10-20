@@ -454,6 +454,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         Limits(rpm=max(1, tenant_rpm), concurrency=max(1, tenant_conc), source="tenant_env"),
     )
     rt.extensions["idempotency"] = IdempotencyStore()
+    # CE-24/K: credential rotation pool (no-op for single-credential providers)
+    from chat_engine.credentials.pool import CredentialPool
+
+    rt.extensions["credential_pool"] = CredentialPool(rt.credential_refs)
     # CE-24/D: virtual keys (off by default — anonymous requests behave exactly as before)
     from chat_engine.auth import AuthMode, KeyService
 

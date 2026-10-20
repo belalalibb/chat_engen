@@ -47,7 +47,7 @@ from core.usage.errors import BudgetExceeded, EntitlementNotConfigured
 from fastapi import APIRouter, Header, Request, Response
 from fastapi.responses import JSONResponse
 
-from chat_engine.admission.port import failure_category
+from chat_engine.admission.port import rotate_on_failure
 from chat_engine.api.errors import error_response, execution_failure_detail
 from chat_engine.auth.context import extra_scopes
 from chat_engine.composition.runtime import Runtime
@@ -321,7 +321,7 @@ def build_router(rt: Runtime) -> APIRouter:
                 reservation,
                 tokens_actual=total if isinstance(total, int) else None,
                 success=report.execution.status is ExecutionStatus.SUCCEEDED,
-                category=failure_category(report),
+                category=rotate_on_failure(rt, None, report),
             )
         return report
 

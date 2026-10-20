@@ -10,8 +10,8 @@ from chat_engine.conversations.contracts import (
     ProjectsPage,
     ProjectUpdate,
     Turn,
-    TurnKind,
     TurnFeedback,
+    TurnKind,
     TurnsPage,
     TurnStatus,
 )
@@ -39,8 +39,8 @@ __all__ = [
     "ProjectUpdate",
     "ProjectsPage",
     "Turn",
+    "TurnFeedback",
     "TurnKind",
     "TurnStatus",
-    "TurnFeedback",
     "TurnsPage",
 ]

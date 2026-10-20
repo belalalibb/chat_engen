@@ -18,7 +18,7 @@ from core.contracts.routing import RoutingDecision, RoutingRequest
 from core.routing.errors import FallbackNotConfigured, NoEligibleCandidates
 from core.routing.router import UnsupportedPolicyType
 
-from chat_engine.admission.port import failure_category
+from chat_engine.admission.port import rotate_on_failure
 from chat_engine.auth.context import current_principal, extra_scopes
 from chat_engine.catalog import AliasUnconfirmed, CatalogService
 from chat_engine.conversations.contracts import (
@@ -31,9 +31,9 @@ from chat_engine.conversations.contracts import (
     ProjectCreate,
     ProjectUpdate,
     Turn,
+    TurnFeedback,
     TurnKind,
     TurnStatus,
-    TurnFeedback,
 )
 from chat_engine.conversations.store import ConversationStorePort, NotFound
 from chat_engine.conversations.summarizer import Summarizer
@@ -582,7 +582,7 @@ class ChatService:
                 reservation,
                 tokens_actual=total if isinstance(total, int) else None,
                 success=report.execution.status.value == "succeeded",
-                category=failure_category(report),
+                category=rotate_on_failure(self._rt, pk, report),
             )
         self._rt.executions.put(report)
         provider_key = pk

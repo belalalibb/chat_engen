@@ -28,7 +28,7 @@ import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from core.contracts.domain import AuthType, Provider, ProviderStatus
 from core.contracts.provider import ProviderCapabilities, ProviderOperation
@@ -97,8 +97,9 @@ def gateway_binding_from_env(env: Mapping[str, str]) -> GatewayBinding | None:
         key, sep, token = pair.partition("=")
         key, token = key.strip(), token.strip()
         if not sep or not key or not token:
-            msg = f"{ENV_ROUTES} entries must be 'provider_key=route_token'"
+            msg = f"{ENV_ROUTES} entries must be 'provider_key=route_token[|route_token2…]'"
             raise ValueError(msg)
+        # CE-24/K: several route tokens for one provider, '|'-separated (rotation pool)
         routes[key] = token
     if not routes:
         msg = f"{ENV_BASE_URL} is set but {ENV_ROUTES} declares no routes"
@@ -174,10 +175,14 @@ def bind_gateway_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> Gate
         if provider_key in rt.provider_keys:
             report.skipped[provider_key] = "provider_key already registered"
             continue
-        token_ref = rt.secrets.store(tenant, token)
+        tokens = [t.strip() for t in token.split("|") if t.strip()]
+        token_refs = [rt.secrets.store(tenant, t) for t in tokens]
+        token_ref = token_refs[0]
+        provider_id = uuid4()
 
-        def _token(ref: str = token_ref) -> str:
-            return str(rt.secrets.resolve(tenant, ref))
+        def _token(pid: UUID = provider_id, first: str = token_ref) -> str:
+            # CE-24/K: read the ACTIVE ref so rotation applies to gateway routes too
+            return str(rt.secrets.resolve(tenant, rt.credential_refs.get(pid, first)))
 
         # Probe manifest: declare generate_text only until describe tells us more.
         probe = RemoteGatewayAdapter(
@@ -244,12 +249,12 @@ def bind_gateway_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> Gate
             credential_mode=CREDENTIAL_MODE_PLATFORM,
         )
         provider = Provider(
-            id=uuid4(),
+            id=provider_id,
             provider_key=provider_key,
             display_name=display_name,
             status=ProviderStatus.ACTIVE,
             auth_types=[AuthType.CUSTOM],
-            supports_account_pool=False,
+            supports_account_pool=len(token_refs) > 1,
         )
         rt.register_provider(
             provider=provider,
@@ -258,5 +263,9 @@ def bind_gateway_providers_from_env(rt: Runtime, env: Mapping[str, str]) -> Gate
             credential_ref=token_ref,
             model_names=models,
         )
+        if len(token_refs) > 1:
+            pool = rt.extensions.get("credential_pool")
+            if pool is not None:
+                pool.register(provider_id, provider_key, token_refs)
         report.bound.append(provider_key)
     return report

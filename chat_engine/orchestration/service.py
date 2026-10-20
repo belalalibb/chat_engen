@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderOperation
 
-from chat_engine.admission.port import failure_category
+from chat_engine.admission.port import rotate_on_failure
 from chat_engine.auth.context import extra_scopes
 from chat_engine.conversations.service import ChatError
 from chat_engine.orchestration.contracts import (
@@ -175,7 +175,7 @@ class Orchestrator:
                 reservation,
                 tokens_actual=total if isinstance(total, int) else None,
                 success=ok,
-                category=failure_category(report),
+                category=rotate_on_failure(self._rt, pk, report),
             )
         self._rt.executions.put(report)
         recorder = self._rt.extensions.get("usage_recorder")
