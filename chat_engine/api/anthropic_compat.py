@@ -67,7 +67,9 @@ _ERR_TYPE_BY_STATUS = {
 }
 
 
-def anthropic_error(status: int, message: str, *, details: JsonObject | None = None) -> JSONResponse:
+def anthropic_error(
+    status: int, message: str, *, details: JsonObject | None = None
+) -> JSONResponse:
     body: dict[str, Any] = {
         "type": "error",
         "error": {"type": _ERR_TYPE_BY_STATUS.get(status, "api_error"), "message": message},
