@@ -1,6 +1,6 @@
 {
   "_comment": "External endpoint for the chat_engine reference client. Edit base_url only. Override at runtime with CHAT_ENGINE_URL (env) or --base-url (CLI). Resolution order: CLI > env > this file.",
-  "base_url": "https://8080-izulgd16rp3d16lz8t4lb-2e1b9533.sandbox.novita.ai",
+  "base_url": "https://8080-i2ahh8x8qw2h7kc1y79dc-5185f4aa.sandbox.novita.ai",
   "timeout_s": 180,
   "stream_fallback": "buffer",
   "api_key": null,
