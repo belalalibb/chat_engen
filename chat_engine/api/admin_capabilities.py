@@ -112,6 +112,17 @@ def build_router(rt: Runtime) -> APIRouter:
             }
         )
 
+    @router.get("/v1/admin/cache")
+    async def cache_stats() -> Response:
+        """CE-24/F: exact-match cache state (enabled, ttl, entries, hits/misses)."""
+        cache = rt.extensions.get("response_cache")
+        return JSONResponse(content=cache.snapshot() if cache is not None else {"enabled": False})
+
+    @router.delete("/v1/admin/cache", status_code=200)
+    async def cache_clear() -> Response:
+        cache = rt.extensions.get("response_cache")
+        return JSONResponse(content={"cleared": cache.clear() if cache is not None else 0})
+
     @router.get("/v1/admin/routing/signals")
     async def routing_signals() -> Response:
         """CE-24/C: live latency / in-flight per provider (feeds optional reordering)."""

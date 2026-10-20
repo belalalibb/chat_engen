@@ -20,6 +20,7 @@ from core.routing.router import UnsupportedPolicyType
 
 from chat_engine.admission.port import rotate_on_failure
 from chat_engine.auth.context import current_principal, extra_scopes
+from chat_engine.cache import CacheEntry, cache_key, cacheable
 from chat_engine.catalog import AliasUnconfirmed, CatalogService
 from chat_engine.conversations.contracts import (
     ChatRequest,
@@ -539,6 +540,22 @@ class ChatService:
             self._rt.extensions["catalog_index"].provider_key(prep.decision.selected.provider_id)
             or "?"
         )
+        # CE-24/F: exact-match cache (off unless CE_CACHE=memory AND the request is
+        # deterministic). A hit short-circuits admission, execution and spend.
+        cache = self._rt.extensions.get("response_cache")
+        ckey: str | None = None
+        if cache is not None and getattr(cache, "enabled", False) and cacheable(req.generation):
+            selected_model = self._rt.models.get_by_id(prep.decision.selected.model_id).model_key
+            ckey = cache_key(
+                model_key=str(selected_model),
+                provider_key=req.provider,
+                messages=[dict(m) for m in prep.payload["messages"]],
+                generation=dict(req.generation),
+                tools=list(req.tools),
+            )
+            hit = cache.get(ckey)
+            if hit is not None:
+                return self._from_cache(req, prep, hit)
         if admission is not None:
             from chat_engine.admission import Denied
 
@@ -747,6 +764,19 @@ class ChatService:
                 canonical_id=canonical,
                 status="succeeded",
             )
+        if cache is not None and ckey is not None and not tool_calls:
+            cache.put(
+                ckey,
+                CacheEntry(
+                    content=content,
+                    provider_key=provider_key,
+                    model_key=model_key,
+                    usage=dict(usage),
+                    execution_id=str(report.execution.id),
+                    stored_at=utc_now(),
+                    extra={"canonical_id": canonical},
+                ),
+            )
         return ChatResponse(
             conversation_id=prep.conversation.id,
             turn=turn,
@@ -754,6 +784,65 @@ class ChatService:
             execution_id=str(report.execution.id),
             provider_key=provider_key,
             model_key=model_key,
+            usage=usage,
+            handoff={k: v for k, v in prep.compiled.items() if k != "messages"},
+        )
+
+    def _from_cache(self, req: ChatRequest, prep: Prepared, hit: Any) -> ChatResponse:
+        """CE-24/F: materialize a cached answer as a normal assistant turn, honestly marked
+        (``usage.cached``, ``metadata.cache_hit``); recorded with zero cost."""
+        usage: JsonObject = {**dict(hit.usage), "cached": True}
+        turn = Turn(
+            id=uuid4(),
+            conversation_id=prep.conversation.id,
+            seq=self._store.next_seq(prep.conversation.id),
+            role=CanonicalRole.ASSISTANT,
+            parts=[TextPart(text=hit.content)],
+            provider_key=hit.provider_key,
+            model_key=hit.model_key,
+            canonical_id=hit.extra.get("canonical_id") if isinstance(hit.extra, dict) else None,
+            usage=usage,
+            latency_ms=0,
+            handoff_packet_id=prep.packet.packet_id,
+            execution_id=hit.execution_id,
+            skills_used=prep.skills_used,
+            created_at=utc_now(),
+            metadata={"cache_hit": True, "cached_execution_id": hit.execution_id},
+        )
+        self._store.append_turn(turn)
+        self._store.put_conversation(
+            prep.conversation.model_copy(
+                update={
+                    "turn_count": prep.conversation.turn_count + 2,
+                    "updated_at": utc_now(),
+                    "title": prep.conversation.title
+                    if prep.conversation.turn_count
+                    else req.message[:60],
+                }
+            )
+        )
+        recorder = self._rt.extensions.get("usage_recorder")
+        if recorder is not None:
+            recorder.record(
+                request_id=f"cache:{turn.id}",
+                tenant_id=self._rt.tenant_id,
+                surface="chat",
+                status="cached",
+                provider_key=hit.provider_key,
+                model_key=hit.model_key,
+                usage={"total_tokens": 0, "cached": True},
+                latency_ms=0,
+                conversation_id=prep.conversation.id,
+                turn_id=turn.id,
+                metadata={"cache_hit": True, "cached_execution_id": hit.execution_id},
+            )
+        return ChatResponse(
+            conversation_id=prep.conversation.id,
+            turn=turn,
+            user_turn_id=prep.user_turn.id,
+            execution_id=hit.execution_id,
+            provider_key=hit.provider_key,
+            model_key=hit.model_key,
             usage=usage,
             handoff={k: v for k, v in prep.compiled.items() if k != "messages"},
         )

@@ -511,6 +511,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         enabled=env.get("CE_ROUTING_LIVE_SIGNALS", "0") == "1"
     )
     rt.extensions["usage_recorder"].live_signals = rt.extensions["live_signals"]
+    # CE-24/F: exact-match response cache (CE_CACHE=off by default)
+    from chat_engine.cache import ExactMatchCache
+
+    rt.extensions["response_cache"] = ExactMatchCache.from_env(env)
     rt.extensions["tracer"] = build_tracer(env)
     # CE-14: App Factory (artifacts only; approval gate)
     from pathlib import Path as _Path

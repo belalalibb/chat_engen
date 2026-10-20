@@ -74,7 +74,9 @@ class CacheEntry:
 
 
 class ExactMatchCache:
-    def __init__(self, *, enabled: bool = False, ttl_s: int = DEFAULT_TTL_S, max_entries: int = DEFAULT_MAX):
+    def __init__(
+        self, *, enabled: bool = False, ttl_s: int = DEFAULT_TTL_S, max_entries: int = DEFAULT_MAX
+    ):
         self.enabled = enabled
         self.ttl = timedelta(seconds=max(1, ttl_s))
         self.max_entries = max(1, max_entries)
@@ -138,4 +140,11 @@ class ExactMatchCache:
         }
 
 
-__all__ = ["DEFAULT_MAX", "DEFAULT_TTL_S", "CacheEntry", "ExactMatchCache", "cache_key", "cacheable"]
+__all__ = [
+    "DEFAULT_MAX",
+    "DEFAULT_TTL_S",
+    "CacheEntry",
+    "ExactMatchCache",
+    "cache_key",
+    "cacheable",
+]
