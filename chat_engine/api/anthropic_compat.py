@@ -220,9 +220,11 @@ def to_anthropic_message(oai: JsonObject, *, model: str) -> JsonObject:
         "stop_sequence": None,
         "usage": _usage(oai.get("usage")),
     }
-    for k in ("execution_id", "provider_key", "model_key", "latency_ms"):
-        if k in oai:
-            out[k] = oai[k]
+    extra = oai.get("chat_engine")
+    if isinstance(extra, dict):
+        for k in ("execution_id", "provider_key", "model_key", "latency_ms"):
+            if k in extra:
+                out[k] = extra[k]
     return out
 
 
@@ -258,7 +260,7 @@ async def to_anthropic_stream(oai_lines: AsyncIterator[bytes], *, model: str) ->
     error: JsonObject | None = None
     buf = b""
     async for raw in oai_lines:
-        buf += raw
+        buf += raw if isinstance(raw, bytes) else str(raw).encode("utf-8")
         while b"\n\n" in buf:
             frame, buf = buf.split(b"\n\n", 1)
             for line in frame.decode("utf-8", "replace").splitlines():

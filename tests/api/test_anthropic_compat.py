@@ -67,8 +67,7 @@ def test_response_translation() -> None:
             }
         ],
         "usage": {"prompt_tokens": 3, "completion_tokens": 5},
-        "execution_id": "e1",
-        "provider_key": "p",
+        "chat_engine": {"execution_id": "e1", "provider_key": "p"},
     }
     out = to_anthropic_message(oai, model="m")
     assert out["type"] == "message" and out["stop_reason"] == "tool_use"
