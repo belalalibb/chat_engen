@@ -1,0 +1,123 @@
+endpoint: http://localhost:8080  (config: /home/user/webapp/reference_client/config/endpoint.json)
+
+## healthz
+{"status": "alive", "version": "0.1.3", "providers": ["local_echo", "genspark_llm", "gw_groq", "gw_syntx", "gw_deepai", "gw_freebuff", "gw_youmind", "gw_ivycraft", "gw_llamacoder", "gw_upstage", "gw_voyage", "gw_runpod_console", "gw_parallel", "gw_notegpt", "gw_overchat", "gw_tinyfish"], "gateway": {"bound": ["gw_groq" …
+
+## openai_models (first 5)
+[{"id": "allam-2-7b", "object": "model", "created": 0, "owned_by": "gw_groq"}, {"id": "auto", "object": "model", "created": 0, "owned_by": "gw_upstage"}, {"id": "browser-agent", "object": "model", "created": 0, "owned_by": "gw_tinyfish"}, {"id": "claude-4.5-haiku", "object": "model", "created": 0, "owned_by": "gw_overc …
+
+## catalog_models q=deepseek
+{"items": [{"canonical": {"canonical_id": "deepseek-flash", "display_name": "deepseek-flash", "modalities_in": ["text"], "modalities_out": [], "capabilities": ["reasoning"], "source": "system"}, "model_keys": ["deepseek-flash"], "configured_provider_count": 1, "eligible_provider_count": 1, "proposed_alias_count": 0, "p …
+
+## admission (first 2 scopes)
+[{"scope": "provider:genspark_llm", "limits": {"rpm": 60, "concurrency": 4, "source": "conservative_default"}, "rpm_used": 0, "tpm_used": 0, "rpd_used": null, "tpd_used": null, "in_flight": 0, "budget_used": 5.0, "breaker_open": false, "breaker_reason": null}, {"scope": "provider:gw_deepai", "limits": {"rpm": 60, "conc …
+
+## chat AUTO
+{"answered_by": "gw_overchat/claude-4.5-haiku", "text": "القاهرة"}
+
+## chat follow-up (memory)
+9500000
+
+## chat JSON format
+{"city": "Paris", "country": "France"}
+
+## chat explicit gw_deepai/deepseek-v3.2
+OK
+
+## stream
+{"stream_id": "43d92d4e-9718-4635-b9dd-3e470f9dd52d", "terminal": "completed", "text": "البحر واسع ومليء بالأسرار، يهمس لنا كل يوم بلطف."}
+
+## stream_summary
+{"stream_id": "43d92d4e-9718-4635-b9dd-3e470f9dd52d", "provider_key": "gw_overchat", "model_key": "claude-4.5-haiku", "status": "completed", "delivered_seq": 5, "text": "البحر واسع ومليء بالأسرار، يهمس لنا كل يوم بلطف.", "tool_calls": [], "usage": {"input_tokens": 42, "output_tokens": 12, "units": 1}, "synthesized": tr …
+
+## strategy cost_tiered
+{"answered_by": "gw_overchat/claude-4.5-haiku", "selected_step": 2, "steps": 2, "text": "واجهة برمجة التطبيقات (API) هي مجموعة القواعد والواجهات التي تسمح لتطبيق بالتواص"}
+
+## strategy judge_select
+{"answered_by": "gw_deepai/deepseek-v3.2", "selected_step": 1, "steps": 2, "text": "اسمًا مميزًا لمنتج قهوة يمكنك اعتماده هو \"قهوة أورورا\"، حيث يشير الاسم إلى الفكر"}
+
+## strategy sequential_handoff
+{"answered_by": "gw_deepai/deepseek-v4-flash", "selected_step": 2, "steps": 2, "text": "شاي هو من أكثر المشروبات شعبية في جميع أنحاء العالم، ويُستخدم على نطاق واسع بسبب"}
+
+## project + chat in project
+{"project": "b665a83a-7cf9-457c-acc7-5ecf3d53f9f4", "conversation": "1e6e81ab-d4ea-407a-a9e2-79ede95cb072", "text": "أنا DeepSeek V4.1 Flash."}
+
+## turns
+[{"seq": 1, "role": "user", "status": "complete"}, {"seq": 2, "role": "assistant", "status": "complete"}]
+
+## list_conversations(project)
+1
+
+## skill applied (skills_used)
+{"skills_used": [{"id": "ref_skill_e07ff1", "skill_id": "ref_skill_e07ff1", "version": "1.0.0", "name": "Reference skill", "type": "instruction", "source": "project", "registry_id": "d9df7eb1-fa5f-4a2f-ab41-25239f73e940", "config": {}, "instructions": "Always end your answer with the word DONE.", "requires_tools": []}] …
+
+## agent_profile
+{"id": "c35be80a-a285-4e58-9be2-2377f51caf17", "skills": [{"skill_id": "ref_skill_e07ff1", "enabled": true, "config": {}}]}
+
+## chat_completions sync
+{"content": "I have your previous message. Please continue.", "chat_engine": {"execution_id": "7122a2da-9588-4cb2-8b7e-e16348273154", "provider_key": "gw_deepai", "model_key": "deepseek-v3.2", "handoff_packet_id": "306ee27b-c2bb-434e-8cc9-444dc2daa3de", "latency_ms": 801}}
+
+## chat_completions stream (gw_* is sync-only ⇒ finish_reason 'error' is the honest answer here)
+{"chunks": 2, "last_finish": "error"}
+
+## execute (upstream refused — expected when the auto pick has no quota)
+403 entitlement_exceeded: upstream quota exceeded {'execution_id': 'edad9181-33b7-4ba8-93c5-66e065d22ebe', 'provider_error_category': 'quota_exceeded', 'rate_limit_type': 'quota'}
+
+## admin_providers (keys)
+["draft_e118f8", "genspark_llm", "gw_deepai", "gw_freebuff", "gw_groq", "gw_ivycraft", "gw_llamacoder", "gw_notegpt", "gw_overchat", "gw_parallel", "gw_runpod_console", "gw_syntx", "gw_tinyfish", "gw_upstage", "gw_voyage", "gw_youmind"]
+
+## admin_provider_draft → :validate (unreachable base_url, honest)
+{"provider_key": "ref_draft_0659b", "revision": 3, "config_hash": "63a433b93685fb04", "state": "failed", "changed_by": "admin", "changed_at": "2026-10-20T16:13:34.796548Z", "reason": "no credential_ref configured", "config": {"provider_key": "ref_draft_0659b", "display_name": "Reference draft", "kind": "openai_compatib …
+
+## create_credential (no secret echoed)
+{"id": "b686c5e1-97c1-44ef-933c-18ccc51c8e82", "credential_ref": "credref_tW22zzChrmEA8TntU4WfpsL6WAfYHBeY", "fingerprint": "2ff6ac1ce96d", "last4": "0000"}
+
+## usage_records (count)
+100
+
+## pricing sources (A)
+{"litellm_loaded": true, "litellm_fetched_at": "2026-10-20T13:40:58+00:00"}
+
+## breaker policy (B)
+{"default": {"fails": 5, "sample": 10, "open_seconds": 30.0}, "categories": {}}
+
+## auth_mode (D) — whoami/keys are mounted only when != off
+off
+
+## guardrail block (E)
+403 capability_denied guardrail=keyword_block
+
+## guardrail unknown type → 422 (E)
+422 validation_error
+
+## routing signals (C)
+{"enabled": false, "providers": [{"provider_key": "genspark_llm", "ewma_ms": null, "effective_ms": null, "samples": 0, "in_flight": 0, "errors": 5, "last_at": "2026-10-20T16:07:32.592713+00:00"}, {"provider_key": "gw_deepai", "ewma_ms": 862.6, "effective_ms": 862.6, "samples": 31, "in_flight": 0, "errors": 2, "last_at" …
+
+## provider credentials gw_deepai (K)
+{"provider_key": "gw_deepai", "accounts": [], "active": null, "rotations": 0}
+
+## turn feedback (M)
+{"score": 1, "comment": null, "tags": ["helpful"], "at": "2026-10-20T16:13:34.880804+00:00"}
+
+## embeddings models (H)
+{"object": "list", "data": [{"id": "voyage-3", "object": "model", "owned_by": "gw_voyage", "provider_key": "gw_voyage"}, {"id": "voyage-3-lite", "object": "model", "owned_by": "gw_voyage", "provider_key": "gw_voyage"}, {"id": "voyage-multilingual-2", "object": "model", "owned_by": "gw_voyage", "provider_key": "gw_voyag …
+
+## embeddings (H) upstream refusal (honest)
+502 execution_failed: no active API key available in pool
+
+## cache stats (F)
+{"enabled": false, "ttl_s": 300, "max_entries": 1000, "entries": 0, "hits": 0, "misses": 0, "stores": 0, "evictions": 0}
+
+## anthropic /v1/messages (I)
+{"type": "message", "stop_reason": "end_turn", "text": "Continuing from where I left off, I had been analyzing the possible effects of increased ocean temperatures on marine ecosystems. To summarize, my previous findings suggested that a 2°C increase in ocean temperatures could lead to a 30% decline in coral reef healt …
+
+## 422 extra field
+422 validation_error: Request body failed contract validation.
+
+## 404 unknown conversation
+404 not_found: conversation not found.
+
+## 422 sequential_handoff <2 stages
+422 conflict: sequential_handoff needs strategy_options.stages with >= 2 models
+
+TOUR DONE failures=0
