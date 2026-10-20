@@ -38,6 +38,9 @@ from chat_engine.util.time import utc_now
 SNAPSHOT_PATH = (
     Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "models_dev_snapshot.json"
 )
+LITELLM_SNAPSHOT_PATH = (
+    Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "litellm_prices_snapshot.json"
+)
 _PROPOSAL_MIN_CONFIDENCE = 0.6
 
 
@@ -102,12 +105,14 @@ class CatalogService:
         signals: ResourceSignalBoard | None,
         *,
         snapshot_path: Path | None = SNAPSHOT_PATH,
+        litellm_path: Path | None = LITELLM_SNAPSHOT_PATH,
     ) -> None:
         self._index = index
         self._signals = signals
         self._canonical: dict[str, CanonicalModel] = {}
         self._aliases: dict[tuple[str, str | None], ModelAlias] = {}
         self._snapshot = self._load_snapshot(snapshot_path)
+        self._litellm = self._load_litellm(litellm_path)
         self._synced_marker: tuple[int, int, int, int] | None = None
         self.sync_identities()
 
@@ -139,9 +144,50 @@ class CatalogService:
         _SNAPSHOT_CACHE[key] = snap
         return snap
 
+    @staticmethod
+    def _load_litellm(path: Path | None) -> _Snapshot:
+        """CE-24/A: LiteLLM table (trimmed by scripts/import_litellm_catalog.py) mapped to the
+        same facts shape as models.dev so one proposal routine serves both sources."""
+        if path is None or not path.exists():
+            return _Snapshot(by_norm={}, loaded=False)
+        key = (str(path), path.stat().st_mtime_ns)
+        cached = _SNAPSHOT_CACHE.get(key)
+        if cached is not None:
+            return cached
+        by_norm: dict[str, list[tuple[str, dict[str, object]]]] = defaultdict(list)
+        doc = json.loads(path.read_text())
+        for mkey, m in (doc.get("models") or {}).items():
+            if m.get("mode") not in ("chat", "responses", "completion"):
+                continue  # embeddings etc. are not chat identities
+            pkey = str(m.get("litellm_provider") or "")
+            if not pkey:
+                continue
+            canonical_id = mkey if "/" in mkey else f"{pkey}/{mkey}"
+            modal_in = ["text", "image"] if m.get("supports_vision") else ["text"]
+            facts: dict[str, object] = {
+                "name": mkey.split("/")[-1],
+                "context": m.get("max_input_tokens"),
+                "output_limit": m.get("max_output_tokens"),
+                "input": modal_in,
+                "output": ["text"],
+                "reasoning": bool(m.get("supports_reasoning")),
+                "tool_call": bool(m.get("supports_function_calling")),
+                "structured_output": bool(m.get("supports_response_schema")),
+                "_provider": pkey,
+                "_source": "litellm",
+            }
+            by_norm[normalize_name(mkey)].append((canonical_id, facts))
+        snap = _Snapshot(by_norm=dict(by_norm), loaded=True)
+        _SNAPSHOT_CACHE[key] = snap
+        return snap
+
     @property
     def snapshot_loaded(self) -> bool:
         return self._snapshot.loaded
+
+    @property
+    def litellm_loaded(self) -> bool:
+        return self._litellm.loaded
 
     # -- identities ----------------------------------------------------------------------
 
@@ -186,12 +232,22 @@ class CatalogService:
         return added
 
     def _propose_from_snapshot(self, model_key: str) -> None:
-        if not self._snapshot.loaded:
-            return
+        """models.dev first, then LiteLLM (CE-24/A). Same canonical_id from both sources
+        keeps the models.dev row (setdefault) and a single proposal alias."""
         norm = normalize_name(model_key)
-        candidates = self._snapshot.by_norm.get(norm, [])
+        candidates: list[tuple[str, dict[str, object]]] = []
+        if self._snapshot.loaded:
+            candidates += self._snapshot.by_norm.get(norm, [])
+        if self._litellm.loaded:
+            candidates += self._litellm.by_norm.get(norm, [])
         seen: set[str] = set()
         for canonical_id, facts in candidates:
+            source = (
+                AliasSource.CATALOG_LITELLM
+                if facts.get("_source") == "litellm"
+                else AliasSource.CATALOG_MODELS_DEV
+            )
+            source_label = "litellm" if source is AliasSource.CATALOG_LITELLM else "models.dev"
             if canonical_id in seen or canonical_id == model_key:
                 continue
             seen.add(canonical_id)
@@ -219,7 +275,7 @@ class CatalogService:
                         if facts.get(c)
                     ],
                     release_date=_s(facts.get("release_date")),
-                    source=AliasSource.CATALOG_MODELS_DEV,
+                    source=source,
                     source_ref=str(facts.get("_provider")),
                 ),
             )
@@ -230,8 +286,10 @@ class CatalogService:
                     canonical_id=canonical_id,
                     decision=AliasDecision.PROPOSED,
                     confidence=confidence,
-                    source=AliasSource.CATALOG_MODELS_DEV,
-                    reason=f"name match ({norm}) in models.dev provider '{facts.get('_provider')}'",
+                    source=source,
+                    reason=(
+                        f"name match ({norm}) in {source_label} provider '{facts.get('_provider')}'"
+                    ),
                 )
 
     # -- alias admin -------------------------------------------------------------------------

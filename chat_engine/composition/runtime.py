@@ -462,10 +462,13 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.observability.logging import configure_logging
     from chat_engine.observability.otel import build_tracer
     from chat_engine.usage import PricingBook, UsageRecorder
+    from chat_engine.usage.pricing import LITELLM_SNAPSHOT as _LITELLM_SNAPSHOT
     from chat_engine.usage.pricing import SNAPSHOT as _PRICING_SNAPSHOT
 
     pricing = PricingBook(
-        lazy_snapshot=_PRICING_SNAPSHOT if env.get("CE_PRICING_SNAPSHOT", "1") != "0" else None
+        lazy_snapshot=_PRICING_SNAPSHOT if env.get("CE_PRICING_SNAPSHOT", "1") != "0" else None,
+        # CE-24/A: LiteLLM community table as a secondary (gap-filling) source
+        lazy_litellm=_LITELLM_SNAPSHOT if env.get("CE_PRICING_LITELLM", "1") != "0" else None,
     )
     rt.extensions["usage_recorder"] = UsageRecorder(
         pricing, enabled=env.get("CE_FEATURE_USAGE", "1") != "0"

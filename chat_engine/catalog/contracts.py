@@ -24,6 +24,7 @@ class AliasDecision(StrEnum):
 class AliasSource(StrEnum):
     MANUAL = "manual"
     CATALOG_MODELS_DEV = "catalog:models.dev"
+    CATALOG_LITELLM = "catalog:litellm"  # CE-24/A secondary source (proposals only)
     DISCOVERY = "discovery"
     SYSTEM = "system"  # the identity alias every model_key gets for itself
 

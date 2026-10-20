@@ -1,4 +1,9 @@
-"""PricingBook: models.dev snapshot (sourced, dated) + manual overrides. Never guesses."""
+"""PricingBook: models.dev snapshot (sourced, dated) + LiteLLM community table (secondary)
++ manual overrides. Never guesses.
+
+Precedence on lookup: manual > models.dev > litellm (CE-24/A). The LiteLLM file only
+fills (provider, model) pairs models.dev does not price — it never overrides them.
+"""
 
 from __future__ import annotations
 
@@ -9,20 +14,31 @@ from pathlib import Path
 from chat_engine.usage.contracts import PricingRecord, PricingUpsert, TokenCounts
 
 SNAPSHOT = Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "models_dev_snapshot.json"
+LITELLM_SNAPSHOT = (
+    Path(__file__).resolve().parents[2] / "compat" / "catalogs" / "litellm_prices_snapshot.json"
+)
 
 
 class PricingBook:
-    def __init__(self, *, lazy_snapshot: Path | None = None) -> None:
+    def __init__(
+        self, *, lazy_snapshot: Path | None = None, lazy_litellm: Path | None = None
+    ) -> None:
         self._by_exact: dict[tuple[str, str], PricingRecord] = {}  # (provider_key, model_key)
         self._by_model: dict[str, PricingRecord] = {}  # model_key → any-provider price
         self.snapshot_loaded = False
         self.snapshot_fetched_at: str | None = None
+        self.litellm_loaded = False
+        self.litellm_fetched_at: str | None = None
         self._lazy = lazy_snapshot  # parsed on first lookup/records(), not at boot
+        self._lazy_litellm = lazy_litellm
 
     def _ensure(self) -> None:
         if self._lazy is not None:
             path, self._lazy = self._lazy, None
             self.load_models_dev(path)
+        if self._lazy_litellm is not None:
+            path, self._lazy_litellm = self._lazy_litellm, None
+            self.load_litellm(path)
 
     # -- loading ------------------------------------------------------------------------------
 
@@ -63,6 +79,51 @@ class PricingBook:
                 n += 1
         self.snapshot_loaded = n > 0
         self.snapshot_fetched_at = fetched or None
+        return n
+
+    def load_litellm(self, path: Path = LITELLM_SNAPSHOT) -> int:
+        """Load the trimmed LiteLLM table written by ``scripts/import_litellm_catalog.py``
+        (already USD per 1M). Secondary source: never overwrites an existing record.
+
+        Keys there look like ``gpt-4o`` or ``azure_ai/deepseek-v3``; ``litellm_provider``
+        carries the vendor. We register (litellm_provider, tail) exactly and the full key +
+        tail as any-provider fallbacks, so ``lookup("gw_deepai", "deepseek-v3.2")`` resolves."""
+        if not path.is_file():
+            return 0
+        data = json.loads(path.read_text(encoding="utf-8"))
+        fetched = str(data.get("fetched_at") or "")
+        try:
+            verified_at = datetime.fromisoformat(fetched.replace("Z", "+00:00"))
+        except ValueError:
+            verified_at = datetime.now(UTC)
+        n = 0
+        for key, m in (data.get("models") or {}).items():
+            ci, co = m.get("input_cost_per_token"), m.get("output_cost_per_token")
+            if not isinstance(ci, int | float) or not isinstance(co, int | float):
+                continue
+            pkey = str(m.get("litellm_provider") or "")
+            if not pkey:
+                continue
+            cc = m.get("cache_read_input_token_cost")
+            tail = str(key).split("/")[-1]
+            rec = PricingRecord(
+                ref=f"litellm:{key}@{verified_at.date().isoformat()}",
+                provider_key=pkey,
+                model_key=str(key),
+                input_per_1m=float(ci),
+                output_per_1m=float(co),
+                cached_input_per_1m=float(cc) if isinstance(cc, int | float) else None,
+                source="litellm",
+                verified_at=verified_at,
+                notes=f"mode={m.get('mode')}",
+            )
+            self._by_exact.setdefault((pkey, str(key)), rec)
+            self._by_exact.setdefault((pkey, tail), rec)
+            self._by_model.setdefault(str(key), rec)
+            self._by_model.setdefault(tail, rec)
+            n += 1
+        self.litellm_loaded = n > 0
+        self.litellm_fetched_at = fetched or None
         return n
 
     def upsert(self, req: PricingUpsert, *, source: str = "manual") -> PricingRecord:

@@ -94,6 +94,8 @@ def build_router(rt: Runtime) -> APIRouter:
             content={
                 "snapshot_loaded": rec.pricing.snapshot_loaded,
                 "snapshot_fetched_at": rec.pricing.snapshot_fetched_at,
+                "litellm_loaded": rec.pricing.litellm_loaded,
+                "litellm_fetched_at": rec.pricing.litellm_fetched_at,
                 "total": len(rows),
                 "pricing": [r.model_dump(mode="json", exclude_none=True) for r in rows[:500]],
             }
