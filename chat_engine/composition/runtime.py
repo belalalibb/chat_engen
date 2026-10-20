@@ -422,7 +422,7 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     register_default_probes(rt, ledger)
     rt.extensions["capabilities"] = ledger
     # CE-07: admission (in-memory default; Redis when ADMISSION_REDIS_URL is set)
-    from chat_engine.admission import IdempotencyStore, InMemoryAdmission, Limits
+    from chat_engine.admission import BreakerPolicy, IdempotencyStore, InMemoryAdmission, Limits
 
     redis_url = env.get("ADMISSION_REDIS_URL", "").strip()
     if redis_url:
@@ -430,7 +430,10 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
 
         rt.extensions["admission"] = RedisAdmission(redis_url)
     else:
-        rt.extensions["admission"] = InMemoryAdmission()
+        # CE-24/B: per-category breaker rules; unset ⇒ legacy relative breaker (5/10/30s)
+        rt.extensions["admission"] = InMemoryAdmission(
+            breaker_policy=BreakerPolicy.from_env(env.get("CE_BREAKER_POLICY_JSON"))
+        )
     # Tenant-wide ceiling (CE_TENANT_RPM / CE_TENANT_CONCURRENCY). Provider scopes keep
     # their own (conservative or metadata) limits; the tenant scope only guards the
     # process as a whole, so its default is wider than one provider's 60 rpm.

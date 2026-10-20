@@ -18,6 +18,7 @@ from core.contracts.routing import RoutingDecision, RoutingRequest
 from core.routing.errors import FallbackNotConfigured, NoEligibleCandidates
 from core.routing.router import UnsupportedPolicyType
 
+from chat_engine.admission.port import failure_category
 from chat_engine.catalog import AliasUnconfirmed, CatalogService
 from chat_engine.conversations.contracts import (
     ChatRequest,
@@ -481,6 +482,7 @@ class ChatService:
                 reservation,
                 tokens_actual=total if isinstance(total, int) else None,
                 success=report.execution.status.value == "succeeded",
+                category=failure_category(report),
             )
         self._rt.executions.put(report)
         provider_key = pk

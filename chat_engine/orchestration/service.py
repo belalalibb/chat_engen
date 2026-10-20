@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderOperation
 
+from chat_engine.admission.port import failure_category
 from chat_engine.conversations.service import ChatError
 from chat_engine.orchestration.contracts import (
     OrchestrationTrace,
@@ -73,13 +74,27 @@ class Orchestrator:
         self._chat = chat
         self._recent_failures: dict[str, float] = {}  # provider_key -> monotonic deadline
 
-    def _note_failure(self, provider_key: str | None, category: str | None) -> None:
-        if provider_key and category in _SKIP_CATEGORIES:
-            import time
+    def _policy_rule(self, category: str | None) -> object | None:
+        admission = self._rt.extensions.get("admission")
+        policy = getattr(admission, "policy", None)
+        return policy.rule_for(category) if policy is not None else None
 
-            self._recent_failures[provider_key] = time.monotonic() + _SKIP_WINDOW_S
+    def _note_failure(self, provider_key: str | None, category: str | None) -> None:
+        """Legacy process-local skip (120s) — only when the admission breaker policy has no
+        rule for this category (CE-24/B: a configured rule makes admission authoritative)."""
+        if not provider_key or category not in _SKIP_CATEGORIES:
+            return
+        if self._policy_rule(category) is not None:
+            return  # admission's per-category breaker owns this signal now
+        import time
+
+        self._recent_failures[provider_key] = time.monotonic() + _SKIP_WINDOW_S
 
     def _recently_failed(self, provider_key: str) -> bool:
+        admission = self._rt.extensions.get("admission")
+        probe = getattr(admission, "breaker_open", None)
+        if callable(probe) and probe(f"provider:{provider_key}"):
+            return True  # admission breaker (relative or per-category) is open
         import time
 
         deadline = self._recent_failures.get(provider_key)
@@ -153,7 +168,10 @@ class Orchestrator:
         if admission is not None and reservation is not None:
             total = usage.get("total_tokens")
             await admission.settle(
-                reservation, tokens_actual=total if isinstance(total, int) else None, success=ok
+                reservation,
+                tokens_actual=total if isinstance(total, int) else None,
+                success=ok,
+                category=failure_category(report),
             )
         self._rt.executions.put(report)
         recorder = self._rt.extensions.get("usage_recorder")

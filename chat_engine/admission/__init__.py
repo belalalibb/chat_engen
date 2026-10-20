@@ -1,3 +1,4 @@
+from chat_engine.admission.breaker_policy import BreakerPolicy, CategoryRule
 from chat_engine.admission.idempotency import IdempotencyConflict, IdempotencyStore
 from chat_engine.admission.memory import InMemoryAdmission, with_jitter
 from chat_engine.admission.port import (
@@ -12,6 +13,8 @@ from chat_engine.admission.port import (
 __all__ = [
     "CONSERVATIVE_DEFAULT_LIMITS",
     "AdmissionPort",
+    "BreakerPolicy",
+    "CategoryRule",
     "Denied",
     "Dim",
     "IdempotencyConflict",

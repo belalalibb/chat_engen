@@ -16,6 +16,10 @@ from uuid import uuid4
 
 from core.contracts.base import JsonObject
 
+from chat_engine.admission.breaker_policy import (
+    CATEGORY_WINDOW_S,
+    BreakerPolicy,
+)
 from chat_engine.admission.port import (
     WINDOW_SECONDS,
     Denied,
@@ -26,9 +30,7 @@ from chat_engine.admission.port import (
 )
 from chat_engine.util.time import utc_now
 
-BREAKER_FAILS = 5  # failures in the last BREAKER_SAMPLE attempts
-BREAKER_SAMPLE = 10
-BREAKER_OPEN = timedelta(seconds=30)
+BREAKER_OPEN = timedelta(seconds=30)  # legacy default (BreakerPolicy.open_seconds)
 BREAKER_EXEMPT_PREFIXES = ("tenant", "project")  # quotas, not health signals
 
 
@@ -43,7 +45,11 @@ class InMemoryAdmission:
     backend_name = "in_memory"
 
     def __init__(
-        self, *, clock: Callable[[], datetime] = utc_now, default_limits: Limits | None = None
+        self,
+        *,
+        clock: Callable[[], datetime] = utc_now,
+        default_limits: Limits | None = None,
+        breaker_policy: BreakerPolicy | None = None,
     ) -> None:
         self._clock = clock
         self._default = default_limits or Limits.conservative()
@@ -51,6 +57,10 @@ class InMemoryAdmission:
         self._windows: dict[str, list[tuple[datetime, int]]] = {}  # scope → [(at, tokens)]
         self._reservations: dict[str, tuple[list[str], int, float]] = {}
         self._lock = threading.Lock()  # cheap; asyncio single loop but API may thread
+        # CE-24/B: per-category rules (legacy relative breaker when no rule matches)
+        self.policy = breaker_policy or BreakerPolicy.legacy()
+        self._cat_fails: dict[tuple[str, str], list[datetime]] = {}  # (scope, cat) → [at]
+        self._breaker_reason: dict[str, str] = {}
 
     # -- config ------------------------------------------------------------------------
 
@@ -156,6 +166,7 @@ class InMemoryAdmission:
         tokens_actual: int | None = None,
         units_actual: float | None = None,
         success: bool = True,
+        category: str | None = None,
     ) -> None:
         with self._lock:
             entry = self._reservations.pop(reservation.reservation_id, None)
@@ -175,10 +186,48 @@ class InMemoryAdmission:
                     # tenant/project scopes are quotas, not health: five upstream refusals
                     # from DIFFERENT providers must never lock the whole tenant out.
                     continue
-                snap.recent_failures = ([*snap.recent_failures, not success])[-BREAKER_SAMPLE:]
-                if sum(snap.recent_failures) >= BREAKER_FAILS:
-                    snap.breaker_open_until = self._clock() + BREAKER_OPEN
-                    snap.recent_failures = []
+                self._account_failure(scope, snap, success=success, category=category)
+
+    def _account_failure(
+        self, scope: str, snap: ScopeSnapshot, *, success: bool, category: str | None
+    ) -> None:
+        """Breaker bookkeeping for one provider scope.
+
+        * no rule for the category (or no category) → legacy relative breaker;
+        * rule.fails == 0 → request's own fault (context window, bad request): ignored;
+        * rule.fails == n → n failures of that category within CATEGORY_WINDOW_S open the
+          breaker for rule.open_seconds (a credential refusal opens on the first hit).
+        """
+        pol = self.policy
+        rule = pol.rule_for(category) if not success else None
+        if not success and rule is not None and not rule.counts:
+            return  # the request, not the provider, was wrong
+        now = self._clock()
+        if not success and rule is not None:
+            key = (scope, str(category))
+            cutoff = now - timedelta(seconds=CATEGORY_WINDOW_S)
+            hits = [t for t in self._cat_fails.get(key, []) if t > cutoff]
+            hits.append(now)
+            self._cat_fails[key] = hits
+            if len(hits) >= rule.fails:
+                snap.breaker_open_until = now + timedelta(seconds=rule.open_seconds)
+                snap.recent_failures = []
+                self._cat_fails[key] = []
+                self._breaker_reason[scope] = str(category)
+            return
+        snap.recent_failures = ([*snap.recent_failures, not success])[-pol.sample :]
+        if sum(snap.recent_failures) >= pol.fails:
+            snap.breaker_open_until = now + timedelta(seconds=pol.open_seconds)
+            snap.recent_failures = []
+            self._breaker_reason[scope] = "relative"
+
+    def breaker_open(self, scope: str) -> bool:
+        """Read-only probe used by routing (CE-24/B replaces the orchestrator's private
+        skip list): True while the scope's breaker is open."""
+        snap = self._scopes.get(scope)
+        if snap is None or snap.breaker_open_until is None:
+            return False
+        return snap.breaker_open_until > self._clock()
 
     async def release(self, reservation: Reservation) -> None:
         """Undo a reservation that never ran (routing failed after admission)."""
@@ -208,6 +257,9 @@ class InMemoryAdmission:
                     "in_flight": snap.in_flight,
                     "budget_used": round(snap.budget_used, 3),
                     "breaker_open": bool(snap.breaker_open_until and snap.breaker_open_until > now),
+                    "breaker_reason": self._breaker_reason.get(scope)
+                    if snap.breaker_open_until and snap.breaker_open_until > now
+                    else None,
                 }
             )
         return out

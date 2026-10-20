@@ -248,10 +248,16 @@ class StreamService:
             result = outcome["result"]
             if admission is not None and reservation is not None:
                 total = usage.get("total_tokens") if isinstance(usage, dict) else None
+                err_obj = outcome.get("error")
                 await admission.settle(
                     reservation,
                     tokens_actual=total if isinstance(total, int) else None,
                     success=result == "completed",
+                    category=(
+                        str(err_obj.category.value)
+                        if result == "failed" and err_obj is not None
+                        else None
+                    ),
                 )
             if result == "completed":
                 st.summary = st.summary.model_copy(

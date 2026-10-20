@@ -105,7 +105,24 @@ class AdmissionPort(Protocol):
         tokens_actual: int | None = None,
         units_actual: float | None = None,
         success: bool = True,
+        category: str | None = None,
     ) -> None: ...
     async def release(self, reservation: Reservation) -> None: ...
     def set_limits(self, scope: str, limits: Limits) -> None: ...
     def snapshot(self) -> list[JsonObject]: ...
+
+
+def failure_category(report: object) -> str | None:
+    """Provider error category of the last node of an ExecutionReport (None on success /
+    unknown). Shared by every surface so the admission breaker sees the same signal."""
+    nodes = getattr(report, "nodes", None) or []
+    node = nodes[-1] if nodes else None
+    resp = getattr(node, "response", None)
+    err = getattr(resp, "error", None)
+    if err is not None:
+        return str(getattr(getattr(err, "category", None), "value", None) or "") or None
+    node_err = getattr(getattr(node, "node", None), "error", None)
+    if isinstance(node_err, dict):
+        cat = node_err.get("category")
+        return str(cat) if cat else None
+    return None

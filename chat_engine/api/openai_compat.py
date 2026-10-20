@@ -24,6 +24,7 @@ from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import Field
 
+from chat_engine.admission.port import failure_category
 from chat_engine.api.errors import ChatEngineErrorCode
 from chat_engine.composition.runtime import Runtime
 from chat_engine.conversations.service import ChatError
@@ -379,6 +380,7 @@ def build_router(rt: Runtime) -> APIRouter:
                 reservation,
                 tokens_actual=total if isinstance(total, int) else None,
                 success=report.execution.status.value == "succeeded",
+                category=failure_category(report),
             )
         rt.executions.put(report)
         recorder = rt.extensions.get("usage_recorder")

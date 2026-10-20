@@ -106,6 +106,8 @@ def build_router(rt: Runtime) -> APIRouter:
             content={
                 "backend": adm.backend_name,
                 "replicas_safe": adm.backend_name != "in_memory",
+                # CE-24/B: effective breaker policy (legacy relative breaker when no rules)
+                "breaker_policy": pol.describe() if (pol := getattr(adm, "policy", None)) else None,
                 "scopes": snap,
             }
         )

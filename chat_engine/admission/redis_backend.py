@@ -163,7 +163,11 @@ class RedisAdmission:
         tokens_actual: int | None = None,
         units_actual: float | None = None,
         success: bool = True,
+        category: str | None = None,
     ) -> None:
+        # category is accepted for port parity (CE-24/B); the Redis backend carries no
+        # breaker (upstream signals cover health there), so it is intentionally unused.
+        del success, category
         pipe = self._r.pipeline()
         for scope in reservation.scopes:
             _krpm, ktpm, kconc, kbud, _ = self._keys(scope)
