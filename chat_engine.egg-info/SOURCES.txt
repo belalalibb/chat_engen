@@ -23,6 +23,7 @@ chat_engine/api/auth.py
 chat_engine/api/catalog.py
 chat_engine/api/chat_stream.py
 chat_engine/api/conversations.py
+chat_engine/api/embeddings.py
 chat_engine/api/errors.py
 chat_engine/api/events.py
 chat_engine/api/execute.py
