@@ -56,11 +56,16 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
     auth.install_auth(app, runtime)  # CE-24/D: no-op when CE_AUTH_MODE=off
 
     @app.exception_handler(RequestValidationError)
-    async def _validation_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def _validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+        errors = [str(err.get("msg", "")) for err in exc.errors()]
+        if request.url.path.startswith("/v1/messages"):  # CE-24/I: Anthropic error envelope
+            return anthropic_compat.anthropic_error(
+                422, "Request body failed contract validation.", details={"errors": errors}
+            )
         return error_response(
             ErrorCode.VALIDATION_ERROR,
             "Request body failed contract validation.",
-            details={"errors": [str(err.get("msg", "")) for err in exc.errors()]},
+            details={"errors": errors},
         )
 
     @app.get("/healthz")

@@ -889,7 +889,7 @@ def admin_pricing_sources(c: Client) -> JSON:
 
 
 def whoami(c: Client) -> JSON:
-    """GET /v1/auth/whoami → principal + auth_mode (off|optional|required). Anonymous when no key."""
+    """GET /v1/auth/whoami → principal + auth_mode (optional|required). 404 when CE_AUTH_MODE=off (not mounted)."""
     return c.call("GET", "/v1/auth/whoami")
 
 
@@ -951,11 +951,13 @@ def turn_feedback(
 
 
 def embeddings_models(c: Client) -> JSON:
-    """GET /v1/embeddings/models → {models:[{name, provider_key, ...}]} (CE-24/H; gateway embed-only providers)"""
+    """GET /v1/embeddings/models → {object:"list", data:[{id, owned_by, provider_key}]} (CE-24/H; gateway embed-only providers)"""
     return c.call("GET", "/v1/embeddings/models")
 
 
-def embeddings(c: Client, inputs: list[str], *, model: str | None = None, provider: str | None = None) -> JSON:
+def embeddings(
+    c: Client, inputs: list[str], *, model: str | None = None, provider: str | None = None
+) -> JSON:
     """POST /v1/embeddings {inputs:[...], model?, provider?} → {embeddings:[[...]], dimensions, usage}. Upstream key missing → 502 invalid_credential (honest)."""
     body: JSON = {"inputs": inputs}
     if model:
@@ -1244,12 +1246,17 @@ def tour(c: Client, only: str | None = None) -> int:
         try:
             _p("pricing sources (A)", admin_pricing_sources(c))
             _p("breaker policy (B)", admission_breaker_policy(c))
-            w = whoami(c)
-            _p("whoami (D)", w)
-            if w.get("auth_mode") != "off":
+            auth_mode = str(healthz(c).get("auth_mode", "off"))
+            _p("auth_mode (D) — whoami/keys are mounted only when != off", auth_mode)
+            if auth_mode != "off":
+                w = whoami(c)
+                _p("whoami (D)", w)
                 try:
                     k = create_key(c, "reference-key", rpm=5)
-                    _p("create_key (D) — plaintext shown once", {"id": k.get("id"), "prefix": str(k.get("key", ""))[:8]})
+                    _p(
+                        "create_key (D) — plaintext shown once",
+                        {"id": k.get("id"), "prefix": str(k.get("key", ""))[:8]},
+                    )
                     _p("update_key (D)", update_key(c, k["id"], name="reference-key-2").get("name"))
                     delete_key(c, k["id"])
                 except ChatEngineError as e:
@@ -1257,15 +1264,20 @@ def tour(c: Client, only: str | None = None) -> int:
             gp = create_guarded_project(
                 c,
                 "reference-guarded",
-                [{"type": "keyword_block", "keywords": ["forbiddenword"], "stage": "pre"},
-                 {"type": "pii_redact", "stage": "both"}],
+                [
+                    {"type": "keyword_block", "keywords": ["forbiddenword"], "stage": "pre"},
+                    {"type": "pii_redact", "stage": "both"},
+                ],
             )
             try:
                 chat(c, "say forbiddenword", project_id=gp["id"])
                 failures += 1
                 _p("guardrail block (E)", "UNEXPECTED SUCCESS")
             except ChatEngineError as e:
-                _p("guardrail block (E)", f"{e.status} {e.code} guardrail={(e.details or {}).get('guardrail')}")
+                _p(
+                    "guardrail block (E)",
+                    f"{e.status} {e.code} guardrail={(e.details or {}).get('guardrail')}",
+                )
             for cv in list_conversations(c, project_id=gp["id"]).get("conversations", []):
                 delete_conversation(c, cv["id"])
             delete_project(c, gp["id"])
@@ -1277,22 +1289,39 @@ def tour(c: Client, only: str | None = None) -> int:
             _p("routing signals (C)", routing_signals(c))
             _p("provider credentials gw_deepai (K)", provider_credentials(c, "gw_deepai"))
             if conv_id:
-                last = [t for t in turns(c, conv_id).get("turns", []) if t.get("role") == "assistant"]
+                last = [
+                    t for t in turns(c, conv_id).get("turns", []) if t.get("role") == "assistant"
+                ]
                 if last:
                     fb = turn_feedback(c, conv_id, last[-1]["id"], 1, tags=["helpful"])
                     _p("turn feedback (M)", fb.get("metadata", {}).get("feedback"))
             em = embeddings_models(c)
             _p("embeddings models (H)", em)
-            if em.get("models"):
+            if em.get("data"):
                 try:
-                    r = embeddings(c, ["hello"], model=em["models"][0].get("name"))
+                    r = embeddings(c, ["hello"], model=em["data"][0]["id"])
                     _p("embeddings (H)", {"dimensions": r.get("dimensions")})
                 except ChatEngineError as e:
-                    _p("embeddings (H) upstream refusal (honest)", f"{e.status} {e.code}: {e.message}")
+                    _p(
+                        "embeddings (H) upstream refusal (honest)",
+                        f"{e.status} {e.code}: {e.message}",
+                    )
             _p("cache stats (F)", cache_stats(c))
             try:
-                r = anthropic_messages(c, [{"role": "user", "content": "Reply OK"}], model="deepseek-v3.2", max_tokens=16)
-                _p("anthropic /v1/messages (I)", {"type": r.get("type"), "stop_reason": r.get("stop_reason"), "text": "".join(b.get("text", "") for b in r.get("content", []))})
+                r = anthropic_messages(
+                    c,
+                    [{"role": "user", "content": "Reply OK"}],
+                    model="deepseek-v3.2",
+                    max_tokens=16,
+                )
+                _p(
+                    "anthropic /v1/messages (I)",
+                    {
+                        "type": r.get("type"),
+                        "stop_reason": r.get("stop_reason"),
+                        "text": "".join(b.get("text", "") for b in r.get("content", [])),
+                    },
+                )
             except ChatEngineError as e:
                 _p("anthropic /v1/messages (I) error envelope", f"{e.status}: {e.message[:80]}")
         except ChatEngineError as e:
