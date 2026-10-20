@@ -431,13 +431,61 @@ await ce.cancelStream(streamId);   // أثناء stream جارٍ
 | Admin (مزوّدات) | `GET /v1/admin/providers[/managed]`, `GET /v1/admin/providers/{key}[/revisions]`, `POST/PUT /v1/admin/providers/{key}` (draft OpenAI-compatible: `{display_name, base_url, static_models[], credential_ref?, extra_headers{}}`), `:validate`, `:verify`, `:enable`, `:disable`, `:archive`, `:rollback` |
 | BYOK | `POST /v1/credentials {label, secret, provider_hint?}` → `{credential_ref, fingerprint, last4}` (السر لا يُعاد)، `GET /v1/credentials`, `DELETE /v1/credentials/{id}` |
 | Admin (أخرى) | `GET /v1/admin/models`, `GET /v1/admin/pricing`, `PUT /v1/admin/pricing`, `GET /v1/admin/admission`, `GET /v1/admin/routing/weights`, `GET /v1/admin/capabilities/{ledger,catalog,probes}`, `POST /v1/admin/capabilities/{key}/{cap}:probe|:enable` |
+| CE-24 (v0.2.0) | `POST /v1/embeddings`, `GET /v1/embeddings/models`, `POST /v1/messages` (Anthropic dialect)، `POST /v1/conversations/{id}/turns/{turn_id}:feedback`، `GET /v1/auth/whoami` + `GET/POST /v1/admin/keys`, `GET/PATCH/DELETE /v1/admin/keys/{id}` (فقط عند `CE_AUTH_MODE≠off`)، `GET /v1/admin/routing/signals`, `GET /v1/admin/providers/{key}/credentials`, `GET/DELETE /v1/admin/cache` |
 | App factory (تجريبي) | `POST /v1/apps:generate`, `GET /v1/apps[/{job_id}]`, `:approve`, `:cancel`, `GET /v1/apps/{job_id}/artifacts/{name}` |
 
 ---
 
 ## 15. ما ليس موجودًا (حتى لا تبحث عنه)
-`/v1/embeddings`, `/v1/images`, `/v1/audio`, WebSocket, مصادقة مدمجة، تخزين دائم افتراضي (in-memory ما لم يُهيّأ Postgres/Redis — انظر `docs/OPERATIONS.md`).
+`/v1/images`, `/v1/audio`, WebSocket, تخزين دائم افتراضي (in-memory ما لم يُهيّأ Postgres/Redis — انظر `docs/OPERATIONS.md`). المصادقة المدمجة (مفاتيح افتراضية) موجودة منذ v0.2.0 لكنها **معطّلة افتراضيًا** (`CE_AUTH_MODE=off`) — انظر §16.4.
 
 ---
 
-*كل جسم طلب في هذا الملف مطابق لعقود Pydantic في `chat_engine/*/contracts.py` و`chat_engine/api/*.py` بإصدار v0.1.3؛ عند الشك، `GET /openapi.json` هو الحكم.*
+## 16. سطوح CE-24 (v0.2.0) — ما أُضيف من منظومة LiteLLM دون تبنّي الحزمة
+
+كل ما يلي **إضافي** (additive): الحقول الجديدة اختيارية، والسلوك القديم محفوظ عند غياب الإعدادات. لا حزمة `litellm`، لا بوابة أمام المحرّك، لا guardrails بكود مخصّص.
+
+### 16.1 الأسعار: مصدر ثانٍ (LiteLLM prices snapshot) — `A`
+`GET /v1/admin/pricing` يعيد الآن `litellm_loaded`, `litellm_fetched_at` إلى جانب `snapshot_loaded`. الترتيب: overrides اليدوية (PUT) > models.dev snapshot > LiteLLM snapshot (`compat/catalogs/litellm_prices_snapshot.json`, 3.3k موديل). التحديث: `python scripts/import_litellm_catalog.py` (stdlib فقط)؛ التعطيل: `CE_PRICING_LITELLM=0`. المقترحات من الكتالوج تحمل `source: "catalog:litellm"` ولا تُستخدم للتوجيه حتى تُؤكَّد.
+
+### 16.2 قاطع الدائرة حسب فئة الخطأ + حدود يومية — `B`
+`GET /v1/admin/admission → breaker_policy` يصف السياسة الفعّالة (`legacy` عند غياب القواعد). تفعيل: `CE_BREAKER_POLICY_JSON='recommended'` أو JSON مثل `{"timeout":3,"invalid_credential":{"fails":1,"open_seconds":600},"context_window":0}` (0 = لا يفتح القاطع لأخطاء الطلب نفسه). النطاقات الجديدة: `key:<key_id>`، والأبعاد `rpd`/`tpd` (نافذة 24 ساعة متدحرجة). `details.breaker_reason` في `admission_denied` يذكر الفئة.
+
+### 16.3 أخطاء نافذة السياق — `G`
+400/413/422 من المزوّد التي تعني تجاوز السياق تعود `400 bad_request` (OpenAI: `context_length_exceeded`) مع `details.provider_code`, `details.cause`, `details.context_window{limit?, requested?}` — ولا تُطلق failover ولا تفتح القاطع. على البث: `failed{reason:"validation_error"}`.
+
+### 16.4 مفاتيح افتراضية (Virtual Keys) — `D` + `L`
+- `CE_AUTH_MODE=off` (الافتراضي): لا middleware، ومسارات `/v1/auth/*` و`/v1/admin/keys*` **غير مركّبة** (404). `healthz.auth_mode` يخبرك.
+- `optional`: الطلبات المجهولة تمر؛ من يرسل `Authorization: Bearer ce_live_…` يُحلّ إلى principal وتطبَّق حدوده.
+- `required`: 401 `unauthenticated` بلا مفتاح (ما عدا `/healthz`, `/openapi.json`, `/docs`, UI).
+- `CE_MASTER_KEY` اختياري؛ إن غاب يُولَّد ويُطبع في السجل مرة واحدة.
+- إدارة (المفتاح الرئيسي فقط): `POST /v1/admin/keys {name, project_ids[]?, models_allowed[]?, rpm?, tpm?, rpd?, tpd?, concurrency?, budget_usd?, expires_at?, metadata?}` → `{key (مرة واحدة), record}`; `GET /v1/admin/keys`, `GET/PATCH/DELETE /v1/admin/keys/{id}`; `GET /v1/auth/whoami`.
+- التنفيذ: موديل خارج `models_allowed` أو مشروع خارج `project_ids` ⇒ `403 capability_denied`؛ نفاد `budget_usd` ⇒ `403 entitlement_exceeded`؛ تجاوز rpm/tpm/rpd/tpd ⇒ `429 admission_denied` بنطاق `key:<id>`. الإنفاق يُحتسب لكل مفتاح في `/v1/usage` (`keys`). شاشة **Keys** في UI تعرض الوضع وتدير المفاتيح عند التفعيل.
+
+### 16.5 Guardrails مدمجة فقط — `E`
+`Project.guardrails: [{type:"keyword_block", keywords[], action:"block"|"redact", mask?, stage:"pre"|"post"|"both"}, {type:"pii_redact", kinds?:["email","card","iban","phone"], stage}]`. أي `type` آخر ⇒ `422 validation_error`. افتراضيات العملية: `CE_GUARDRAILS_JSON='[...]'`. `pre` يعدّل/يمنع رسالة المستخدم قبل الإرسال (`403 capability_denied` مع `details.guardrail/stage`)؛ `post` يعدّل الرد أو يمنعه (الدور يُسجَّل `FAILED`). ما طُبّق يظهر في `turn.metadata.guardrails`.
+
+### 16.6 إشارات التوجيه الحيّة — `C`
+`GET /v1/admin/routing/signals → {enabled, providers:[{provider_key, ewma_latency_ms, in_flight, …}]}`. القياس يعمل دائمًا؛ إعادة الترتيب فقط عند `CE_ROUTING_LIVE_SIGNALS=1` وبين مرشّحين متقاربي الدرجة (±0.15) وبمكسب ≥ 20%. الدليل القياسي: `evidence/ce24/live_signals_before_after.json`.
+
+### 16.7 مجموعة مفاتيح لكل مزوّد (Credential Pool) — `K`
+`CE_GATEWAY_ROUTES="gw_x=tok1|tok2"` أو مفاتيح مفصولة بفاصلة في البوتستراب ⇒ عند `invalid_credential`/`auth_expired`/`quota_exceeded`/`rate_limited` يُركَن المفتاح (600s أو `retry_after`) ويُستخدم التالي في نفس الطلب التالي. `GET /v1/admin/providers/{key}/credentials` يعرض الحالة (مراجع فقط، لا أسرار).
+
+### 16.8 تقييم الدور — `M`
+`POST /v1/conversations/{id}/turns/{turn_id}:feedback {score:-1|0|1, comment?, tags[]}` على أدوار المساعد فقط → الدور مع `metadata.feedback` و`feedback_history`.
+
+### 16.9 Embeddings — `H`
+`GET /v1/embeddings/models → {object:"list", data:[{id, owned_by, provider_key}]}`؛ `POST /v1/embeddings {model, input: str|[…], provider?, dimensions?}` (شكل OpenAI) → `{object:"list", data:[{embedding, index}], model, provider_key, dimensions, usage}`. المزوّدون embed-only في البوابة (مثل `gw_voyage`) يظهرون في `healthz.gateway.embed_only` ولا يُرشَّحون للدردشة. **واقع الآن:** مفتاح voyage غير مفعّل في البوابة ⇒ `502 execution_failed` مع `provider_error_category: invalid_credential` — خطأ upstream صادق وليس خطأ في المحرّك.
+
+### 16.10 ذاكرة تطابق تامّ — `F`
+`CE_CACHE=memory` (الافتراضي `off`)، `CE_CACHE_TTL_S=300`، `CE_CACHE_MAX=1000`. مفتاح الذاكرة = (tenant, model, provider, messages, generation). الإصابة تعود كدور عادي موسوم `usage.cached:true` و`metadata.cache_hit` بتكلفة صفر؛ لا تُخزَّن ردود استدعاءات الأدوات. `GET /v1/admin/cache`, `DELETE /v1/admin/cache`.
+
+### 16.11 لهجة Anthropic Messages — `I`
+`POST /v1/messages` (يُعطَّل بـ `CE_FEATURE_ANTHROPIC_COMPAT=0`) يقبل `{model, max_tokens (إلزامي), messages[], system?, tools?, tool_choice?, stream?, stop_sequences?, metadata.user_id?}` + امتدادات `provider`, `required_capabilities`, `skills`, `stream_fallback`. الرد `{type:"message", content:[{type:"text"}|{type:"tool_use"}], stop_reason, usage{input_tokens,output_tokens}}`؛ البث `message_start → content_block_* → message_delta → message_stop`. الأخطاء بغلاف Anthropic `{type:"error", error:{type, message}}` حتى لأخطاء التحقق (422).
+
+### 16.12 `stream_fallback` على اللهجات
+مزوّدو البوابة متزامنون؛ `/v1/chat/completions` و`/v1/messages` يقبلان الآن `stream_fallback:"buffer"` (دفعة واحدة مركّبة، `finish_reason:"stop"`). بدونه يبقى الجواب الصادق: `finish_reason:"error"` / `unsupported_capability`.
+
+---
+
+*كل جسم طلب في هذا الملف مطابق لعقود Pydantic في `chat_engine/*/contracts.py` و`chat_engine/api/*.py` بإصدار v0.2.0؛ عند الشك، `GET /openapi.json` هو الحكم.*

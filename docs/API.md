@@ -63,7 +63,22 @@ r = c.chat.completions.create(model="local-echo-1", messages=[{"role":"user","co
 - BYOK: `POST /v1/credentials {provider_key, secret}` → `{credential_ref, fingerprint, last4}` (السر لا يُعاد أبدًا)، `GET /v1/credentials`, `DELETE /v1/credentials/{id}`.
 - القدرات (CE-06): `GET /v1/admin/capabilities/ledger|catalog|probes`, `POST /v1/admin/capabilities/{provider}/{cap}:probe|:enable`. القاعدة: `declared ∧ verified ∧ enabled ∧ available_now`.
 - القبول (CE-07): `GET /v1/admin/admission` (لقطة الحدود والعدادات).
-- `GET /healthz` → `{status, version, upstream_sha, providers[], admission_backend, replicas_safe, compat{not_served[]}}`.
+- `GET /healthz` → `{status, version, upstream_sha, providers[], admission_backend, replicas_safe, auth_mode, gateway{bound[], skipped{}, embed_only[]}, compat{not_served[]}}`.
+
+## 4b. سطوح CE-24 (v0.2.0) — إضافية، معطّلة/محايدة افتراضيًا
+| السطح | الطلب | الرد / ملاحظات |
+|---|---|---|
+| Embeddings | `POST /v1/embeddings {model, input: str\|[str], provider?, dimensions?}` · `GET /v1/embeddings/models` | شكل OpenAI `{object:"list", data:[{embedding,index}], model, provider_key, dimensions, usage}`؛ لا مسار ⇒ `422 unsupported_capability`؛ رفض upstream ⇒ `502 execution_failed` + `provider_error_category` |
+| Anthropic dialect | `POST /v1/messages {model, max_tokens, messages[], system?, tools?, tool_choice?, stream?, stream_fallback?}` | `{type:"message", content[], stop_reason, usage}`؛ SSE `message_start…message_stop`؛ الأخطاء `{type:"error", error:{type,message}}` (حتى 422) |
+| Virtual keys | `GET /v1/auth/whoami` · `POST/GET /v1/admin/keys` · `GET/PATCH/DELETE /v1/admin/keys/{id}` | مركّبة فقط عند `CE_AUTH_MODE≠off`؛ الإدارة بالمفتاح الرئيسي فقط (`401 unauthenticated` / `403 unauthorized`)؛ `KeyCreate {name, project_ids[], models_allowed[], rpm, tpm, rpd, tpd, concurrency, budget_usd, expires_at, metadata}` → `{key, record}` |
+| Guardrails | `Project.guardrails[]` في `POST/PATCH /v1/projects` | أنواع مدمجة فقط `keyword_block`, `pii_redact`؛ منع ⇒ `403 capability_denied details{guardrail, stage, turn_id?}`؛ نوع مجهول ⇒ `422` |
+| Feedback | `POST /v1/conversations/{id}/turns/{turn_id}:feedback {score:-1\|0\|1, comment?, tags[]}` | يعيد الدور؛ دور غير مساعد ⇒ `422 validation_error` |
+| Routing signals | `GET /v1/admin/routing/signals` | `{enabled, providers:[{provider_key, ewma_latency_ms, in_flight,…}]}` |
+| Credential pool | `GET /v1/admin/providers/{key}/credentials` | `{provider_key, accounts:[{ref, state, parked_until?}], active}`؛ مزوّد مجهول ⇒ `404` |
+| Cache | `GET /v1/admin/cache` · `DELETE /v1/admin/cache` | `{enabled, ttl_s, max_entries, entries, hits, misses}` · `{cleared}` |
+| Admission | `GET /v1/admin/admission` | + `breaker_policy{…}`؛ النطاق الجديد `key:<id>`؛ الأبعاد `rpd`, `tpd` |
+| Pricing | `GET /v1/admin/pricing` | + `litellm_loaded`, `litellm_fetched_at` |
+| Stream fallback | `stream_fallback:"buffer"` على `/v1/chat/completions` و`/v1/messages` | دفعة واحدة مركّبة لمزوّدي البوابة المتزامنين؛ بدونه `finish_reason:"error"` بصدق |
 
 ## 5. الأخطاء (ADR-CE-0002)
 
@@ -81,4 +96,4 @@ r = c.chat.completions.create(model="local-echo-1", messages=[{"role":"user","co
 - SSE: `cache-control: no-cache`, `x-accel-buffering: no`.
 
 ## 7. ما ليس هنا (FUTURE)
-`/v1/embeddings`, `/v1/images`, `/v1/audio` — غير مُنفّذة عمدًا (CE-10 Out).
+`/v1/images`, `/v1/audio` — غير مُنفّذة عمدًا (CE-10 Out). (`/v1/embeddings` أُضيف في v0.2.0 — §4b.)

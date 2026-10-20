@@ -26,6 +26,14 @@
 | `CE_PRICING_SNAPSHOT` | `1` | `0` يمنع تحميل أسعار models.dev (تبقى overrides اليدوية) |
 | `CE_ARTIFACT_DIR` | — (ذاكرة) | مجلد artifacts للـ App Factory على القرص |
 | `CE_LOG_LEVEL` | `INFO` | مستوى JSON logs (مع redaction إلزامي) |
+| `CE_PRICING_LITELLM` | `1` | `0` يمنع تحميل مصدر الأسعار الثاني (LiteLLM snapshot، `compat/catalogs/litellm_prices_snapshot.json`) |
+| `CE_BREAKER_POLICY_JSON` | — (legacy) | `recommended` أو JSON `{category: fails \| {fails, open_seconds}}`؛ 0 = الفئة لا تفتح القاطع. يظهر في `GET /v1/admin/admission → breaker_policy` |
+| `CE_AUTH_MODE` | `off` | `off` (لا مصادقة، مسارات المفاتيح غير مركّبة) · `optional` · `required` (401 بلا مفتاح ما عدا healthz/openapi/docs/UI) |
+| `CE_MASTER_KEY` | — | المفتاح الرئيسي لإدارة `/v1/admin/keys`؛ إن غاب مع `CE_AUTH_MODE≠off` يُولَّد ويُطبع في السجل مرة واحدة (`ce_live_…`) |
+| `CE_GUARDRAILS_JSON` | — | مصفوفة guardrails افتراضية للعملية (`keyword_block`, `pii_redact` فقط)؛ قيمة غير صالحة تُفشل الإقلاع بصدق |
+| `CE_ROUTING_LIVE_SIGNALS` | `0` | `1` يسمح بإعادة ترتيب المرشّحين المتقاربين حسب EWMA latency/in-flight (القياس يعمل دائمًا؛ `GET /v1/admin/routing/signals`) |
+| `CE_CACHE` / `CE_CACHE_TTL_S` / `CE_CACHE_MAX` | `off` / `300` / `1000` | `memory` يفعّل ذاكرة التطابق التام في العملية (ليست مشتركة بين النسخ) |
+| `CE_FEATURE_ANTHROPIC_COMPAT` | `1` | `0` يعطّل `/v1/messages` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | — | يفعّل OpenTelemetry فقط إن وُجد **و** ثُبّت extra `[otel]` (غير مُضاف بعد — no-op صادق) |
 
 **لا توجد أسرار في الصورة أو المستودع.** المفاتيح تُمرَّر من الـ shell أو عبر `/v1/credentials` (تُخزَّن في `InMemorySecretManager` المرجعي، وتُعاد بصمة + last4 فقط).
@@ -38,9 +46,9 @@ chat_engine يعيد استخدام محوّل المرجع `providers.real.gate
 |---|---|---|
 | `CE_GATEWAY_BASE_URL` | `http://127.0.0.1:8800` (loopback) أو `https://gw.example` | غيابه ⇒ لا مزوّدات بوابة (الافتراضي الصادق). `http://` مسموح فقط لـ loopback |
 | `CE_GATEWAY_SECRET` / `CE_GATEWAY_SECRET_VERSION` | `…` / `1` | السر المشترك وإصداره (dual-accept rotation في البوابة) |
-| `CE_GATEWAY_ROUTES` | `gw_overchat=TOKEN1,gw_deepai=TOKEN2` | `provider_key=route_token` لكل مزوّد |
+| `CE_GATEWAY_ROUTES` | `gw_overchat=TOKEN1,gw_deepai=TOKEN2` | `provider_key=route_token` لكل مزوّد؛ `gw_x=tok1\|tok2` يبني credential pool يدوّر تلقائيًا عند `invalid_credential/auth_expired/quota_exceeded/rate_limited` (`GET /v1/admin/providers/{key}/credentials`) |
 
-**الاكتشاف بيانات لا تخمين:** لكل مسار يُستدعى `GET /v1/describe` في البوابة؛ منه تُؤخذ `display_name`، العمليات، القدرات، وأسماء النماذج. مسار بلا `generate_text` أو بلا نماذج أو غير قابل للوصول ⇒ **يُتخطّى بسبب مُعلَن** في `GET /healthz → gateway.skipped` (مثال: `voyage` = embeddings فقط). كل القيم السرّية تُخزَّن مرة واحدة في مدير الأسرار وتصل المحوّل عبر resolvers فقط؛ لا تُسجَّل ولا تظهر في أي repr.
+**الاكتشاف بيانات لا تخمين:** لكل مسار يُستدعى `GET /v1/describe` في البوابة؛ منه تُؤخذ `display_name`، العمليات، القدرات، وأسماء النماذج. مسار بلا `generate_text` أو بلا نماذج أو غير قابل للوصول ⇒ **يُتخطّى بسبب مُعلَن** في `GET /healthz → gateway.skipped` (مسار embeddings-فقط مثل `voyage` يُربط منذ v0.2.0 كـ `embed_only` ويخدم `/v1/embeddings` فقط). كل القيم السرّية تُخزَّن مرة واحدة في مدير الأسرار وتصل المحوّل عبر resolvers فقط؛ لا تُسجَّل ولا تظهر في أي repr.
 
 **البث:** مزوّدو البوابة متزامنون (`/v1/execute` بلا SSE)؛ واجهة chat_engine ترسل `stream_fallback=buffer` فيُسلَّم الرد كدفعة واحدة موسومة `synthesized: true` بصدق. **AUTO** (بلا نموذج) يستخدم `max_escalation` فيتجاوز التنفيذ المزوّدات المستنفدة (`quota_exceeded`…) إلى التالي.
 
