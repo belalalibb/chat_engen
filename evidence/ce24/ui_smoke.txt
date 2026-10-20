@@ -1,7 +1,7 @@
 PASS app renders
 PASS rtl default
 PASS user + assistant bubbles ['user', 'assistant']
-FAIL trace rendered for strategy
+PASS trace rendered for strategy
 PASS catalog virtualized rows rows=23
 PASS skill registered + listed
 PASS providers screen renders
@@ -11,4 +11,4 @@ PASS conversations screen renders
 PASS lang toggle flips dir
 PASS no page errors
 
-11/12 passed
+12/12 passed
