@@ -8,6 +8,10 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace as NS
 from uuid import uuid4
 
+from chat_engine.admission.port import rotate_on_failure
+from chat_engine.composition.runtime import echo_manifest
+from chat_engine.credentials.pool import CredentialPool
+from chat_engine.providers.gateway import gateway_binding_from_env
 from core.contracts.domain import AuthType, Provider, ProviderStatus
 from core.contracts.provider import (
     ProviderError,
@@ -16,10 +20,6 @@ from core.contracts.provider import (
     ProviderGenerateResponse,
 )
 
-from chat_engine.admission.port import rotate_on_failure
-from chat_engine.composition.runtime import echo_manifest
-from chat_engine.credentials.pool import CredentialPool
-from chat_engine.providers.gateway import gateway_binding_from_env
 from tests.orchestration.test_strategies import ScriptedAdapter, add_scripted
 
 
@@ -60,10 +60,10 @@ def test_pool_rotation_and_parking() -> None:
 def test_gateway_env_accepts_multiple_tokens() -> None:
     b = gateway_binding_from_env(
         {
-            "GATEWAY_BASE_URL": "http://127.0.0.1:8800",
-            "GATEWAY_SECRET": "s",
-            "GATEWAY_SECRET_VERSION": "1",
-            "GATEWAY_ROUTES": "gw_a=t1|t2|t3,gw_b=t9",
+            "CE_GATEWAY_BASE_URL": "http://127.0.0.1:8800",
+            "CE_GATEWAY_SECRET": "s",
+            "CE_GATEWAY_SECRET_VERSION": "1",
+            "CE_GATEWAY_ROUTES": "gw_a=t1|t2|t3,gw_b=t9",
         }
     )
     assert b is not None and b.routes["gw_a"] == "t1|t2|t3" and b.routes["gw_b"] == "t9"

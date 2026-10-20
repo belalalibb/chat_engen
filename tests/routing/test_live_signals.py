@@ -12,12 +12,12 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 from uuid import uuid4
 
-from core.contracts.provider import ProviderGenerateRequest, ProviderGenerateResponse
-from fastapi.testclient import TestClient
-
 from chat_engine.api.app import create_app
 from chat_engine.composition.runtime import build_runtime
 from chat_engine.routing.live_signals import MIN_GAIN, SCORE_BAND, LiveSignals
+from core.contracts.provider import ProviderGenerateRequest, ProviderGenerateResponse
+from fastapi.testclient import TestClient
+
 from tests.conftest import HERMETIC_ENV
 from tests.orchestration.test_strategies import ScriptedAdapter, add_scripted
 
@@ -107,9 +107,8 @@ class LatencyAdapter(ScriptedAdapter):
 
 def _measure(enabled: bool, n: int = 12) -> dict:
     rt = build_runtime({**HERMETIC_ENV, "CE_ROUTING_LIVE_SIGNALS": "1" if enabled else "0"})
-    from core.contracts.domain import AuthType, Provider, ProviderStatus
-
     from chat_engine.composition.runtime import echo_manifest
+    from core.contracts.domain import AuthType, Provider, ProviderStatus
 
     adapters = {}
     for key, delay in (("slow", 60), ("fast", 5)):
@@ -129,11 +128,18 @@ def _measure(enabled: bool, n: int = 12) -> dict:
             credential_ref=f"secret-ref://{key}",
             model_names=["shared-m"],
         )
-        rt.extensions["capabilities"].record_external_verification(key, "chat", passed=True, detail="t")
+        rt.extensions["capabilities"].record_external_verification(
+            key, "chat", passed=True, detail="t"
+        )
     c = TestClient(create_app(rt))
     # warm-up: one call per provider so both have an observation (probe both explicitly)
     for key in ("slow", "fast"):
-        assert c.post("/v1/chat", json={"message": "warm", "model": "shared-m", "provider": key}).status_code == 200
+        assert (
+            c.post(
+                "/v1/chat", json={"message": "warm", "model": "shared-m", "provider": key}
+            ).status_code
+            == 200
+        )
     lat = []
     picks = []
     for _ in range(n):

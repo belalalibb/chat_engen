@@ -139,7 +139,21 @@ def rotate_on_failure(rt: object, provider_key: str | None, report: object) -> s
     err = getattr(getattr(node, "response", None), "error", None)
     retry = getattr(err, "retry_after_ms", None) if err is not None else None
     outcome = pool.on_failure(provider_key, cat, retry_after_ms=retry)
-    return "credential_rotated" if outcome == "credential_rotated" else cat
+    if outcome != "credential_rotated":
+        return cat
+    # the credential changed: upstream's signal board must not keep the provider
+    # "unavailable (invalid_credential)" for a key that is no longer in use
+    signals = getattr(rt, "signals", None)
+    index = getattr(rt, "extensions", {}).get("catalog_index")
+    if signals is not None and index is not None:
+        try:
+            pid = getattr(rt, "providers").get(provider_key).provider.id  # noqa: B009
+        except Exception:
+            pid = None
+        if pid is not None:
+            for b in index.bindings_for_provider(pid):
+                signals.record_success(provider_id=pid, model_id=b.model_id)
+    return "credential_rotated"
 
 
 def failure_category(report: object) -> str | None:

@@ -27,6 +27,19 @@ def test_turn_feedback_roundtrip(client, runtime) -> None:
     # validation: user turns rejected, bad score, unknown turn / conversation
     bad = client.post(f"/v1/conversations/{cid}/turns/{user_tid}:feedback", json={"score": 1})
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "validation_error"
-    assert client.post(f"/v1/conversations/{cid}/turns/{tid}:feedback", json={"score": 5}).status_code == 422
-    assert client.post(f"/v1/conversations/{cid}/turns/{uuid4()}:feedback", json={"score": 0}).status_code == 404
-    assert client.post(f"/v1/conversations/{uuid4()}/turns/{tid}:feedback", json={"score": 0}).status_code == 404
+    assert (
+        client.post(f"/v1/conversations/{cid}/turns/{tid}:feedback", json={"score": 5}).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            f"/v1/conversations/{cid}/turns/{uuid4()}:feedback", json={"score": 0}
+        ).status_code
+        == 404
+    )
+    assert (
+        client.post(
+            f"/v1/conversations/{uuid4()}/turns/{tid}:feedback", json={"score": 0}
+        ).status_code
+        == 404
+    )
