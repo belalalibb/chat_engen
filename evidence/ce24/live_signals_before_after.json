@@ -1,0 +1,20 @@
+{
+  "before": {
+    "enabled": false,
+    "n": 12,
+    "p50_ms": 16.1,
+    "p95_ms": 17.8,
+    "picks": {
+      "fast": 12
+    }
+  },
+  "after": {
+    "enabled": true,
+    "n": 12,
+    "p50_ms": 16.7,
+    "p95_ms": 18.3,
+    "picks": {
+      "fast": 12
+    }
+  }
+}

@@ -56,6 +56,7 @@ chat_engine/conversations/service.py
 chat_engine/conversations/store.py
 chat_engine/conversations/summarizer.py
 chat_engine/credentials/__init__.py
+chat_engine/credentials/pool.py
 chat_engine/credentials/service.py
 chat_engine/guardrails/__init__.py
 chat_engine/guardrails/builtins.py
