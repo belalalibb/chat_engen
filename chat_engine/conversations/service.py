@@ -377,13 +377,14 @@ class ChatService:
                     details={"model": model},
                 ) from None
         try:
-            return self._rt.router.route(
+            decision = self._rt.router.route(
                 RoutingRequest(
                     operation=ProviderOperation.GENERATE_TEXT,
                     model_policy=policy,
                     required_capabilities=list(required_capabilities),
                 )
             )
+            return self._rt.reorder_decision(decision)  # CE-24/C (no-op unless enabled)
         except UnsupportedPolicyType as exc:
             raise ChatError("conflict", str(exc)) from None
         except NoEligibleCandidates as exc:

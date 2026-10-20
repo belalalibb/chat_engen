@@ -43,6 +43,7 @@ from core.contracts.provider import (
     ProviderHealthState,
     ProviderManifest,
 )
+from core.contracts.routing import RoutingDecision
 from core.execution.multi_model import MultiModelExecutor
 from core.execution.service import ExecutionService
 from core.memory.memory import InMemoryConversationStore, InMemoryMemoryStore
@@ -257,6 +258,15 @@ class Runtime:
     @property
     def upstream_sha(self) -> str:
         return UPSTREAM_SHA
+
+    def reorder_decision(self, decision: RoutingDecision) -> RoutingDecision:
+        """CE-24/C: apply live-signal reordering (no-op unless enabled)."""
+        live = self.extensions.get("live_signals")
+        index = self.extensions.get("catalog_index")
+        if live is None or index is None or not getattr(live, "enabled", False):
+            return decision
+        out: RoutingDecision = live.reorder(decision, index.provider_key)
+        return out
 
     def register_provider(
         self,
@@ -490,6 +500,13 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     from chat_engine.guardrails import GuardrailEngine
 
     rt.extensions["guardrails"] = GuardrailEngine.from_env(env.get("CE_GUARDRAILS_JSON"))
+    # CE-24/C: live latency/in-flight signals; reorder only when CE_ROUTING_LIVE_SIGNALS=1
+    from chat_engine.routing import LiveSignals
+
+    rt.extensions["live_signals"] = LiveSignals(
+        enabled=env.get("CE_ROUTING_LIVE_SIGNALS", "0") == "1"
+    )
+    rt.extensions["usage_recorder"].live_signals = rt.extensions["live_signals"]
     rt.extensions["tracer"] = build_tracer(env)
     # CE-14: App Factory (artifacts only; approval gate)
     from pathlib import Path as _Path

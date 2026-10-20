@@ -107,13 +107,14 @@ def route_for(rt: Runtime, body: ChatStreamRequest) -> Any:
                 details={"model": body.model},
             )
     try:
-        return rt.router.route(
+        decision = rt.router.route(
             RoutingRequest(
                 operation=ProviderOperation.GENERATE_TEXT,
                 model_policy=policy,
                 required_capabilities=list(body.required_capabilities),
             )
         )
+        return rt.reorder_decision(decision)  # CE-24/C (no-op unless enabled)
     except UnsupportedPolicyType as exc:
         return ce_error_response(
             ChatEngineErrorCode.CONFLICT,

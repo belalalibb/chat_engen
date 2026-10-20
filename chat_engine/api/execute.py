@@ -527,6 +527,7 @@ def build_router(rt: Runtime) -> APIRouter:
                         required_modalities=required_modalities,
                     )
                 )
+                decision = rt.reorder_decision(decision)  # CE-24/C (no-op unless enabled)
             except UnsupportedPolicyType as exc:
                 return error_response(
                     ErrorCode.VALIDATION_ERROR, str(exc), details={"field": "model_policy"}

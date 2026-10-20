@@ -62,6 +62,7 @@ class UsageRecorder:
         self.enabled = enabled
         self._records: dict[str, UsageRecord] = {}  # request_id → record (idempotent)
         self.keys: Any = None  # CE-24/D: KeyService for per-key spend (set by runtime)
+        self.live_signals: Any = None  # CE-24/C: LiveSignals feed (set by runtime)
 
     # -- write ---------------------------------------------------------------------------------
 
@@ -118,6 +119,8 @@ class UsageRecorder:
         )
         self._records[request_id] = row
         self._charge_key(row)
+        if self.live_signals is not None and provider_key:
+            self.live_signals.observe(provider_key, latency_ms, success=status == "succeeded")
         return row
 
     def _charge_key(self, row: UsageRecord) -> None:

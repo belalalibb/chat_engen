@@ -112,4 +112,15 @@ def build_router(rt: Runtime) -> APIRouter:
             }
         )
 
+    @router.get("/v1/admin/routing/signals")
+    async def routing_signals() -> Response:
+        """CE-24/C: live latency / in-flight per provider (feeds optional reordering)."""
+        live = rt.extensions.get("live_signals")
+        return JSONResponse(
+            content={
+                "enabled": bool(getattr(live, "enabled", False)),
+                "providers": live.snapshot() if live is not None else [],
+            }
+        )
+
     return router
