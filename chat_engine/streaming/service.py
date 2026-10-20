@@ -28,6 +28,7 @@ from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderGenerateRequest, ProviderOperation
 from core.contracts.routing import CandidateScore, RoutingDecision
 
+from chat_engine.auth.context import extra_scopes
 from chat_engine.providers.error_details import enrich_details, is_context_window_error
 from chat_engine.streaming.contracts import (
     StreamChunk,
@@ -207,7 +208,7 @@ class StreamService:
                 from chat_engine.admission import Denied
 
                 got = await admission.reserve(
-                    [f"tenant:{self._rt.tenant_id}", f"provider:{pk}"],
+                    [f"tenant:{self._rt.tenant_id}", f"provider:{pk}", *extra_scopes()],
                     tokens_estimate=self._estimate(st.payload),
                     units=1.0,
                 )

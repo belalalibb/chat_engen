@@ -61,6 +61,7 @@ class UsageRecorder:
         self.pricing = pricing or PricingBook()
         self.enabled = enabled
         self._records: dict[str, UsageRecord] = {}  # request_id → record (idempotent)
+        self.keys: Any = None  # CE-24/D: KeyService for per-key spend (set by runtime)
 
     # -- write ---------------------------------------------------------------------------------
 
@@ -116,7 +117,23 @@ class UsageRecorder:
             metadata=dict(metadata or {}),
         )
         self._records[request_id] = row
+        self._charge_key(row)
         return row
+
+    def _charge_key(self, row: UsageRecord) -> None:
+        """CE-24/D: attribute spend to the calling virtual key (same cost as the record)."""
+        from chat_engine.auth.context import current_key_id
+
+        kid = current_key_id()
+        if kid is None or self.keys is None:
+            return
+        row.metadata.setdefault("key_id", str(kid))
+        self.keys.record_spend(
+            kid,
+            tokens_in=row.tokens.input,
+            tokens_out=row.tokens.output,
+            cost_usd=row.cost.amount if row.cost.known else 0.0,
+        )
 
     def record_turn(
         self,

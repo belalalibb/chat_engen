@@ -18,6 +18,7 @@ from pydantic import Field
 
 CONSERVATIVE_DEFAULT_LIMITS: dict[str, int] = {"rpm": 60, "concurrency": 4}
 WINDOW_SECONDS = 60
+DAY_SECONDS = 86_400  # CE-24/L: rolling 24h window for rpd/tpd
 
 
 class Dim(StrEnum):
@@ -25,6 +26,8 @@ class Dim(StrEnum):
     TPM = "tpm"
     CONCURRENCY = "concurrency"
     BUDGET = "budget"
+    RPD = "rpd"  # CE-24/L requests per day (rolling 24h)
+    TPD = "tpd"  # CE-24/L tokens per day (rolling 24h)
 
 
 class Limits(ContractModel):
@@ -32,6 +35,8 @@ class Limits(ContractModel):
     tpm: int | None = Field(default=None, ge=1)
     concurrency: int | None = Field(default=None, ge=1)
     budget: float | None = Field(default=None, ge=0)
+    rpd: int | None = Field(default=None, ge=1)  # CE-24/L, optional, default unlimited
+    tpd: int | None = Field(default=None, ge=1)
     source: BoundedStr = "conservative_default"
 
     @classmethod

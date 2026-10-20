@@ -21,6 +21,7 @@ from chat_engine.admission.breaker_policy import (
     BreakerPolicy,
 )
 from chat_engine.admission.port import (
+    DAY_SECONDS,
     WINDOW_SECONDS,
     Denied,
     Dim,
@@ -55,6 +56,7 @@ class InMemoryAdmission:
         self._default = default_limits or Limits.conservative()
         self._scopes: dict[str, ScopeSnapshot] = {}
         self._windows: dict[str, list[tuple[datetime, int]]] = {}  # scope → [(at, tokens)]
+        self._days: dict[str, list[tuple[datetime, int]]] = {}  # CE-24/L 24h window
         self._reservations: dict[str, tuple[list[str], int, float]] = {}
         self._lock = threading.Lock()  # cheap; asyncio single loop but API may thread
         # CE-24/B: per-category rules (legacy relative breaker when no rule matches)
@@ -75,6 +77,13 @@ class InMemoryAdmission:
         cutoff = now - timedelta(seconds=WINDOW_SECONDS)
         rows = [r for r in self._windows.get(scope, []) if r[0] > cutoff]
         self._windows[scope] = rows
+        return len(rows), sum(t for _, t in rows)
+
+    def _roll_day(self, scope: str, now: datetime) -> tuple[int, int]:
+        """CE-24/L: only tracked for scopes that declare rpd/tpd (no cost otherwise)."""
+        cutoff = now - timedelta(seconds=DAY_SECONDS)
+        rows = [r for r in self._days.get(scope, []) if r[0] > cutoff]
+        self._days[scope] = rows
         return len(rows), sum(t for _, t in rows)
 
     # -- port ---------------------------------------------------------------------------
@@ -125,6 +134,38 @@ class InMemoryAdmission:
                         retry_after_ms=WINDOW_SECONDS * 1000,
                         reason="tokens per minute exhausted",
                     )
+                if lim.rpd is not None or lim.tpd is not None:
+                    rpd_used, tpd_used = self._roll_day(scope, now)
+                    if lim.rpd is not None and rpd_used + 1 > lim.rpd:
+                        oldest = self._days[scope][0][0] if self._days.get(scope) else now
+                        retry = max(
+                            0,
+                            int(
+                                (oldest + timedelta(seconds=DAY_SECONDS) - now).total_seconds()
+                                * 1000
+                            ),
+                        )
+                        return Denied(
+                            scope=scope,
+                            dimension=Dim.RPD,
+                            limit=lim.rpd,
+                            current=rpd_used,
+                            retry_after_ms=retry,
+                            reason="requests per day exhausted",
+                        )
+                    if (
+                        lim.tpd is not None
+                        and tokens_estimate
+                        and tpd_used + tokens_estimate > lim.tpd
+                    ):
+                        return Denied(
+                            scope=scope,
+                            dimension=Dim.TPD,
+                            limit=lim.tpd,
+                            current=tpd_used,
+                            retry_after_ms=DAY_SECONDS * 1000,
+                            reason="tokens per day exhausted",
+                        )
                 if lim.concurrency is not None and snap.in_flight + 1 > lim.concurrency:
                     return Denied(
                         scope=scope,
@@ -150,6 +191,8 @@ class InMemoryAdmission:
                 snap.in_flight += 1
                 snap.budget_used += units
                 self._windows.setdefault(scope, []).append((now, tokens_estimate))
+                if snap.limits.rpd is not None or snap.limits.tpd is not None:
+                    self._days.setdefault(scope, []).append((now, tokens_estimate))
             self._reservations[rid] = (list(scopes), tokens_estimate, units)
             return Reservation(
                 reservation_id=rid,
@@ -182,6 +225,9 @@ class InMemoryAdmission:
                     # replace the estimate with the truth on the most recent row
                     at, _ = self._windows[scope][-1]
                     self._windows[scope][-1] = (at, tokens_actual)
+                if tokens_actual is not None and self._days.get(scope):
+                    at, _ = self._days[scope][-1]
+                    self._days[scope][-1] = (at, tokens_actual)
                 if not _breaker_applies(scope):
                     # tenant/project scopes are quotas, not health: five upstream refusals
                     # from DIFFERENT providers must never lock the whole tenant out.
@@ -242,18 +288,27 @@ class InMemoryAdmission:
                 snap.budget_used = max(0.0, snap.budget_used - units)
                 if self._windows.get(scope):
                     self._windows[scope].pop()
+                if self._days.get(scope):
+                    self._days[scope].pop()
 
     def snapshot(self) -> list[JsonObject]:
         now = self._clock()
         out: list[JsonObject] = []
         for scope, snap in sorted(self._scopes.items()):
             rpm_used, tpm_used = self._roll(scope, now)
+            rpd_used, tpd_used = (
+                self._roll_day(scope, now)
+                if snap.limits.rpd is not None or snap.limits.tpd is not None
+                else (None, None)
+            )
             out.append(
                 {
                     "scope": scope,
                     "limits": snap.limits.model_dump(exclude_none=True),
                     "rpm_used": rpm_used,
                     "tpm_used": tpm_used,
+                    "rpd_used": rpd_used,
+                    "tpd_used": tpd_used,
                     "in_flight": snap.in_flight,
                     "budget_used": round(snap.budget_used, 3),
                     "breaker_open": bool(snap.breaker_open_until and snap.breaker_open_until > now),

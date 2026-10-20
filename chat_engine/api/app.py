@@ -14,6 +14,7 @@ from chat_engine.api import (
     admin_capabilities,
     admin_providers,
     apps,
+    auth,
     catalog,
     chat_stream,
     conversations,
@@ -50,6 +51,7 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         title="chat_engine", version=__version__, docs_url="/docs", openapi_url="/openapi.json"
     )
     app.state.runtime = runtime
+    auth.install_auth(app, runtime)  # CE-24/D: no-op when CE_AUTH_MODE=off
 
     @app.exception_handler(RequestValidationError)
     async def _validation_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -74,6 +76,7 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
             "providers": list(runtime.provider_keys),
             "gateway": runtime.extensions.get("gateway_report", {"bound": [], "skipped": {}}),
             "admission_backend": backend,
+            "auth_mode": getattr(runtime.extensions.get("keys"), "mode", "off").__str__(),
             "replicas_safe": backend != "in_memory",
             "compat": {"not_served": list(NOT_SERVED_UPSTREAM_ROUTES)},
         }
@@ -103,6 +106,9 @@ def create_app(rt: Runtime | None = None, *, environ: Mapping[str, str] | None =
         app.include_router(apps.build_router(runtime))
     if "usage_recorder" in runtime.extensions:
         app.include_router(usage.build_router(runtime))
+    keys = runtime.extensions.get("keys")
+    if keys is not None and keys.mode.value != "off":
+        app.include_router(auth.build_router(runtime))
     install_openapi(app, upstream_sha=UPSTREAM_SHA)
     mount_ui(app, environ)
     return app

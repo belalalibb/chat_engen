@@ -26,6 +26,7 @@ from pydantic import Field
 
 from chat_engine.admission.port import failure_category
 from chat_engine.api.errors import ChatEngineErrorCode
+from chat_engine.auth.context import extra_scopes
 from chat_engine.composition.runtime import Runtime
 from chat_engine.conversations.service import ChatError
 from chat_engine.handoff import CanonicalMessage, HandoffBudget, HandoffCompiler, HandoffPacket
@@ -349,7 +350,9 @@ def build_router(rt: Runtime) -> APIRouter:
 
             est = sum(len(m.text()) for m in body.messages) // 4
             got = await admission.reserve(
-                [f"tenant:{rt.tenant_id}", f"provider:{pk}"], tokens_estimate=est, units=1.0
+                [f"tenant:{rt.tenant_id}", f"provider:{pk}", *extra_scopes()],
+                tokens_estimate=est,
+                units=1.0,
             )
             if isinstance(got, Denied):
                 return oai_error(

@@ -444,6 +444,15 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
         Limits(rpm=max(1, tenant_rpm), concurrency=max(1, tenant_conc), source="tenant_env"),
     )
     rt.extensions["idempotency"] = IdempotencyStore()
+    # CE-24/D: virtual keys (off by default — anonymous requests behave exactly as before)
+    from chat_engine.auth import AuthMode, KeyService
+
+    rt.extensions["keys"] = KeyService(
+        tenant_id=rt.tenant_id,
+        mode=AuthMode.from_env(env.get("CE_AUTH_MODE")),
+        master_key=(env.get("CE_MASTER_KEY") or "").strip() or None,
+        admission=rt.extensions["admission"],
+    )
     # CE-08: streaming service (optional port; provider must have verified streaming_text)
     from chat_engine.streaming.service import StreamService
 
@@ -476,6 +485,7 @@ def build_runtime(environ: Mapping[str, str] | None = None) -> Runtime:
     rt.extensions["usage_recorder"] = UsageRecorder(
         pricing, enabled=env.get("CE_FEATURE_USAGE", "1") != "0"
     )
+    rt.extensions["usage_recorder"].keys = rt.extensions.get("keys")  # CE-24/D spend
     rt.extensions["tracer"] = build_tracer(env)
     # CE-14: App Factory (artifacts only; approval gate)
     from pathlib import Path as _Path

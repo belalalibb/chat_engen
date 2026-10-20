@@ -15,6 +15,7 @@ from core.contracts.base import JsonObject
 from core.contracts.provider import ProviderOperation
 
 from chat_engine.admission.port import failure_category
+from chat_engine.auth.context import extra_scopes
 from chat_engine.conversations.service import ChatError
 from chat_engine.orchestration.contracts import (
     OrchestrationTrace,
@@ -130,7 +131,9 @@ class Orchestrator:
 
             est = sum(len(str(m.get("content", ""))) for m in messages) // 4
             got = await admission.reserve(
-                [f"tenant:{self._rt.tenant_id}", f"provider:{pk}"], tokens_estimate=est, units=1.0
+                [f"tenant:{self._rt.tenant_id}", f"provider:{pk}", *extra_scopes()],
+                tokens_estimate=est,
+                units=1.0,
             )
             if isinstance(got, Denied):
                 raise ChatError(

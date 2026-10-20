@@ -19,6 +19,7 @@ from core.routing.errors import FallbackNotConfigured, NoEligibleCandidates
 from core.routing.router import UnsupportedPolicyType
 
 from chat_engine.admission.port import failure_category
+from chat_engine.auth.context import current_principal, extra_scopes
 from chat_engine.catalog import AliasUnconfirmed, CatalogService
 from chat_engine.conversations.contracts import (
     ChatRequest,
@@ -304,6 +305,25 @@ class ChatService:
             )
         )
 
+    @staticmethod
+    def _enforce_key(model: str | None, project_id: UUID | None) -> None:
+        """CE-24/D: a virtual key's ``models_allowed`` / ``project_ids`` (no-op anonymous)."""
+        p = current_principal()
+        if p is None or p.anonymous:
+            return
+        from chat_engine.auth.service import KeyRejected, KeyService
+
+        try:
+            KeyService.check_model(p, model)
+            KeyService.check_project(p, project_id)
+        except KeyRejected as exc:
+            raise ChatError(
+                "capability_denied",
+                str(exc),
+                http_status=403,
+                details={"reason": exc.reason, "key_id": str(p.key_id), "model": model},
+            ) from None
+
     def route(
         self, model: str | None, provider: str | None, required_capabilities: list[str]
     ) -> RoutingDecision:
@@ -355,6 +375,7 @@ class ChatService:
         if conversation.project_id is not None:
             project = self._store.get_project(self._rt.tenant_id, conversation.project_id)
         model = req.model or conversation.model or (project.default_model if project else None)
+        self._enforce_key(model, conversation.project_id)
         skills_used = self._effective_skills(conversation, project, req.skills)
         decision = self.route(model, req.provider, req.required_capabilities)
         model_row = self._rt.models.get_by_id(decision.selected.model_id)
@@ -444,7 +465,7 @@ class ChatService:
             from chat_engine.admission import Denied
 
             got = await admission.reserve(
-                [f"tenant:{self._rt.tenant_id}", f"provider:{pk}"],
+                [f"tenant:{self._rt.tenant_id}", f"provider:{pk}", *extra_scopes()],
                 tokens_estimate=int(prep.compiled["estimated_tokens"]),
                 units=1.0,
             )

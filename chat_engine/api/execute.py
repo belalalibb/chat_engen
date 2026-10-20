@@ -49,6 +49,7 @@ from fastapi.responses import JSONResponse
 
 from chat_engine.admission.port import failure_category
 from chat_engine.api.errors import error_response, execution_failure_detail
+from chat_engine.auth.context import extra_scopes
 from chat_engine.composition.runtime import Runtime
 from chat_engine.store.executions import ExecutionNotFound
 from chat_engine.util.time import utc_now
@@ -261,7 +262,7 @@ def build_router(rt: Runtime) -> APIRouter:
         return ctx
 
     def _admission_scopes(decision: Any) -> list[str]:
-        scopes = [f"tenant:{rt.tenant_id}"]
+        scopes = [f"tenant:{rt.tenant_id}", *extra_scopes()]
         if decision is not None:
             pk = rt.extensions["catalog_index"].provider_key(decision.selected.provider_id)
             if pk:
