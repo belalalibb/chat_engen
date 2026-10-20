@@ -57,6 +57,10 @@ chat_engine/conversations/store.py
 chat_engine/conversations/summarizer.py
 chat_engine/credentials/__init__.py
 chat_engine/credentials/service.py
+chat_engine/guardrails/__init__.py
+chat_engine/guardrails/builtins.py
+chat_engine/guardrails/engine.py
+chat_engine/guardrails/port.py
 chat_engine/handoff/__init__.py
 chat_engine/handoff/compiler.py
 chat_engine/handoff/contracts.py
@@ -73,6 +77,8 @@ chat_engine/providers/error_details.py
 chat_engine/providers/gateway.py
 chat_engine/providers/lifecycle.py
 chat_engine/providers/openai_compatible.py
+chat_engine/routing/__init__.py
+chat_engine/routing/live_signals.py
 chat_engine/skills/__init__.py
 chat_engine/skills/contracts.py
 chat_engine/skills/service.py

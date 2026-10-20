@@ -26,6 +26,7 @@ from chat_engine.conversations import (
     ProjectCreate,
     ProjectsPage,
     ProjectUpdate,
+    TurnFeedback,
     TurnsPage,
 )
 
@@ -179,6 +180,13 @@ def build_router(rt: Runtime) -> APIRouter:
         return await guarded(run)
 
     # -- chat (sync) -----------------------------------------------------------------------
+
+    @router.post("/conversations/{conversation_id}/turns/{turn_id}:feedback")
+    async def turn_feedback(conversation_id: UUID, turn_id: UUID, body: TurnFeedback) -> Response:
+        async def run() -> Response:
+            return _json(svc.feedback(conversation_id, turn_id, body))
+
+        return await guarded(run)
 
     @router.post("/chat")
     async def chat(body: ChatRequest) -> Response:

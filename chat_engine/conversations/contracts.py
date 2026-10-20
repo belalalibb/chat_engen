@@ -182,6 +182,14 @@ class ChatResponse(ContractModel):
     trace: JsonObject | None = None  # CE-12 orchestration trace
 
 
+class TurnFeedback(ContractModel):
+    """CE-24/M ``POST /v1/conversations/{id}/turns/{turn_id}:feedback`` body."""
+
+    score: int = Field(ge=-1, le=1)  # -1 thumbs down, 0 neutral/clear, +1 thumbs up
+    comment: str | None = Field(default=None, max_length=2_000)
+    tags: list[BoundedStr] = Field(default_factory=list)  # e.g. ["inaccurate", "too_long"]
+
+
 class TurnsPage(ContractModel):
     turns: list[Turn]
     total: int

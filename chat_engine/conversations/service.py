@@ -33,6 +33,7 @@ from chat_engine.conversations.contracts import (
     Turn,
     TurnKind,
     TurnStatus,
+    TurnFeedback,
 )
 from chat_engine.conversations.store import ConversationStorePort, NotFound
 from chat_engine.conversations.summarizer import Summarizer
@@ -179,6 +180,38 @@ class ChatService:
     ) -> list[Turn]:
         self._store.get_conversation(self._rt.tenant_id, conversation_id)
         return self._store.turns(conversation_id, after_seq=after_seq, limit=limit)
+
+    def feedback(self, conversation_id: UUID, turn_id: UUID, req: TurnFeedback) -> Turn:
+        """CE-24/M: attach user feedback to an assistant turn (``turn.metadata.feedback``);
+        the latest call wins, history is kept in ``metadata.feedback_history``."""
+        self._store.get_conversation(self._rt.tenant_id, conversation_id)
+        turn = next((t for t in self._store.turns(conversation_id) if t.id == turn_id), None)
+        if turn is None:
+            raise NotFound("turn", turn_id)
+        if turn.role is not CanonicalRole.ASSISTANT:
+            raise ChatError(
+                "validation_error",
+                "Feedback can only be attached to assistant turns.",
+                details={"turn_id": str(turn_id), "role": turn.role.value},
+            )
+        entry: JsonObject = {
+            "score": req.score,
+            "comment": req.comment,
+            "tags": list(req.tags),
+            "at": utc_now().isoformat(),
+        }
+        meta = dict(turn.metadata)
+        history = list(meta.get("feedback_history") or [])
+        if meta.get("feedback"):
+            history.append(meta["feedback"])
+        meta["feedback"] = entry
+        if history:
+            meta["feedback_history"] = history[-20:]
+        updated = self._store.update_turn(turn.model_copy(update={"metadata": meta}))
+        recorder = self._rt.extensions.get("usage_recorder")
+        if recorder is not None and hasattr(recorder, "note_feedback"):
+            recorder.note_feedback(turn_id, req.score)
+        return updated
 
     # -- the turn pipeline ---------------------------------------------------------------
 
