@@ -88,7 +88,10 @@ def build_router(rt: Runtime) -> APIRouter:
 
     @router.post("/projects", status_code=201)
     async def create_project(body: ProjectCreate) -> Response:
-        return _json(svc.create_project(body), 201)
+        async def run() -> Response:
+            return _json(svc.create_project(body), 201)
+
+        return await guarded(run)
 
     @router.get("/projects")
     async def list_projects() -> Response:

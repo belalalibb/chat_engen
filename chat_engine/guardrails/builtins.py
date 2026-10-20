@@ -17,7 +17,8 @@ _PII_PATTERNS: dict[str, re.Pattern[str]] = {
     "iban": re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}\b"),
     "ip": re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),
 }
-DEFAULT_PII_KINDS = ("email", "phone", "card", "iban")
+#: order matters: specific patterns (card, iban) before the generic phone matcher
+DEFAULT_PII_KINDS = ("email", "card", "iban", "phone")
 
 
 def _digits(s: str) -> int:
@@ -66,7 +67,8 @@ class PiiRedact:
 
     def __init__(self, kinds: list[str] | None = None, *, action: str = "redact"):
         wanted = [k for k in (kinds or list(DEFAULT_PII_KINDS)) if k in _PII_PATTERNS]
-        self.kinds = wanted or list(DEFAULT_PII_KINDS)
+        order = {k: i for i, k in enumerate((*DEFAULT_PII_KINDS, "ip"))}
+        self.kinds = sorted(set(wanted) or set(DEFAULT_PII_KINDS), key=lambda k: order[k])
         self.action = Verdict.BLOCK if action == "block" else Verdict.REDACT
 
     def _scan(self, text: str) -> GuardrailResult:
