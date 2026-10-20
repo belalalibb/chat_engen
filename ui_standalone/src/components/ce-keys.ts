@@ -63,7 +63,7 @@ export class CeKeys extends CeElement {
   private async toggle(k: any) {
     try { await call("PATCH", `/v1/admin/keys/${k.key_id}`, this.master, { disabled: !k.disabled }); await this.load(); } catch (e) { this.error = String(e); }
   }
-  private async remove(k: any) {
+  private async removeKey(k: any) {
     if (!confirm(`${t("delete")} ${k.name}?`)) return;
     try { await call("DELETE", `/v1/admin/keys/${k.key_id}`, this.master); await this.load(); } catch (e) { this.error = String(e); }
   }
@@ -105,7 +105,7 @@ export class CeKeys extends CeElement {
           <td>${k.budget_usd ?? "∞"}</td>
           <td>${k.spend?.requests ?? 0} req · ${k.spend?.tokens_total ?? 0} tok · $${Number(k.spend?.cost_usd ?? 0).toFixed(4)}</td>
           <td>${k.is_master ? nothing : html`<button @click=${() => this.toggle(k)}>${k.disabled ? t("enable") : t("disable")}</button>
-            <button class="danger" @click=${() => this.remove(k)}>${t("delete")}</button>`}</td></tr>`)}
+            <button class="danger" @click=${() => this.removeKey(k)}>${t("delete")}</button>`}</td></tr>`)}
           ${this.keys.length === 0 ? html`<tr><td colspan="7" class="dim">${t("empty")}</td></tr>` : nothing}</tbody></table>
       </div>` : nothing}`;
   }
