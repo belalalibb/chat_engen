@@ -873,6 +873,138 @@ def admin_routing_weights(c: Client) -> JSON:
 
 
 # =================================================================================================
+# 9b. CE-24 surfaces — virtual keys, guardrails, embeddings, cache, feedback, Anthropic dialect
+# =================================================================================================
+
+
+def admission_breaker_policy(c: Client) -> JSON:
+    """GET /v1/admin/admission → breaker_policy (CE-24/B: per-category fails/open_seconds; legacy when no rules)"""
+    return c.call("GET", "/v1/admin/admission").get("breaker_policy") or {}
+
+
+def admin_pricing_sources(c: Client) -> JSON:
+    """GET /v1/admin/pricing → {litellm_loaded, litellm_fetched_at} (CE-24/A secondary price source)"""
+    r = admin_pricing(c)
+    return {k: r.get(k) for k in ("litellm_loaded", "litellm_fetched_at")}
+
+
+def whoami(c: Client) -> JSON:
+    """GET /v1/auth/whoami → principal + auth_mode (off|optional|required). Anonymous when no key."""
+    return c.call("GET", "/v1/auth/whoami")
+
+
+def create_key(c: Client, name: str, **fields: Any) -> JSON:
+    """POST /v1/admin/keys {name, models?, projects?, max_budget_usd?, rpm?, tpm?, rpd?, tpd?, expires_at?} → plaintext ONCE (ce_live_...). Needs master key (Bearer) unless CE_AUTH_MODE=off."""
+    return c.call("POST", "/v1/admin/keys", {"name": name, **fields})
+
+
+def list_keys(c: Client) -> JSON:
+    """GET /v1/admin/keys (hashes only, spend per key)"""
+    return c.call("GET", "/v1/admin/keys")
+
+
+def get_key(c: Client, key_id: str) -> JSON:
+    """GET /v1/admin/keys/{key_id}"""
+    return c.call("GET", f"/v1/admin/keys/{key_id}")
+
+
+def update_key(c: Client, key_id: str, **fields: Any) -> JSON:
+    """PATCH /v1/admin/keys/{key_id} {name?, models?, projects?, max_budget_usd?, rpm?, tpm?, rpd?, tpd?, enabled?}"""
+    return c.call("PATCH", f"/v1/admin/keys/{key_id}", fields)
+
+
+def delete_key(c: Client, key_id: str) -> JSON:
+    """DELETE /v1/admin/keys/{key_id} → 204"""
+    return c.call("DELETE", f"/v1/admin/keys/{key_id}")
+
+
+def create_guarded_project(c: Client, name: str, guardrails: list[JSON], **fields: Any) -> JSON:
+    """POST /v1/projects {name, guardrails:[{type:"keyword_block"|"pii_redact", stage:"pre"|"post"|"both", ...}]} (CE-24/E built-ins only; unknown type → 422)"""
+    return create_project(c, name, guardrails=guardrails, **fields)
+
+
+def routing_signals(c: Client) -> JSON:
+    """GET /v1/admin/routing/signals → {enabled, providers:[{provider_key, ewma_latency_ms, in_flight, ...}]} (CE-24/C)"""
+    return c.call("GET", "/v1/admin/routing/signals")
+
+
+def provider_credentials(c: Client, provider_key: str) -> JSON:
+    """GET /v1/admin/providers/{key}/credentials → credential pool (refs only, parked/active, never secrets) (CE-24/K)"""
+    return c.call("GET", f"/v1/admin/providers/{provider_key}/credentials")
+
+
+def turn_feedback(
+    c: Client,
+    conversation_id: str,
+    turn_id: str,
+    score: int,
+    *,
+    comment: str | None = None,
+    tags: list[str] | None = None,
+) -> JSON:
+    """POST /v1/conversations/{id}/turns/{turn_id}:feedback {score:-1|0|1, comment?, tags?} → turn (metadata.feedback) (CE-24/M; assistant turns only)"""
+    return c.call(
+        "POST",
+        f"/v1/conversations/{conversation_id}/turns/{turn_id}:feedback",
+        {"score": score, "comment": comment, "tags": tags or []},
+    )
+
+
+def embeddings_models(c: Client) -> JSON:
+    """GET /v1/embeddings/models → {models:[{name, provider_key, ...}]} (CE-24/H; gateway embed-only providers)"""
+    return c.call("GET", "/v1/embeddings/models")
+
+
+def embeddings(c: Client, inputs: list[str], *, model: str | None = None, provider: str | None = None) -> JSON:
+    """POST /v1/embeddings {inputs:[...], model?, provider?} → {embeddings:[[...]], dimensions, usage}. Upstream key missing → 502 invalid_credential (honest)."""
+    body: JSON = {"inputs": inputs}
+    if model:
+        body["model"] = model
+    if provider:
+        body["provider"] = provider
+    return c.call("POST", "/v1/embeddings", body)
+
+
+def cache_stats(c: Client) -> JSON:
+    """GET /v1/admin/cache → {enabled, ttl_s, max, entries, hits, misses} (CE-24/F exact-match cache; CE_CACHE=memory)"""
+    return c.call("GET", "/v1/admin/cache")
+
+
+def cache_clear(c: Client) -> JSON:
+    """DELETE /v1/admin/cache → {cleared:n}"""
+    return c.call("DELETE", "/v1/admin/cache")
+
+
+def anthropic_messages(
+    c: Client,
+    messages: list[JSON],
+    *,
+    model: str,
+    max_tokens: int = 256,
+    system: str | list[JSON] | None = None,
+    tools: list[JSON] | None = None,
+    **fields: Any,
+) -> JSON:
+    """POST /v1/messages (Anthropic Messages dialect, CE-24/I) → {type:"message", role, content:[{type:"text"}], stop_reason, usage}"""
+    body: JSON = {"model": model, "max_tokens": max_tokens, "messages": messages, **fields}
+    if system is not None:
+        body["system"] = system
+    if tools:
+        body["tools"] = tools
+    return c.call("POST", "/v1/messages", body)
+
+
+def anthropic_messages_stream(
+    c: Client, messages: list[JSON], *, model: str, max_tokens: int = 256, **fields: Any
+) -> Iterator[JSON]:
+    """POST /v1/messages {stream:true} → SSE message_start, content_block_delta..., message_stop"""
+    return c.stream(
+        "/v1/messages",
+        {"model": model, "max_tokens": max_tokens, "messages": messages, "stream": True, **fields},
+    )
+
+
+# =================================================================================================
 # 10. Robust-call pattern (the playbook from INTEGRATION_GUIDE §10, as code)
 # =================================================================================================
 
@@ -1108,6 +1240,65 @@ def tour(c: Client, only: str | None = None) -> int:
             failures += 1
             _p("admin ERROR", str(e))
 
+    if want("ce24"):
+        try:
+            _p("pricing sources (A)", admin_pricing_sources(c))
+            _p("breaker policy (B)", admission_breaker_policy(c))
+            w = whoami(c)
+            _p("whoami (D)", w)
+            if w.get("auth_mode") != "off":
+                try:
+                    k = create_key(c, "reference-key", rpm=5)
+                    _p("create_key (D) — plaintext shown once", {"id": k.get("id"), "prefix": str(k.get("key", ""))[:8]})
+                    _p("update_key (D)", update_key(c, k["id"], name="reference-key-2").get("name"))
+                    delete_key(c, k["id"])
+                except ChatEngineError as e:
+                    _p("keys admin (D) needs master key", f"{e.status} {e.code}")
+            gp = create_guarded_project(
+                c,
+                "reference-guarded",
+                [{"type": "keyword_block", "keywords": ["forbiddenword"], "stage": "pre"},
+                 {"type": "pii_redact", "stage": "both"}],
+            )
+            try:
+                chat(c, "say forbiddenword", project_id=gp["id"])
+                failures += 1
+                _p("guardrail block (E)", "UNEXPECTED SUCCESS")
+            except ChatEngineError as e:
+                _p("guardrail block (E)", f"{e.status} {e.code} guardrail={(e.details or {}).get('guardrail')}")
+            for cv in list_conversations(c, project_id=gp["id"]).get("conversations", []):
+                delete_conversation(c, cv["id"])
+            delete_project(c, gp["id"])
+            try:
+                create_guarded_project(c, "bad", [{"type": "custom_code"}])
+                failures += 1
+            except ChatEngineError as e:
+                _p("guardrail unknown type → 422 (E)", f"{e.status} {e.code}")
+            _p("routing signals (C)", routing_signals(c))
+            _p("provider credentials gw_deepai (K)", provider_credentials(c, "gw_deepai"))
+            if conv_id:
+                last = [t for t in turns(c, conv_id).get("turns", []) if t.get("role") == "assistant"]
+                if last:
+                    fb = turn_feedback(c, conv_id, last[-1]["id"], 1, tags=["helpful"])
+                    _p("turn feedback (M)", fb.get("metadata", {}).get("feedback"))
+            em = embeddings_models(c)
+            _p("embeddings models (H)", em)
+            if em.get("models"):
+                try:
+                    r = embeddings(c, ["hello"], model=em["models"][0].get("name"))
+                    _p("embeddings (H)", {"dimensions": r.get("dimensions")})
+                except ChatEngineError as e:
+                    _p("embeddings (H) upstream refusal (honest)", f"{e.status} {e.code}: {e.message}")
+            _p("cache stats (F)", cache_stats(c))
+            try:
+                r = anthropic_messages(c, [{"role": "user", "content": "Reply OK"}], model="deepseek-v3.2", max_tokens=16)
+                _p("anthropic /v1/messages (I)", {"type": r.get("type"), "stop_reason": r.get("stop_reason"), "text": "".join(b.get("text", "") for b in r.get("content", []))})
+            except ChatEngineError as e:
+                _p("anthropic /v1/messages (I) error envelope", f"{e.status}: {e.message[:80]}")
+        except ChatEngineError as e:
+            failures += 1
+            _p("ce24 ERROR", str(e))
+
     if want("errors"):
         for label, fn in (
             ("422 extra field", lambda: c.call("POST", "/v1/chat", {"message": "x", "bogus": 1})),
@@ -1145,6 +1336,7 @@ SECTIONS = (
     "openai",
     "execute",
     "admin",
+    "ce24",
     "errors",
 )
 
